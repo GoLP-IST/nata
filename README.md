@@ -12,8 +12,8 @@ Use a virtual environment for development. Simply use the built in `venv`
 module of python, e.g.
 
 ```shell
-python -m venv --prompt nata env
-source env/bin/activate
+python -m venv --prompt nata venv
+source venv/bin/activate
 ```
 
 After this, simply run
