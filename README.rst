@@ -34,14 +34,14 @@ For nata, only the latest python versions are supported. In particular only
 ``python>=3.6`` is supported. If you don't have this version installed, you can
 use a tool like `pyenv <https://github.com/pyenv/pyenv>`_.
 
-To install the version ``3.6.0`` you can run
+To install the version ``3.6.9`` you can run
 
 .. code-block:: bash
 
-    pyenv install 3.6.0  # you can use any version here which fulfills the requirements
+    pyenv install 3.6.9  # you can use any version here which fulfills the requirements
 
 and use this particular version for nata development, by running
 
 .. code-block:: bash
 
-    pyenv local 3.6.0
+    pyenv local 3.6.9
