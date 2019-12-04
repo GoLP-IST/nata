@@ -7,47 +7,7 @@ from nata.comfort import _FileList, load
 
 @pytest.fixture(name="filelist", scope="function")
 def dummy_filelist(tmp_path):
-    """Creates a dummy file tree
-
-    <root>
-    ├── first
-    │   ├── first_00.txt
-    │   ├── first_01.txt
-    │   ├── first_02.txt
-    │   ├── first_03.txt
-    │   ├── first_04.txt
-    │   ├── first_05.txt
-    │   ├── first_06.txt
-    │   ├── first_07.txt
-    │   ├── first_08.txt
-    │   ├── first_09.txt
-    │   ├── first_10.txt
-    │   └── second
-    │       ├── second_00.txt
-    │       ├── second_01.txt
-    │       ├── second_02.txt
-    │       ├── second_03.txt
-    │       ├── second_04.txt
-    │       ├── second_05.txt
-    │       ├── second_06.txt
-    │       ├── second_07.txt
-    │       ├── second_08.txt
-    │       ├── second_09.txt
-    │       ├── second_10.txt
-    │       └── third
-    │           ├── third_00.txt
-    │           ├── third_01.txt
-    │           ├── third_02.txt
-    │           ├── third_03.txt
-    │           ├── third_04.txt
-    │           ├── third_05.txt
-    │           ├── third_06.txt
-    │           ├── third_07.txt
-    │           ├── third_08.txt
-    │           ├── third_09.txt
-    │           └── third_10.txt
-    └── root_file.txt
-    """
+    """Creates a dummy file tree"""
     root_file = tmp_path / "root_file.txt"
     root_file.touch()
 
