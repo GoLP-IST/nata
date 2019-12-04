@@ -186,3 +186,5 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# venv module files
+venv/
