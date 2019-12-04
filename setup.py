@@ -56,7 +56,7 @@ EXTRAS_REQUIRE = {
     + REQUIREMENTS["docs"],
 }
 
-##
+## helper routines
 def find_in_meta(tag):
     """Finds in nata/__init__.py meta information."""
     match = re.search(
@@ -68,11 +68,11 @@ def find_in_meta(tag):
 
 
 def read(path):
-    """Reads the text of file."""
+    """Reads the text of a file which is of type `pathlib.Path`."""
     return path.read_text()
 
 
-LONG = read(CWD / "README.rst") + "\n" * 2 + read(CWD / "AUTHORS.rst")
+LONG = read(CWD / "README.rst") + ("\n" * 2) + read(CWD / "AUTHORS.rst")
 
 
 if __name__ == "__main__":
