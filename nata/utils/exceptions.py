@@ -1,0 +1,2 @@
+class NataInvalidContainer(Exception):
+    pass
