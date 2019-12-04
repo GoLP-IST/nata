@@ -37,12 +37,10 @@ class _FileList:
 
     @property
     def is_single_file(self) -> bool:
-        """Check if the path stored in `_FileList` is a single file."""
         return self._entrypoint.is_file()
 
     @property
     def paths(self) -> pathlib.Path:
-        """Generator for returning files which match wildcard pattern. """
         if self.is_single_file:
             yield self._entrypoint
 
@@ -57,7 +55,6 @@ class _FileList:
 
     @property
     def parent_directory(self) -> pathlib.Path:
-        """Returns the parent directory for the entry point specified."""
         if self._entrypoint.is_dir():
             return self._entrypoint
         else:
@@ -67,7 +64,6 @@ class _FileList:
 def load(
     path: Union[str, pathlib.Path],
     recursive: bool = True,
-    return_reduction: bool = False,
 ) -> DatasetCollection:
     """
     Lazy function for loading simulation data.
@@ -92,19 +88,6 @@ def load(
         ``True`` or if only the top directory should be searched ``False``.
         The default option is ``True``.
 
-    ``return_reduction`` : ``bool``, default: ``False``
-
-        Switch to make a lazy reduction before returning an object. If it is
-        ``True`` and the collection contains only one specific dataset then
-        the return object will be of the type of the dataset. The default
-        option is ``False``.
-
-        .. note::
-
-            The parameter is set to ``False`` by default. This should prevent
-            ambiguity as the load routine might return different results as
-            the underlaying file system might have changed.
-
     Returns
     -------
     ``dataobj`` : ``GridDataset``, ``DatasetCollection``
@@ -113,18 +96,18 @@ def load(
 
     Examples
     --------
-    # loads all diagnostics
-    >>> data = nata.load("sim_dir/MS/")
-    >>> type(data)
-    nata.containers.DatasetCollection
-    # e1 is a directory with only one file `e1.h5`
-    >>> data = nata.load("sim_dir/MS/FLD/e1")
-    >>> type(data)
-    nata.containers.GridDataset
-    # load data recursively by matching
-    >>> data = nata.load("sim_dir/MS/e1*.h5")
+        # loads all diagnostics
+        >>> data = nata.load("sim_dir/MS/")
+        >>> type(data)
+        nata.containers.DatasetCollection
+        # e1 is a directory with only one file `e1.h5`
+        >>> data = nata.load("sim_dir/MS/FLD/e1")
+        >>> type(data)
+        nata.containers.GridDataset
+        # load data recursively by matching
+        >>> data = nata.load("sim_dir/MS/e1*.h5")
     """
-    filelist = _FileList(path, recursive)
+    filelist = _FileList(path, recursive=recursive)
     collection = DatasetCollection(root_path=filelist.parent_directory)
 
     for p in filelist.paths:
