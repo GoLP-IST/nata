@@ -4,7 +4,6 @@ from nata import comfort
 from nata.comfort import _FileList, load
 
 
-
 @pytest.fixture(name="filelist", scope="function")
 def dummy_filelist(tmp_path):
     """Creates a dummy file tree"""
@@ -30,6 +29,7 @@ def dummy_filelist(tmp_path):
 
     return tmp_path
 
+
 @pytest.fixture(name="mocked_collection")
 def mock_DatasetCollection(filelist, monkeypatch):
     class DummyCollection:
@@ -43,13 +43,11 @@ def mock_DatasetCollection(filelist, monkeypatch):
     monkeypatch.setattr(comfort, "DatasetCollection", DummyCollection)
 
 
-@pytest.mark.wip
 def test_FileList_nonExisting():
     with pytest.raises(ValueError, match="Passed a non-existing path!"):
         _FileList("some/non/existing/path")
 
 
-@pytest.mark.wip
 def test_FileList_singleFile_entry(filelist):
     basepath = filelist
     path_entry = _FileList(basepath / "root_file.txt")
@@ -61,12 +59,9 @@ def test_FileList_singleFile_entry(filelist):
     assert path_entry.parent_directory == basepath
 
 
-@pytest.mark.wip
 def test_FileList_wildCards_recursive(filelist):
     basepath = filelist
-    wildcard_file = _FileList(
-        basepath / "second_*"
-    )
+    wildcard_file = _FileList(basepath / "second_*")
     expected_files = [f"second_{i:02d}.txt" for i in range(10)]
 
     assert wildcard_file.entrypoint == basepath
@@ -78,7 +73,7 @@ def test_FileList_wildCards_recursive(filelist):
         expected_files.remove(fp.name)
     assert len(expected_files) == 0
 
-@pytest.mark.wip
+
 def test_FileList_wildCards_nonrecursive(filelist):
     basepath = filelist
     wildcard_file = _FileList(
@@ -94,7 +89,7 @@ def test_FileList_wildCards_nonrecursive(filelist):
         expected_files.remove(fp.name)
     assert len(expected_files) == 0
 
-@pytest.mark.wip
+
 def test_load(filelist, mocked_collection):
     basepath = filelist
     test_collection = load(basepath / "*05*")
