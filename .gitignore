@@ -188,3 +188,6 @@ $RECYCLE.BIN/
 
 # venv module files
 venv/
+
+# vscode
+.vscode/
