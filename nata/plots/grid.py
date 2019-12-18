@@ -24,18 +24,13 @@ class GridPlot1D(BasePlot):
         return self.data.get_time_label()
 
     def __attrs_post_init__(self):
-
+        
         self.build_canvas()
 
     def build_canvas(self):
 
-        # get plotting backend
-        # plt = self.fig._plt
-
-        # get figure 
-        fig = self.fig._fig
-
-        ax = fig.add_subplot(111)
+        # add subplot
+        ax = self._backend_fig.add_subplot(self.fig_pos)
 
         # get plot axes and data
         x = self.axes[0].values
@@ -60,6 +55,7 @@ class GridPlot1D(BasePlot):
         # set aspect ratio
         ax.set_aspect(self.aspect)
         
+        # set backend axes object
         self._ax = ax
         
 @attr.s
@@ -116,19 +112,13 @@ class GridPlot2D(BasePlot):
 
 
     def __attrs_post_init__(self):
-
+        
         self.build_canvas()
-
 
     def build_canvas(self):
 
-        # get plotting backend
-        plt = self.fig._plt
-
-        # get figure 
-        fig = self.fig._fig
-
-        ax = fig.add_subplot(111)
+        # add subplot
+        ax = self._backend_fig.add_subplot(self.fig_pos)
 
         # get plot axes and data
         x = self.axes[0].values
@@ -176,7 +166,7 @@ class GridPlot2D(BasePlot):
             )
         
         # draw colorbar
-        cb = plt.colorbar(c, aspect=30)
+        cb = ax.get_figure().colorbar(c, aspect=30)
         
         # set colorbar title
         cb.set_label(label=self.cb_title, labelpad=self.fig.pad)
@@ -197,4 +187,5 @@ class GridPlot2D(BasePlot):
         # set aspect ratio
         ax.set_aspect(self.aspect)
 
+        # set backend axes object
         self._ax = ax

@@ -1,8 +1,9 @@
-from typing import Dict
+from typing import ValuesView
 
 import attr
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 from nata.plots.base import BasePlot
 from nata.plots.grid import GridPlot1D, GridPlot2D
@@ -11,7 +12,7 @@ from nata.plots.grid import GridPlot1D, GridPlot2D
 class Figure: 
 
     # plots contained in the figure
-    plot_obj: Dict[int, BasePlot] = attr.ib(init=False, factory=dict)
+    plot_objs: np.ndarray = attr.ib(init=False, repr=False)
 
     # backend object
     _plt: attr.ib(init=False)
@@ -41,17 +42,17 @@ class Figure:
 
     @property
     def plots(self) -> np.ndarray:
-        if len(self.plot_obj) == 1:
-            return next(iter(self.plot_obj))
+        if len(self.plot_objs) == 1:
+            return next(iter(self.plot_objs))
 
-        d = np.zeros((len(self.plot_obj),))
-        for i, plot in enumerate(self.plot_obj):
-            d[i] = plot
-        return d
+        return self.plot_objs
     
     # TODO: add metadata to attributes to identify auto state
 
     def __attrs_post_init__(self, **kwargs):
+
+        self.plot_objs = ()
+        
         # initialize plotting backend
         self.init_backend()
 
@@ -66,6 +67,10 @@ class Figure:
     
     def init_fig(self):
         self._fig = self._plt.figure(figsize=self.figsize, facecolor=self.facecolor)
+
+    def reset_fig(self):
+        self._plt.close(self._fig)
+        self.init_fig()
 
     def set_style(self, style="default"):
         # TODO: allow providing of a general style from arguments
@@ -92,12 +97,38 @@ class Figure:
 
 
     def add_plot(self, plot_type, axes, data, **kwargs):
+        
+        fig_pos = 111
+        
+        # atm, nata uses one columns
+        req_num = len(self.plot_objs) + 1
+        if req_num > 1:
+            # reset figure
+            self.reset_fig()
+            
+            # redefine figure position for existing plots
+            
+            nrows = math.ceil(req_num / 2)
+            ncols = 2
+            offset = nrows * 100 + ncols * 10
+            fig_pos = offset + 1
+
+            for plot in self.plot_objs:
+                plot.fig_pos = fig_pos
+                plot.build_canvas()
+                fig_pos += 1
+
+        # build plot
         p = plot_type(
             fig=self,
+            fig_pos=fig_pos,
             axes=axes,
             data=data,
             **kwargs
         )
+
+        # store plot in array of figure plots
+        self.plot_objs = np.append(self.plot_objs, p)
 
     # def update(self):
 

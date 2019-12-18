@@ -43,21 +43,19 @@ def plot_grid_dataset(dataset, fig=None, **kwargs):
             time_units=dataset.time_units
         )
         
-        # build figure object
-        # TODO: use figure passed as argument
-        fig_kwargs = filter_kwargs(Figure, **kwargs)
-
-        fig = Figure(**fig_kwargs)
+        # build figure object is no figure is passed as argument
+        if fig is None:
+            fig_kwargs = filter_kwargs(Figure, **kwargs)
+            fig = Figure(**fig_kwargs)
 
         # add plot to figure object
         plot_kwargs = filter_kwargs(GridPlot1D, **kwargs)
-        
         fig.add_plot(GridPlot1D, axes, data, **plot_kwargs)
 
         # show figure
         fig.show()
 
-        return (fig, fig.plot_obj)
+        return fig
             
 
     elif (dataset.dimension == 2):
@@ -90,25 +88,23 @@ def plot_grid_dataset(dataset, fig=None, **kwargs):
             time_units=dataset.time_units
         )
 
-        # build figure object
-        # TODO: use figure passed as argument
-        fig_kwargs = filter_kwargs(Figure, **kwargs)
-        
-        fig = Figure(**fig_kwargs)
-
-        plot_kwargs = filter_kwargs(GridPlot2D, **kwargs)
+        # build figure object is no figure is passed as argument
+        if fig is None:
+            fig_kwargs = filter_kwargs(Figure, **kwargs)
+            fig = Figure(**fig_kwargs)
 
         # add plot to figure object
+        plot_kwargs = filter_kwargs(GridPlot2D, **kwargs)
         fig.add_plot(GridPlot2D, axes, data, **plot_kwargs)
 
         # show figure
         fig.show()
 
-        return (fig, fig.plot_obj)
+        return fig
 
 
 @register_container_plugin(ParticleDataset, name="plot")
-def plot_particle_dataset(dataset, sel=None, show=True, **kwargs):
+def plot_particle_dataset(dataset, sel=None, fig=None, show=True, **kwargs):
 
     # raise error if dataset has more than one data object
     if   len(dataset.prt_objs) != 1:
@@ -140,21 +136,19 @@ def plot_particle_dataset(dataset, sel=None, show=True, **kwargs):
         time_units=dataset.time_units
     )
 
-    # build figure object
-    # TODO: use figure passed as argument
-    fig_kwargs = filter_kwargs(Figure, **kwargs)
-    
-    fig = Figure(**fig_kwargs)
-
-    plot_kwargs = filter_kwargs(GridPlot2D, **kwargs)
+    # build figure object is no figure is passed as argument
+    if fig is None:
+        fig_kwargs = filter_kwargs(Figure, **kwargs)
+        fig = Figure(**fig_kwargs)
 
     # add plot to figure object
+    plot_kwargs = filter_kwargs(GridPlot1D, **kwargs)
     fig.add_plot(ParticlePlot1D, axes, data, **plot_kwargs)
 
     # show figure
     fig.show()
 
-    return (fig, fig.plot_obj)
+    return fig
 
 # @register_container_plugin(DatasetCollection, name="plot")
 # def plot_collection(collection, show=True, **kwargs):

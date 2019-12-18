@@ -10,6 +10,8 @@ from nata.plots.data import PlotData
 class BasePlot(ABC):
 
     fig = attr.ib()
+    fig_pos: int = attr.ib()
+
     axes: np.ndarray = attr.ib()
     data: PlotData = attr.ib()
 
@@ -86,4 +88,6 @@ class BasePlot(ABC):
     def _default_title(self):
         return ""
 
-    
+    @property
+    def _backend_fig(self):
+        return self.fig._fig
