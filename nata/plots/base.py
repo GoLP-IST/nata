@@ -1,61 +1,89 @@
+from abc import ABC, abstractmethod
+
 import attr
 import numpy as np
-import matplotlib.pyplot as plt
 
-class BasePlot:    
-    def __init__(self, parent=None, show=True, **kwargs):
+# from nata.plots.figure import Figure
+from nata.plots.data import PlotData
 
-        self._parent = parent
-        self._show = show
-        self._plt = plt
+@attr.s
+class BasePlot(ABC):
 
-        self.set_attrs(
-            attr_list=[
-                ("fontsize", 16),
-                ("pad", 10),
-                ("figsize", (9,6)),
-                ("aspect", "auto")
-            ],
-            kwargs=kwargs            
-        )            
-        
-        self.set_style(style="default")
+    fig = attr.ib()
+    axes: np.ndarray = attr.ib()
+    data: PlotData = attr.ib()
+
+    # axes limit options
+    xlim: tuple = attr.ib(
+        validator=attr.validators.instance_of((tuple, np.ndarray))
+    )
+    ylim: tuple = attr.ib(
+        validator=attr.validators.instance_of((tuple, np.ndarray))
+    )
+
+    # axes label options
+    xlabel: str = attr.ib(
+        validator=attr.validators.instance_of(str)
+    )
+    ylabel: str = attr.ib(
+        validator=attr.validators.instance_of(str)
+    )
+    title: str = attr.ib(
+        validator=attr.validators.instance_of(str)
+    )
+
+    # axes scale options
+    xscale: str = attr.ib(
+        default="linear", 
+        validator=attr.validators.instance_of(str)
+    )
+    yscale: str = attr.ib(
+        default="linear", 
+        validator=attr.validators.instance_of(str)
+    )
+    aspect: str = attr.ib(
+        default="auto", 
+        validator=attr.validators.instance_of(str)
+    )
+
+    # backend axes object
+    _ax: attr.ib(init=False)
+
+    # decorators for default values
+    @xlim.default
+    def _default_xlim_proxy(self):
+        return self._default_xlim()
+
+    @ylim.default
+    def _default_ylim_proxy(self):
+        return self._default_ylim()
+
+    @xlabel.default
+    def _default_xlabel_proxy(self):
+        return self._default_xlabel()
+
+    @ylabel.default
+    def _default_ylabel_proxy(self):
+        return self._default_ylabel()
+
+    @title.default
+    def _default_title_proxy(self):
+        return self._default_title()
+
+
+    def _default_xlim(self):
+        return ()
+
+    def _default_ylim(self):
+        return ()
+
+    def _default_xlabel(self):
+        return ""
+
+    def _default_ylabel(self):
+        return ""
+
+    def _default_title(self):
+        return ""
+
     
-    def set_attrs(self, attr_list, kwargs):
-        for (attr, default) in attr_list:
-            setattr(self, "_" + attr, kwargs.get(attr, default))
-            setattr(self, "_" + attr + "_auto", attr not in kwargs)
-
-    def set_style(self, style="default"):
-        # TODO: Allow providing of a general style from arguments to BasePlot
-        #       or from a style file
-
-        self._plt.rcParams['xtick.major.pad'] = self._pad
-        self._plt.rcParams['ytick.major.pad'] = self._pad
-
-        self._plt.rcParams['text.usetex'] = True
-        self._plt.rcParams['font.serif'] = 'Palatino'
-        self._plt.rcParams['font.size'] = self._fontsize
-
-
-    def show(self):
-        if self._show:
-            self._plt.show()
-
-
-    # def update(self):
-
-    #     if self._xlim_auto:
-    #         self.xlim = (self._parent.xmin[0], self._parent.xmax[0])
-        
-    #     if self._ylim_auto:
-    #         self.ylim = (self._parent.xmin[1], self._parent.xmax[1])
-
-    #     if self._xlabel_auto:
-    #         self._xlabel = self._parent._axes[0].get_label()
-
-    #     if self._ylabel_auto:
-    #         self._ylabel = self._parent._axes[1].get_label()
-
-    #     if self._title_auto:
-    #         self._title = self._parent.get_title()

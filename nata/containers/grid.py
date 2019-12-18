@@ -47,7 +47,7 @@ class GridDataset(BaseDataset):
     axes_names: np.ndarray = attr.ib(init=False)
     axes_labels: np.ndarray = attr.ib(init=False)
     axes_units: np.ndarray = attr.ib(init=False)
-    time_unit: np.ndarray = attr.ib(init=False)
+    time_units: np.ndarray = attr.ib(init=False)
 
     @property
     def axes_min(self):

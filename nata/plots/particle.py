@@ -1,72 +1,62 @@
+import attr
 import numpy as np
-
 import matplotlib.colors as clr
 
-from .base import BasePlot
+from nata.plots.base import BasePlot
 
-class GridPlot(BasePlot):
-    def __init__(self, parent=None, show=True, **kwargs):
-        
-        super().__init__(parent=parent, show=show, **kwargs)
+@attr.s
+class ParticlePlot1D(BasePlot):
 
-        self.set_attrs(
-            attr_list=[
-                ("xscale", "linear"),
-                ("yscale", "linear"),
-            ],
-            kwargs=kwargs
-        )
+    def _default_xlim(self):
+        return (self.axes[0].min, self.axes[0].max)
+    
+    def _default_ylim(self):
+        return (self.axes[1].min, self.axes[1].max)
+    
+    def _default_xlabel(self):
+        return self.axes[0].get_label()
+    
+    def _default_ylabel(self):
+        return self.axes[1].get_label()
 
-class ParticlePlot2D(GridPlot):
-    def __init__(self, parent=None, sel=None, axes=None, show=True, **kwargs):
-        
-        super().__init__(parent=parent, show=show, **kwargs)
+    def _default_title(self):
+        return self.data.get_time_label()
 
-        self.sel=sel
-        self.axes=axes
-
-        self.set_attrs(
-            attr_list=[
-                ("aspect", "auto"),
-                ("xlim", (self.axes[0].min, self.axes[0].max)),
-                ("ylim", (self.axes[1].min, self.axes[1].max)),
-                ("xlabel", self.axes[0].get_label()),
-                ("ylabel", self.axes[1].get_label()),
-                ("title", ""),
-            ],
-            kwargs=kwargs
-        )
+    def __attrs_post_init__(self):
 
         self.build_canvas()
 
     def build_canvas(self):
 
-        # create figure
-        self._plt.ioff()
-        self._fig = self._plt.figure(figsize=self._figsize, facecolor="#ffffff")
-        self._ax = self._fig.add_subplot(111)
+        # get plotting backend
+        # plt = self.fig._plt
+
+        # get figure 
+        fig = self.fig._fig
+
+        ax = fig.add_subplot(111)
 
         # get plot axes and data
-        x = self._parent.data[self.sel[0]]
-        y = self._parent.data[self.sel[1]]
-
+        x = self.data.values[0]
+        y = self.data.values[1]
+        
         # build plot
-        self._plt.plot(x, y, ",")
+        ax.plot(x, y, ',')
 
-        self._plt.xscale(self._xscale)
-        self._plt.yscale(self._yscale)
+        ax.set_xscale(self.xscale)
+        ax.set_yscale(self.yscale)
 
-        self._plt.xlim(self._xlim)
-        self._plt.ylim(self._ylim)
+        ax.set_xlim(self.xlim)
+        ax.set_ylim(self.ylim)
 
         # set axes labels
-        self._plt.xlabel(self._xlabel, labelpad=self._pad)
-        self._plt.ylabel(self._ylabel, labelpad=self._pad)
+        ax.set_xlabel(self.xlabel, labelpad=self.fig.pad)
+        ax.set_ylabel(self.ylabel, labelpad=self.fig.pad)
         
         # set title
-        self._ax.set_title(label=self._title, fontsize=self._fontsize, pad=self._pad)
-        
-        # set aspect ratio
-        self._ax.set_aspect(self._aspect)
+        ax.set_title(label=self.title, pad=self.fig.pad)
 
-        self.show()
+        # set aspect ratio
+        ax.set_aspect(self.aspect)
+        
+        self._ax = ax

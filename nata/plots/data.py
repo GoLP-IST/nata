@@ -1,15 +1,16 @@
+import attr
 import numpy as np
 
+@attr.s
 class PlotData:
+    name: str = attr.ib(default="")
+    label: str = attr.ib(default="")
+    units: str = attr.ib(default="")
+    values: np.ndarray = attr.ib(default=[])
 
-    def __init__(self, name="", label="", units="", data=None, time=0., time_units=""):
-        self.name   = name
-        self.label  = label
-        self.units  = units
-        self.values = data
-
-        self.time = time
-        self.time_units = time_units
+    # time properties
+    time: float = attr.ib(default=0.)
+    time_units: str = attr.ib(default="")
 
     def get_label(self):
         label = ""
@@ -21,8 +22,6 @@ class PlotData:
         return label
     
     def get_time_label(self):
-         # TODO: move this to the dataset object
-
         label = ""
         if self.time is not None:
             label += f"Time = ${self.time:.2f}"
@@ -30,4 +29,4 @@ class PlotData:
                 label += f" [{self.time_units}]"
             label += "$"
     
-        return label  
+        return label
