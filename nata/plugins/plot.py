@@ -1,6 +1,7 @@
 from nata.utils.exceptions import NataInvalidPlot
 
-from nata.containers import BaseDataset, GridDataset, ParticleDataset
+from nata.containers import DatasetCollection, BaseDataset, \
+                            GridDataset, ParticleDataset
 from nata.plugins.register import register_container_plugin
 
 from nata.plots.axis import PlotAxis
@@ -104,7 +105,7 @@ def plot_grid_dataset(dataset, fig=None, **kwargs):
 
 
 @register_container_plugin(ParticleDataset, name="plot")
-def plot_particle_dataset(dataset, sel=None, fig=None, show=True, **kwargs):
+def plot_particle_dataset(dataset, sel=None, fig=None, **kwargs):
 
     # raise error if dataset has more than one data object
     if   len(dataset.prt_objs) != 1:
@@ -150,39 +151,21 @@ def plot_particle_dataset(dataset, sel=None, fig=None, show=True, **kwargs):
 
     return fig
 
-# @register_container_plugin(DatasetCollection, name="plot")
-# def plot_collection(collection, show=True, **kwargs):
-#     if   isinstance(collection, GridDataset):
-#         if   dataset.dimension == 1:
-#             if   len(dataset.grid_obj) == 1:
-#                 axes = np.empty(dataset.dimension, dtype=PlotAxis)
-#                 axes[0] = PlotAxis(
-#                     name=dataset.axes_names[0],
-#                     label=dataset.axes_labels[0],
-#                     units=dataset.axes_units[0],
-#                     xtype="linear",
-#                     xmin=dataset.axes_min[0],
-#                     xmax=dataset.axes_max[0],
-#                     nx=dataset.shape[0]
-#                 )
+@register_container_plugin(DatasetCollection, name="plot")
+def plot_collection(collection, **kwargs):
+    if not collection.store:
+        raise ValueError(
+            "Can not plot empty collection!"
+        ) 
 
-#                 data = PlotData(
-#                     name=dataset.name,
-#                     label=dataset.label,
-#                     units=dataset.unit,
-#                     data=dataset.data,
-#                     time=dataset.time,
-#                     time_units=dataset.time_units
-#                 )
+    # build figure object, without showing it
+    fig_kwargs = filter_kwargs(Figure, if_show=False, **kwargs)
 
-#                 dataset._p = GridPlot1D(
-#                     parent=dataset,
-#                     axes=axes,
-#                     data=data,
-#                     show=show, 
-#                     **kwargs
-#                 )
-#             else:
-#                 NotImplementedError("Not yet implemented")
-#     else:
-#         raise NotImplementedError("Not yet implemented")
+    fig = Figure(**fig_kwargs)
+
+    for key, dataset in collection.store.items():
+        fig = dataset.plot(fig=fig, **kwargs)
+
+    
+    fig.if_show = kwargs.get("show", True)
+    fig.show()

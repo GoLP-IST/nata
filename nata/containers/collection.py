@@ -71,3 +71,7 @@ class DatasetCollection:
 
     def __getitem__(self, key):
         return self.store[key]
+
+    @classmethod
+    def register_plugin(cls, plugin_name, plugin):
+        setattr(cls, plugin_name, plugin)

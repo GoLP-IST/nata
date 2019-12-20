@@ -61,11 +61,12 @@ class GridPlot1D(BasePlot):
 @attr.s
 class GridPlot2D(BasePlot):
     
+    # TODO: validate vmin and vmax with any real number type
     vmin: float = attr.ib(
-        validator=attr.validators.instance_of((int, float))
+        # validator=attr.validators.instance_of((int, float))
     )
     vmax: float = attr.ib(
-        validator=attr.validators.instance_of((int, float))
+        # validator=attr.validators.instance_of((int, float, np.float))
     )
     cb_map: str = attr.ib(
         default="rainbow", 

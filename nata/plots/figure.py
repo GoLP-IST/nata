@@ -21,7 +21,7 @@ class Figure:
     _fig: attr.ib(init=False)
 
     # plotting options
-    show: bool = attr.ib(
+    if_show: bool = attr.ib(
         default=True,
         validator=attr.validators.instance_of(bool)
     )
@@ -90,9 +90,10 @@ class Figure:
         # padding
         self._plt.rc('xtick.major', pad=self.pad)
         self._plt.rc('ytick.major', pad=self.pad)
-
+    
     def show(self):
-        if self.show:
+        if self.if_show:
+            self._fig.tight_layout()
             self._plt.show()
 
 
@@ -107,7 +108,6 @@ class Figure:
             self.reset_fig()
             
             # redefine figure position for existing plots
-            
             nrows = math.ceil(req_num / 2)
             ncols = 2
             offset = nrows * 100 + ncols * 10
