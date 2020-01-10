@@ -70,13 +70,13 @@ class GridDataset(BaseDataset):
     @property
     def iterations(self):
         if len(self.grid_obj) == 1:
-            return getattr(next(iter(self.grid_obj)), "iteration")
+            return np.array(getattr(next(iter(self.grid_obj)), "iteration"))
         return props_as_arr(self.grid_obj, "iteration", int)
 
     @property
     def time(self):
         if len(self.grid_obj) == 1:
-            return getattr(next(iter(self.grid_obj)), "time_step")
+            return np.array(getattr(next(iter(self.grid_obj)), "time_step"))
         return props_as_arr(self.grid_obj, "time_step", float)
 
     @property
