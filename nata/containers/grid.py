@@ -181,7 +181,7 @@ class GridDataset(BaseDataset):
         self,
         printer: Optional[PrettyPrinter] = None,
         root_path: Optional[Path] = None,
-    ):
+    ):  # pragma: no cover
         requires_flush = False
 
         if printer is None:
