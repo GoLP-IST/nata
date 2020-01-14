@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 import re
 from pathlib import Path
 
-CWD = Path(__file__).parent
+REPO_ROOT = Path(__file__).parent
 
 ## PACKAGE VARIABLES
 NAME = "nata"
-META_PATH = CWD / "nata" / "__init__.py"
+META_PATH = REPO_ROOT / "nata" / "__init__.py"
 META_FILE = META_PATH.read_text()
 KEYWORDS = ["particle-in-cell", "postprocessing", "visualization"]
 PROJECT_URLS = {
@@ -72,7 +72,7 @@ def read(path):
     return path.read_text()
 
 
-LONG = read(CWD / "README.rst") + ("\n" * 2) + read(CWD / "AUTHORS.rst")
+LONG = read(REPO_ROOT / "README.rst") + ("\n" * 2) + read(REPO_ROOT / "AUTHORS.rst")
 
 
 if __name__ == "__main__":
