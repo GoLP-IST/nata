@@ -61,11 +61,8 @@ class ParticleDataset(BaseDataset):
 
     @property
     def backend_name(self) -> str:
-        if isinstance(self.store, dict):
-            backend: BaseParticles = next(iter(self.store.values()))
-            return backend.name
-        else:
-            return self.store.name
+        backend = next(iter(self.store.values()))
+        return backend.name
 
     def __attrs_post_init__(self):
         for backend in self._backends:
@@ -83,6 +80,7 @@ class ParticleDataset(BaseDataset):
         self._num_particles[prt_obj.iteration] = prt_obj.num_particles
         self._dtype = prt_obj.dtype
         self.tagged = prt_obj.has_tags
+        self.time_unit = prt_obj.time_unit
 
         self.location = prt_obj.location.parent
         self.store[prt_obj.iteration] = prt_obj
@@ -112,7 +110,7 @@ class ParticleDataset(BaseDataset):
         self,
         printer: Optional[PrettyPrinter] = None,
         root_path: Optional[Path] = None,
-    ):
+    ):  # pragma: no cover
         requires_flush = False
 
         if printer is None:
