@@ -53,14 +53,10 @@ class ParticleDataset(BaseDataset):
 
     @property
     def iterations(self):
-        if len(self.prt_objs) == 1:
-            return getattr(next(iter(self.prt_objs)), "iteration")
         return props_as_arr(self.prt_objs, "iteration", int)
 
     @property
     def time(self):
-        if len(self.prt_objs) == 1:
-            return getattr(next(iter(self.prt_objs)), "time_step")
         return props_as_arr(self.prt_objs, "time_step", float)
 
     @property
