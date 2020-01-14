@@ -48,7 +48,7 @@ class ParticleDataset(BaseDataset):
         for i, iteration in enumerate(self.iterations):
             num_prt = self._num_particles[iteration]
             d[i, :num_prt] = self.store[iteration].dataset
-            d.mask[num_prt:] = True
+            d.mask[i, num_prt:] = True
         return d
 
     @property
