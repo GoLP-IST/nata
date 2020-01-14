@@ -191,7 +191,7 @@ def test_GridDataset_with_1d_multiple_ds(
         # (np.index_exp[:, 3:64:3], np.arange(128)),
     ],
 )
-def test_GridDataset_getittem(
+def test_GridDataset_getitem(
     GridDataset_with_multiple_1d_grids, selection, expected_iterations
 ):
     example_ds = GridDataset_with_multiple_1d_grids
