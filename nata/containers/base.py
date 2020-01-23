@@ -41,14 +41,10 @@ class BaseDataset(ABC):
         self,
         printer: Optional[PrettyPrinter] = None,
         root_path: Optional[Path] = None,
-    ):
+    ):  # pragma: no cover
         pass
 
     @property
     @abstractmethod
-    def backend_name(self) -> str:
+    def backend_name(self) -> str:  # pragma: no cover
         pass
-
-    def make_location_relative(self, path: Path) -> None:
-        """Makes location property relative to a given path."""
-        self.location = self.location.relative_to(path)

@@ -13,10 +13,10 @@ from nata.utils.info_printer import PrettyPrinter
 @attr.s
 class DatasetCollection:
     root_path: Path = attr.ib(converter=Path, validator=location_exist)
-    _container_list: Set[DatasetTypes] = set([GridDataset, ParticleDataset])
+    _container_set: Set[DatasetTypes] = set([GridDataset, ParticleDataset])
     store: Dict[str, DatasetTypes] = attr.ib(factory=dict)
 
-    def info(self, full: bool = False):
+    def info(self, full: bool = False):  # pragma: no cover
         printer = PrettyPrinter(header="Collection")
         printer.add_line(f"Root path: {self.root_path}")
         printer.add_line(f"Number of datasets: {len(self.store)}")
@@ -31,30 +31,21 @@ class DatasetCollection:
 
     @property
     def datasets(self):
-        return np.array(['"' + k + '"' for k in self.store.keys()], dtype=str)
+        return np.array([k for k in self.store.keys()], dtype=str)
 
-    # TODO: check if it's possible to append direct a DataSet
-    def append(self, obj: Union[str, Path, "DatasetCollection"]) -> None:
-        """Takes a path to a diagnostic and appends it to the collection."""
-        if not isinstance(obj, (str, Path, DatasetCollection)):
-            raise ValueError(
-                f"Can not append object of type '{type(obj)}' to collection"
-            )
+    def _append_datasetcollection(self, obj):
+        self.store.update(obj.store)
 
-        # If it is a DatasetCollection itself
-        if isinstance(obj, DatasetCollection):
-            self.store.update(obj.store)
-            return
-
-        # If it is a path or string -> initialize Dataset Object
-        for container in self._container_list:
+    def _append_file(self, obj):
+        for container in self._container_set:
             try:
                 dataset = container(obj)
                 break
             except NataInvalidContainer:
                 continue
         else:
-            return  # TODO: check if warning might be better
+            # not possible to append the file -> not a valid container found
+            return
 
         if dataset.name in self.store:
             existing_ds = self.store[dataset.name]
@@ -65,9 +56,21 @@ class DatasetCollection:
                 raise ValueError(
                     f"Dataset '{existing_ds.name}' is not appendable!"
                 )
-
         else:
             self.store[dataset.name] = dataset
+
+    def append(self, obj: Union[str, Path, "DatasetCollection"]) -> None:
+        """Takes a path to a diagnostic and appends it to the collection."""
+        if isinstance(obj, DatasetCollection):
+            self._append_datasetcollection(obj)
+
+        elif isinstance(obj, (str, Path)):
+            self._append_file(obj)
+
+        else:
+            raise ValueError(
+                f"Can not append object of type '{type(obj)}' to collection"
+            )
 
     def __getitem__(self, key):
         return self.store[key]

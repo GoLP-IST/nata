@@ -48,28 +48,21 @@ class ParticleDataset(BaseDataset):
         for i, iteration in enumerate(self.iterations):
             num_prt = self._num_particles[iteration]
             d[i, :num_prt] = self.store[iteration].dataset
-            d.mask[num_prt:] = True
+            d.mask[i, num_prt:] = True
         return d
 
     @property
     def iterations(self):
-        if len(self.prt_objs) == 1:
-            return getattr(next(iter(self.prt_objs)), "iteration")
         return props_as_arr(self.prt_objs, "iteration", int)
 
     @property
     def time(self):
-        if len(self.prt_objs) == 1:
-            return getattr(next(iter(self.prt_objs)), "time_step")
         return props_as_arr(self.prt_objs, "time_step", float)
 
     @property
     def backend_name(self) -> str:
-        if isinstance(self.store, dict):
-            backend: BaseParticles = next(iter(self.store.values()))
-            return backend.name
-        else:
-            return self.store.name
+        backend = next(iter(self.store.values()))
+        return backend.name
 
     def __attrs_post_init__(self):
         for backend in self._backends:
@@ -87,6 +80,7 @@ class ParticleDataset(BaseDataset):
         self._num_particles[prt_obj.iteration] = prt_obj.num_particles
         self._dtype = prt_obj.dtype
         self.tagged = prt_obj.has_tags
+        self.time_unit = prt_obj.time_unit
 
         self.time_units = prt_obj.time_unit
 
@@ -118,7 +112,7 @@ class ParticleDataset(BaseDataset):
         self,
         printer: Optional[PrettyPrinter] = None,
         root_path: Optional[Path] = None,
-    ):
+    ):  # pragma: no cover
         requires_flush = False
 
         if printer is None:

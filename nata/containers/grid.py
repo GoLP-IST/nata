@@ -29,7 +29,6 @@ class GridDataset(BaseDataset):
 
     # data storage
     grid_obj: ValuesView = attr.ib(init=False, repr=False)
-    grid_dtype: np.dtype = attr.ib(init=False, repr=False)  # TODO: noy yet used
     store: Dict[int, BaseGrid] = attr.ib(init=False, factory=dict, repr=False)
 
     # information about object - grid object
@@ -70,13 +69,13 @@ class GridDataset(BaseDataset):
     @property
     def iterations(self):
         if len(self.grid_obj) == 1:
-            return getattr(next(iter(self.grid_obj)), "iteration")
+            return np.array(getattr(next(iter(self.grid_obj)), "iteration"))
         return props_as_arr(self.grid_obj, "iteration", int)
 
     @property
     def time(self):
         if len(self.grid_obj) == 1:
-            return getattr(next(iter(self.grid_obj)), "time_step")
+            return np.array(getattr(next(iter(self.grid_obj)), "time_step"))
         return props_as_arr(self.grid_obj, "time_step", float)
 
     @property
@@ -93,11 +92,8 @@ class GridDataset(BaseDataset):
 
     @property
     def backend_name(self) -> str:
-        if isinstance(self.store, dict):
-            backend: BaseGrid = next(iter(self.store.values()))
-            return backend.name
-        else:
-            return self.store.name
+        backend: BaseGrid = next(iter(self.store.values()))
+        return backend.name
 
     # using post init from attr.s -> obj will always represent
     def __attrs_post_init__(self):
@@ -120,7 +116,7 @@ class GridDataset(BaseDataset):
         self.axes_names = grid_obj.axes_names
         self.axes_labels = grid_obj.axes_long_names
         self.axes_units = grid_obj.axes_units
-        self.time_units = grid_obj.time_unit
+        self.time_unit = grid_obj.time_unit
 
         self.location = grid_obj.location.parent
         self.store[grid_obj.iteration] = grid_obj
@@ -181,7 +177,7 @@ class GridDataset(BaseDataset):
         self,
         printer: Optional[PrettyPrinter] = None,
         root_path: Optional[Path] = None,
-    ):
+    ):  # pragma: no cover
         requires_flush = False
 
         if printer is None:
@@ -246,4 +242,3 @@ class GridDataset(BaseDataset):
         self.store.update(other.store)
         self._axes_min.update(other._axes_min)
         self._axes_max.update(other._axes_max)
-
