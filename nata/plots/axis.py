@@ -27,6 +27,5 @@ class PlotAxis:
         if self.label:
             label += f"${self.label}$"
             if self.units:
-                label += f" $\\left[{self.units}\\right]"
-            label += "$"
+                label += f" $\\left[{self.units}\\right]$"
         return label

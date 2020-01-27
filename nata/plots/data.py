@@ -17,16 +17,14 @@ class PlotData:
         if self.label:
             label += f"${self.label}$"
             if self.units:
-                label += f" $\\left[{self.units}\\right]"
-            label += "$"
+                label += f" $\\left[{self.units}\\right]$"
         return label
     
     def get_time_label(self):
         label = ""
         if self.time is not None:
-            label += f"Time = ${self.time:.2f}"
+            label += f"Time = ${self.time:.2f}$"
             if self.time_units:
-                label += f" [{self.time_units}]"
-            label += "$"
+                label += f" $\\left[{self.time_units}\\right]$"
     
         return label

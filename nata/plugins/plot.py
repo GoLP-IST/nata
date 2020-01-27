@@ -14,6 +14,26 @@ from nata.utils.attrs import filter_kwargs
 
 import numpy as np
 
+@register_container_plugin(DatasetCollection, name="plot")
+def plot_collection(collection, **kwargs):
+    if not collection.store:
+        raise ValueError(
+            "Can not plot empty collection!"
+        ) 
+
+    # build figure object, without showing it
+    fig_kwargs = filter_kwargs(Figure, if_show=False, **kwargs)
+
+    fig = Figure(**fig_kwargs)
+
+    for key, dataset in collection.store.items():
+        fig = dataset.plot(fig=fig, **kwargs)
+
+    
+    fig.if_show = kwargs.get("show", True)
+    fig.show()
+
+
 @register_container_plugin(GridDataset, name="plot")
 def plot_grid_dataset(dataset, fig=None, **kwargs):
     if   dataset.dimension == 1:
@@ -41,7 +61,7 @@ def plot_grid_dataset(dataset, fig=None, **kwargs):
             units=dataset.unit,
             values=dataset.data,
             time=dataset.time,
-            time_units=dataset.time_units
+            time_units=dataset.time_unit
         )
         
         # build figure object is no figure is passed as argument
@@ -86,7 +106,7 @@ def plot_grid_dataset(dataset, fig=None, **kwargs):
             units=dataset.unit,
             values=dataset.data,
             time=dataset.time,
-            time_units=dataset.time_units
+            time_units=dataset.time_unit
         )
 
         # build figure object is no figure is passed as argument
@@ -151,21 +171,3 @@ def plot_particle_dataset(dataset, sel=None, fig=None, **kwargs):
 
     return fig
 
-@register_container_plugin(DatasetCollection, name="plot")
-def plot_collection(collection, **kwargs):
-    if not collection.store:
-        raise ValueError(
-            "Can not plot empty collection!"
-        ) 
-
-    # build figure object, without showing it
-    fig_kwargs = filter_kwargs(Figure, if_show=False, **kwargs)
-
-    fig = Figure(**fig_kwargs)
-
-    for key, dataset in collection.store.items():
-        fig = dataset.plot(fig=fig, **kwargs)
-
-    
-    fig.if_show = kwargs.get("show", True)
-    fig.show()

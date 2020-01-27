@@ -77,9 +77,10 @@ class Figure:
         #       or from a style file
 
         # fonts
+        # self._plt.rc('font', **{'family':'sans-serif','sans-serif':['Helvetica']})
         self._plt.rc('text', usetex=True)
         
-        self._plt.rc('font', size=self.fontsize, serif="Palatino")
+        # self._plt.rc('font', size=self.fontsize, serif="Palatino")
         self._plt.rc('axes', titlesize=self.fontsize)
         self._plt.rc('axes', labelsize=self.fontsize)
         self._plt.rc('xtick', labelsize=self.fontsize)
