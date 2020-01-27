@@ -1,3 +1,5 @@
+from typing import Set, Dict
+
 from nata.utils.exceptions import NataInvalidPlot
 
 from nata.containers import DatasetCollection, BaseDataset, \
@@ -15,24 +17,59 @@ from nata.utils.attrs import filter_kwargs
 import numpy as np
 
 @register_container_plugin(DatasetCollection, name="plot")
-def plot_collection(collection, **kwargs):
+def plot_collection(collection, order=[], styles={}, **kwargs):
     if not collection.store:
         raise ValueError(
-            "Can not plot empty collection!"
+            "Collection is empty."
         ) 
+
+    # check if order elements exist in collection
+    for key in order:
+        if key not in collection.store.keys():
+            raise ValueError(
+            f"Order key `{key}` is not a part of the collection."
+        )
 
     # build figure object, without showing it
     fig_kwargs = filter_kwargs(Figure, if_show=False, **kwargs)
 
     fig = Figure(**fig_kwargs)
 
-    for key, dataset in collection.store.items():
-        fig = dataset.plot(fig=fig, **kwargs)
+    num_order = len(order)
+    
+    if len(order) > 0 and len(order) < len(collection.store):
+        
+        # get collection keys as list
+        unused_keys = list(collection.store.keys())
 
+        # remove elemets already in order
+        for key in order:
+            unused_keys.remove(key)
+
+        # add unused keys to order
+        for key in unused_keys:
+            order.append(key)
+        
+    elif not order:
+        order = collection.store.keys()
+
+
+    for key in order:
+        # get dataset
+        dataset = collection.store[key]
+
+        # get dataset plot specific kwargs
+        plt_kwargs = {}
+        if key in styles:
+            plt_kwargs = styles[key]
+
+        # build plot object
+        fig = dataset.plot(fig=fig, **plt_kwargs)
     
     fig.if_show = kwargs.get("show", True)
     fig.show()
 
+    return fig
 
 @register_container_plugin(GridDataset, name="plot")
 def plot_grid_dataset(dataset, fig=None, **kwargs):

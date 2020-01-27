@@ -133,10 +133,10 @@ class GridPlot2D(BasePlot):
 
             # adjust min and max values
             # TODO: do this only if vmin was not init
-            # self.vmin = np.min(z)
+            self.vmin = np.min(z)
             
             # if self.vmax_auto:
-            # self.vmax = np.max(z)
+            self.vmax = np.max(z)
 
             # set color map norm
             self.cb_norm = clr.LogNorm(
