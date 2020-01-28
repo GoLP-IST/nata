@@ -7,6 +7,43 @@ from nata.plots.base import BasePlot
 
 @attr.s
 class GridPlot1D(BasePlot):
+    
+    ls: str = attr.ib(
+        default=None, 
+        validator=attr.validators.optional(
+            attr.validators.instance_of(str)
+        )
+    )
+    lw: float = attr.ib(
+        default=None, 
+        validator=attr.validators.optional(
+            attr.validators.instance_of((int, float))
+        )
+    )
+    c: str = attr.ib(
+        default=None, 
+        validator=attr.validators.optional(
+            attr.validators.instance_of(str)
+        )
+    )
+    alpha: float = attr.ib(
+        default=None, 
+        validator=attr.validators.optional(
+            attr.validators.instance_of((int, float))
+        )
+    )
+    marker: str = attr.ib(
+        default=None, 
+        validator=attr.validators.optional(
+            attr.validators.instance_of(str)
+        )
+    )
+    ms: float = attr.ib(
+        default=None,
+        validator=attr.validators.optional(
+            attr.validators.instance_of((int, float))
+        )
+    )
 
     def _default_xlim(self):
         return (self.axes[0].min, self.axes[0].max)
@@ -37,7 +74,14 @@ class GridPlot1D(BasePlot):
         y = self.data.values
         
         # build plot
-        ax.plot(x, y)
+        ax.plot(x, y, 
+            ls=self.ls, 
+            lw=self.lw, 
+            c=self.c, 
+            alpha=self.alpha,
+            marker=self.marker,
+            ms=self.ms
+        )
 
         ax.set_xscale(self.xscale)
         ax.set_yscale(self.yscale)

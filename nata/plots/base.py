@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import attr
 import numpy as np
 
-# from nata.plots.figure import Figure
 from nata.plots.data import PlotData
 
 @attr.s
@@ -91,3 +90,10 @@ class BasePlot(ABC):
     @property
     def _backend_fig(self):
         return self.fig._fig
+
+    @property
+    def _backend_colors(self):
+        # TODO: make this a function of the backend?
+        return ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+                '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
+                '#bcbd22', '#17becf']
