@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+from nata.plots.axis import PlotAxis
+from nata.plots.data import PlotData
 from nata.plots.base import BasePlot
 from nata.plots.grid import GridPlot1D, GridPlot2D
 
@@ -21,10 +23,6 @@ class Figure:
     _fig: attr.ib(init=False)
 
     # plotting options
-    if_show: bool = attr.ib(
-        default=True,
-        validator=attr.validators.instance_of(bool)
-    )
     figsize: tuple = attr.ib(
         default=(9,6),
         validator=attr.validators.instance_of((tuple, np.ndarray))
@@ -93,10 +91,14 @@ class Figure:
         self._plt.rc('ytick.major', pad=self.pad)
     
     def show(self):
-        if self.if_show:
-            self._fig.tight_layout()
-            self._plt.show()
+        
+        dummy = self._plt.figure()
+        new_manager = dummy.canvas.manager
+        new_manager.canvas.figure = self._fig
 
+        self._fig.tight_layout()
+        self._plt.show()
+            
 
     def add_plot(self, plot_type, axes, data, **kwargs):
         
@@ -130,6 +132,11 @@ class Figure:
 
         # store plot in array of figure plots
         self.plot_objs = np.append(self.plot_objs, p)
+
+        self._plt.close(self._fig)
+    def _repr_html_(self):
+        self.show()
+
 
     # def update(self):
 

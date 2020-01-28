@@ -234,3 +234,8 @@ class GridPlot2D(BasePlot):
 
         # set backend axes object
         self._ax = ax
+
+GridPlotObj = {
+    1: GridPlot1D,
+    2: GridPlot2D
+}
