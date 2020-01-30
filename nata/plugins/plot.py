@@ -1,4 +1,4 @@
-from typing import Set, Dict
+from typing import Union, Optional
 
 from nata.utils.exceptions import NataInvalidPlot
 
@@ -6,36 +6,45 @@ from nata.containers import DatasetCollection, BaseDataset, \
                             GridDataset, ParticleDataset
 from nata.plugins.register import register_container_plugin
 
-from nata.plots.axis import PlotAxis
-from nata.plots.data import PlotData
-from nata.plots.figure import Figure
-from nata.plots.grid import GridPlotObj
-from nata.plots.particle import ParticlePlot1D
+from nata.plots import PlotDataAxis, PlotData
+from nata.plots import Figure
+from nata.plots import Axes
+from nata.plots import DefaultGridPlotTypes
+
+# from nata.plots.grid import GridPlotObj
+# from nata.plots.particle import ParticlePlot1D
 
 from nata.utils.attrs import filter_kwargs
 
 import numpy as np
 
 @register_container_plugin(GridDataset, name="plot")
-def plot_grid_dataset(dataset, fig=None, **kwargs):
+def plot_grid_dataset(
+    dataset: GridDataset,
+    fig: Optional[Figure] = None,
+    axes: Optional[Axes] = None,
+    **kwargs
+) -> Figure:
 
     # raise error if dataset has more than one data object
-    if   len(dataset.grid_obj) != 1:
+    if len(dataset.grid_obj) != 1:
         raise NataInvalidPlot
 
-    # build axes object
-    axes = np.empty(dataset.dimension, dtype=PlotAxis)
+    # build plot axes object
+    plot_axes = []
 
     for i in range(dataset.dimension):
-        axes[i] = PlotAxis(
+        new_axes = PlotDataAxis(
             name=dataset.axes_names[i],
             label=dataset.axes_labels[i],
             units=dataset.axes_units[i],
-            xtype="linear",
-            xmin=dataset.axes_min[i],
-            xmax=dataset.axes_max[i],
-            nx=dataset.shape[i]
+            type="linear",
+            min=dataset.axes_min[i],
+            max=dataset.axes_max[i],
+            n=dataset.shape[i]
         )
+
+        plot_axes.append(new_axes)
     
     # build data object
     data = PlotData(
@@ -44,115 +53,130 @@ def plot_grid_dataset(dataset, fig=None, **kwargs):
         units=dataset.unit,
         values=dataset.data,
         time=dataset.time,
-        time_units=dataset.time_unit
+        time_units=dataset.time_unit,
+        axes=plot_axes
     )
 
-    # build figure object is no figure is passed as argument
+    # 1. build figure
     if fig is None:
-        fig_kwargs = filter_kwargs(Figure, **kwargs)
-        fig = Figure(**fig_kwargs)
         
-    # get grid plot object
-    obj  = GridPlotObj[dataset.dimension]
-
-    # add plot to figure object
-    plot_kwargs = filter_kwargs(obj, **kwargs)
-    fig.add_plot(obj, axes, data, **plot_kwargs)
-
-    return fig
-
-@register_container_plugin(ParticleDataset, name="plot")
-def plot_particle_dataset(dataset, sel=None, fig=None, **kwargs):
-
-    # raise error if dataset has more than one data object
-    if   len(dataset.prt_objs) != 1:
-        raise NataInvalidPlot
-
-    axes = np.empty(2, dtype=PlotAxis)
-    for i in range(2):
-        idx = np.argwhere(dataset.quantities == sel[i])
-        name = dataset.quantities[idx[0]][0]
-        
-        axes[i] = PlotAxis(
-            name=name,
-            label=dataset.quantities_labels[name],
-            units=dataset.quantities_units[name],
-            xtype="linear",
-            xmin=np.min(dataset.data[name]),
-            xmax=np.max(dataset.data[name]),
-            nx=10
-        )
-
-    # build data object
-    data = PlotData(
-        name=dataset.name,
-        values=np.array([
-            dataset.data[sel[0]],
-            dataset.data[sel[1]]
-        ]),
-        time=dataset.time,
-        time_units=dataset.time_units
-    )
-
-    # build figure object is no figure is passed as argument
-    if fig is None:
         fig_kwargs = filter_kwargs(Figure, **kwargs)
         fig = Figure(**fig_kwargs)
 
-    # add plot to figure object
-    plot_kwargs = filter_kwargs(ParticlePlot1D, **kwargs)
-    fig.add_plot(ParticlePlot1D, axes, data, **plot_kwargs)
+        # ignore axes
+        axes = None
+    
+    # 2. build axes
+    if axes is None:
+
+        axes_kwargs = filter_kwargs(Axes, **kwargs)
+        axes = fig.add_axes(**axes_kwargs)
+        
+    # 3. get default plot object for grids
+    # TODO: make this an argument?
+    plot = DefaultGridPlotTypes[dataset.dimension]
+
+    # 4. build plot
+    plot_kwargs = filter_kwargs(plot, **kwargs)
+    axes.add_plot(
+        plot=plot,
+        data=data,
+        **plot_kwargs
+    )
+
+    fig.close()
 
     return fig
 
-@register_container_plugin(DatasetCollection, name="plot")
-def plot_collection(collection, order=[], styles={}, **kwargs):
-    if not collection.store:
-        raise ValueError(
-            "Collection is empty."
-        ) 
+# @register_container_plugin(ParticleDataset, name="plot")
+# def plot_particle_dataset(dataset, sel=None, fig=None, **kwargs):
 
-    # check if order elements exist in collection
-    for key in order:
-        if key not in collection.store.keys():
-            raise ValueError(
-            f"Order key `{key}` is not a part of the collection."
-        )
+#     # raise error if dataset has more than one data object
+#     if   len(dataset.prt_objs) != 1:
+#         raise NataInvalidPlot
 
-    # build figure object
-    fig_kwargs = filter_kwargs(Figure, **kwargs)
-    
-    fig = Figure(**fig_kwargs)
-
-    num_order = len(order)
-    
-    if len(order) > 0 and len(order) < len(collection.store):
+#     axes = np.empty(2, dtype=PlotAxis)
+#     for i in range(2):
+#         idx = np.argwhere(dataset.quantities == sel[i])
+#         name = dataset.quantities[idx[0]][0]
         
-        # get collection keys as list
-        unused_keys = list(collection.store.keys())
+#         axes[i] = PlotAxis(
+#             name=name,
+#             label=dataset.quantities_labels[name],
+#             units=dataset.quantities_units[name],
+#             xmin=np.min(dataset.data[name]),
+#             xmax=np.max(dataset.data[name])
+#         )
 
-        # remove elemets already in order
-        for key in order:
-            unused_keys.remove(key)
+#     # build data object
+#     data = PlotData(
+#         name=dataset.name,
+#         values=np.array([
+#             dataset.data[sel[0]],
+#             dataset.data[sel[1]]
+#         ]),
+#         time=dataset.time,
+#         time_units=dataset.time_units
+#     )
 
-        # add unused keys to order
-        for key in unused_keys:
-            order.append(key)
-        
-    elif not order:
-        order = collection.store.keys()
+#     # build figure object is no figure is passed as argument
+#     if fig is None:
+#         fig_kwargs = filter_kwargs(Figure, **kwargs)
+#         fig = Figure(**fig_kwargs)
 
+#     # add plot to figure object
+#     plot_kwargs = filter_kwargs(ParticlePlot1D, **kwargs)
+#     fig.add_plot(ParticlePlot1D, axes, data, **plot_kwargs)
 
-    for key in order:
-        # get dataset
-        dataset = collection.store[key]
+#     return fig
 
-        # get dataset plot specific kwargs
-        plt_kwargs = {}
-        if key in styles:
-            plt_kwargs = styles[key]
+# @register_container_plugin(DatasetCollection, name="plot")
+# def plot_collection(collection, order=[], styles={}, **kwargs):
+#     if not collection.store:
+#         raise ValueError(
+#             "Collection is empty."
+#         ) 
 
-        # build plot object
-        fig = dataset.plot(fig=fig, **plt_kwargs)
+#     # check if order elements exist in collection
+#     for key in order:
+#         if key not in collection.store.keys():
+#             raise ValueError(
+#             f"Order key `{key}` is not a part of the collection."
+#         )
+
+#     # build figure object
+#     fig_kwargs = filter_kwargs(Figure, **kwargs)
     
-    return fig
+#     fig = Figure(**fig_kwargs)
+
+#     num_order = len(order)
+    
+#     if len(order) > 0 and len(order) < len(collection.store):
+        
+#         # get collection keys as list
+#         unused_keys = list(collection.store.keys())
+
+#         # remove elemets already in order
+#         for key in order:
+#             unused_keys.remove(key)
+
+#         # add unused keys to order
+#         for key in unused_keys:
+#             order.append(key)
+        
+#     elif not order:
+#         order = collection.store.keys()
+
+#     for key in order:
+#         # get dataset
+#         dataset = collection.store[key]
+
+#         # get dataset plot specific kwargs
+#         plt_kwargs = {}
+#         if key in styles:
+#             plt_kwargs = styles[key]
+
+#         # build plot object
+#         fig = dataset.plot(fig=fig, **plt_kwargs)
+    
+#     return fig

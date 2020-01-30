@@ -1,26 +1,27 @@
-from typing import ValuesView
-
 import attr
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
-import math
+from math import ceil
+from copy import copy
 
-from nata.plots.axis import PlotAxis
+from nata.plots import PlotTypes
+from nata.plots.axes import Axes
 from nata.plots.data import PlotData
-from nata.plots.base import BasePlot
-from nata.plots.grid import GridPlot1D, GridPlot2D
+
+from nata.utils.attrs import filter_kwargs
 
 @attr.s
 class Figure: 
 
-    # plots contained in the figure
-    plot_objs: np.ndarray = attr.ib(init=False, repr=False)
+    # axes contained in the figure
+    _axes: list = attr.ib(init=False, repr=False)
 
     # backend object
-    _plt: attr.ib(init=False)
+    _plt: attr.ib(init=False, repr=False)
 
     # backend figure object
-    _fig: attr.ib(init=False)
+    _fig: attr.ib(init=False, repr=False)
 
     # plotting options
     figsize: tuple = attr.ib(
@@ -31,6 +32,12 @@ class Figure:
         default="#ffffff",
         validator=attr.validators.instance_of(str)
     )
+    nrows: int = attr.ib(
+        default=1
+    )
+    ncols: int = attr.ib(
+        default=1
+    )
     fontsize: int = attr.ib(
         default=16
     )
@@ -39,36 +46,41 @@ class Figure:
     )
 
     @property
-    def plots(self) -> np.ndarray:
-        if len(self.plot_objs) == 1:
-            return next(iter(self.plot_objs))
+    def axes(self) -> dict:
+        return {axes.index : axes for axes in self._axes}
 
-        return self.plot_objs
-    
     # TODO: add metadata to attributes to identify auto state
 
-    def __attrs_post_init__(self, **kwargs):
+    def __attrs_post_init__(self):
 
-        self.plot_objs = ()
+        # initialize list of axes objects
+        self.init_axes()
         
         # initialize plotting backend
         self.init_backend()
 
-        # initialize backend figure object
-        self.init_fig()
+        # open figure object
+        self.open()
 
         # set plotting style
         self.set_style(style="default")
 
+    def init_axes(self):
+        self._axes = []
+
     def init_backend(self):
         self._plt = plt
     
-    def init_fig(self):
+    def open(self):
+        # TODO: generalize this for arbitrary backend
         self._fig = self._plt.figure(figsize=self.figsize, facecolor=self.facecolor)
-
-    def reset_fig(self):
+    
+    def close(self):
         self._plt.close(self._fig)
-        self.init_fig()
+
+    def reset(self):
+        self.close()
+        self.open()
 
     def set_style(self, style="default"):
         # TODO: allow providing of a general style from arguments
@@ -91,66 +103,83 @@ class Figure:
         self._plt.rc('ytick.major', pad=self.pad)
     
     def show(self):
-        
+        # TODO: generalize this for arbitrary backend
         dummy = self._plt.figure()
         new_manager = dummy.canvas.manager
         new_manager.canvas.figure = self._fig
 
         self._fig.tight_layout()
         self._plt.show()
-            
 
-    def add_plot(self, plot_type, axes, data, **kwargs):
-        
-        fig_pos = 111
-        
-        # atm, nata uses one columns
-        req_num = len(self.plot_objs) + 1
-        if req_num > 1:
-            # reset figure
-            self.reset_fig()
-            
-            # redefine figure position for existing plots
-            nrows = math.ceil(req_num / 2)
-            ncols = 2
-            offset = nrows * 100 + ncols * 10
-            fig_pos = offset + 1
-
-            for plot in self.plot_objs:
-                plot.fig_pos = fig_pos
-                plot.build_canvas()
-                fig_pos += 1
-
-        # build plot
-        p = plot_type(
-            fig=self,
-            fig_pos=fig_pos,
-            axes=axes,
-            data=data,
-            **kwargs
-        )
-
-        # store plot in array of figure plots
-        self.plot_objs = np.append(self.plot_objs, p)
-
-        self._plt.close(self._fig)
     def _repr_html_(self):
         self.show()
 
+    def add_axes(
+        self,
+        **kwargs
+    ):
 
-    # def update(self):
+        new_index = len(self.axes)+1
 
-    #     if self._xlim_auto:
-    #         self.xlim = (self._parent.xmin[0], self._parent.xmax[0])
+        if new_index > (self.nrows * self.ncols):
+            # increase number of rows
+            # TODO: really?
+            self.nrows += 1
+
+            for axes in self.axes.values(): 
+                axes.redo_plots()
+
+        axes_kwargs = filter_kwargs(Axes, **kwargs)
+        axes = Axes(fig=self, index=new_index, **axes_kwargs)
+        self._axes.append(axes)
+
+        return axes
+
+    def add_plot(
+        self,
+        axes: Axes,
+        plot: PlotTypes,
+        data: PlotData,
+        **kwargs
+    ):
+        p = axes.add_plot(plot=plot, data=data, **kwargs)
+
+    def __mul__(self, other):
+
+        new = copy(self)
         
-    #     if self._ylim_auto:
-    #         self.ylim = (self._parent.xmin[1], self._parent.xmax[1])
+        for key, axes in new.axes.items():
+            if key in other.axes:
+                for plot in other.axes[key]._plots:
+                    axes.add_plot(
+                        plot=plot.__class__,
+                        data=plot._data
+                    )
+    
+        return new
 
-    #     if self._xlabel_auto:
-    #         self._xlabel = self._parent._axes[0].get_label()
+    def __add__(self, other):
 
-    #     if self._ylabel_auto:
-    #         self._ylabel = self._parent._axes[1].get_label()
+        new = copy(self)
+        # TODO: move this to a costum copy method?
+        for axes in new.axes.values():
+            axes._fig = new
 
-    #     if self._title_auto:
-    #         self._title = self._parent.get_title()
+        new.nrows = ceil((len(new.axes)+len(other.axes))/new.ncols)
+
+        if new.nrows > self.nrows:
+            for axes in new.axes.values():
+                axes.redo_plots()
+
+        for axes in other.axes.values():
+
+            # this loses properties of the old axes, namely style options
+            new_axes = new.add_axes()
+            new_axes._plots = copy(axes._plots)
+
+            for plot in new_axes._plots:
+                plot._axes = new_axes
+
+            new_axes.redo_plots()
+    
+        return new
