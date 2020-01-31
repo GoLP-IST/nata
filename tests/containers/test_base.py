@@ -26,11 +26,6 @@ def _create_dummy_subclass(remove_abstractmethods):
     return Dummy
 
 
-def test_init_BaseDataset_raises_TypeError():
-    with pytest.raises(TypeError, match="backend_name|info"):
-        BaseDataset()
-
-
 def test_BaseDataset_add_backend(
     BaseDataset_final_cleanup, BaseDataset_subclass
 ):
@@ -48,7 +43,6 @@ def test_BaseDataset_add_backend(
 
 def test_BaseDataset_required_props():
     # general
-    assert hasattr(BaseDataset, "backend_name")
     assert hasattr(BaseDataset, "appendable")
     assert hasattr(BaseDataset, "_backends")
 
@@ -70,13 +64,10 @@ def test_BaseDataset_register_plugin():
 
 
 def test_init_BaseDataset_location(remove_abstractmethods):
-    ds = BaseDataset(".")
+    ds = BaseDataset()
 
     assert BaseDataset.appendable == False
     assert ds.appendable == False
-
-    assert isinstance(ds.location, Path)
-    assert ds.location == Path(".")
 
 
 def test_register_backend(BaseDataset_final_cleanup, BaseDataset_subclass):
