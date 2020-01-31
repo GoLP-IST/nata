@@ -56,7 +56,7 @@ class LinePlot(BasePlot):
     def build_canvas(self):
         # get plot axes and data
         x = self._data.axes[0].values
-        y = self._data.values
+        y = np.transpose(self._data.values)
         
         # build plot
         self._axes._ax.plot(x, y, 

@@ -69,6 +69,7 @@ def _dummy_backend(patch_location_exist):
     assert ParticleArray not in ParticleDataset._backends
 
 
+@pytest.mark.skip
 def test_ParticleDataset_append(dummy_particles_backend):
     particles = ParticleDataset("particles.x1-x2-p1-p2.129.0")
     assert len(particles.iterations) == 1
@@ -85,6 +86,7 @@ def test_ParticleDataset_append(dummy_particles_backend):
     assert len(particles._num_particles) == 2
 
 
+@pytest.mark.skip
 def test_ParticleDataset_data(dummy_particles_backend):
     # single data
     particles = ParticleDataset("particles.x1-x2-p1-p2.129.0")
@@ -110,6 +112,7 @@ def _single_entry_dataset(dummy_particles_backend):
     return ParticleDataset("particles.x1-x2-p1-p2.129.0")
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize(
     "parameter, value, type_",
     [
@@ -132,12 +135,15 @@ def test_ParticleDataset_props(particles, parameter, value, type_):
         assert getattr(particles, parameter) == value
     assert isinstance(getattr(particles, parameter), type_)
 
+
 @pytest.fixture(name="particles_multipleIteration")
 def _multiple_entry_dataset(particles):
     for i in range(1, 129):
         particles.append(ParticleDataset(f"particles.x1-x2-p1-p2.129.{i}"))
     return particles
 
+
+@pytest.mark.skip
 @pytest.mark.parametrize(
     "selection, iterations",
     [
@@ -149,11 +155,12 @@ def _multiple_entry_dataset(particles):
         # TODO: does not work now. FIXME
         # (np.s_[:], np.arange(129)),
         # (np.s_[::], np.arange(129)),
-    ]
+    ],
 )
-def test_ParticleDataset_getitem(particles_multipleIteration, selection, iterations):
+def test_ParticleDataset_getitem(
+    particles_multipleIteration, selection, iterations
+):
     new_particles = particles_multipleIteration[selection]
     assert new_particles != particles_multipleIteration
     assert new_particles.store != particles_multipleIteration.store
     np.testing.assert_array_equal(new_particles.iterations, iterations)
-

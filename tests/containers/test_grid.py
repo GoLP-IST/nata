@@ -1,204 +1,235 @@
-from pathlib import Path
+from random import randint
 
 import attr
 import pytest
 import numpy as np
 
-from nata.containers.base import register_backend
-from nata.containers.grid import _extract_grid_keys
 from nata.containers.grid import GridDataset
+from nata.containers.grid import BaseGrid
+from nata.containers.axes import IterationAxis
+from nata.containers.axes import TimeAxis
+from nata.containers.axes import GridAxis
+from nata.containers.axes import DataStock
 
 
-@pytest.fixture(name="GridDataset_with_1d_Backend")
-def _1d_backend():
+@pytest.fixture(name="remove_GridDataset_backends")
+def _removeBackends():
+    # setup code
     previous_backends = GridDataset._backends.copy()
     GridDataset._backends.clear()
-
     assert len(GridDataset._backends) == 0
-
-    @attr.s
-    @register_backend(GridDataset)
-    class Grid_1d:
-        location: Path = attr.ib()
-        name: str = attr.ib(init=False)
-        short_name: str = attr.ib(init=False)
-        long_name: str = attr.ib(init=False)
-        dim: int = attr.ib(init=False)
-        dataset_unit: str = attr.ib(init=False)
-        axis_min: np.ndarray = attr.ib(init=False)
-        axis_max: np.ndarray = attr.ib(init=False)
-        iteration: int = attr.ib(init=False)
-        time_step: float = attr.ib(init=False)
-        time_unit: str = attr.ib(init=False)
-        axes_names: np.ndarray = attr.ib(init=False)
-        axes_long_names: np.ndarray = attr.ib(init=False)
-        axes_units: np.ndarray = attr.ib(init=False)
-        _selection = None
-
-        def __attrs_post_init__(self):
-            self.name = "1d_grid_backend"
-            self.short_name = "grid"
-            self.long_name = "1d_grid"
-            self.dim = 1
-            self.dataset_unit = "dset unit"
-            self.axis_min = np.array([-1.0])
-            self.axis_max = np.array([1.0])
-            self.time_unit = "time unit"
-            self.axes_names = np.array(["axis1"])
-            self.axes_long_names = np.array(["axis_1"])
-            self.axes_units = np.array(["axis1 units"])
-
-            location_suffix = self.location.suffix.strip(".")
-            if location_suffix:
-                self.iteration = int(location_suffix)
-                self.time_step = int(location_suffix) * 0.1
-            else:
-                self.iteration = 0
-                self.time_step = 0.0
-
-        @property
-        def dataset(self):
-            return np.arange(256)
-
-        @property
-        def shape(self):
-            return self.dataset.shape
-
-        @staticmethod
-        def is_valid_backend(s):
-            if s.stem == "1d_grid":
-                return True
-            return False
-
-        @property
-        def selection(self):
-            return self._selection
-
-        @selection.setter
-        def selection(self, new):
-            assert not isinstance(new, (int, slice))
-            self._selection = new
-
-    assert Grid_1d in GridDataset._backends
 
     yield
 
     # teardown code
     GridDataset._backends = previous_backends
-    assert Grid_1d not in GridDataset._backends
+    assert len(GridDataset._backends) != 0
 
 
-@pytest.fixture(name="patch_location_exist")
-def _any_location_exist(monkeypatch):
-    monkeypatch.setattr("pathlib.Path.exists", lambda _: True)
+@pytest.fixture(name="GridBackend")
+def _return_custom_grid():
+    class CustomGrid(BaseGrid):
+        @property
+        def name(self):
+            return "custom_grid"
+
+        @property
+        def iteration(self):
+            if self._value:
+                return self._value
+            return 0
+
+        @property
+        def time_step(self):
+            if self._value:
+                return self._value * 10.0
+            return 0.0
+
+        @property
+        def time_unit(self):
+            return "time unit"
+
+        @property
+        def axes_names(self):
+            return ["x1"]
+
+        @property
+        def axes_labels(self):
+            return ["x_1"]
+
+        @property
+        def axes_units(self):
+            return ["x1 units"]
+
+        @property
+        def axes_min(self):
+            return [-5.0]
+
+        @property
+        def axes_max(self):
+            return [5.0]
+
+        @property
+        def dataset(self):
+            return np.arange(10.0, dtype=float)
+
+        @property
+        def dataset_name(self):
+            return "dataset short"
+
+        @property
+        def dataset_label(self):
+            return "dataset long"
+
+        @property
+        def dataset_unit(self):
+            return "dataset unit"
+
+        @property
+        def location(self):
+            return None
+
+        @property
+        def shape(self):
+            return self.dataset.shape
+
+        @property
+        def dim(self):
+            return len(self.shape)
+
+        @property
+        def dtype(self):
+            return self.dataset.dtype
+
+        @staticmethod
+        def is_valid_backend(s):
+            pass
+
+        def __init__(self, value=None):
+            self._value = value
+
+    return CustomGrid
 
 
-@pytest.mark.parametrize(
-    "key, spatial, expected",
-    [
-        # 2 is used just as an example
-        # `np.index_exp` is used for easier indexing -> returns correct tuple
-        [np.index_exp[2], False, (2,)],
-        [np.index_exp[2, 2], False, (2,)],
-        [np.index_exp[2:], False, (slice(2, None),)],
-        [np.index_exp[2::], False, (slice(2, None),)],
-        [np.index_exp[:2], False, (slice(None, 2),)],
-        [np.index_exp[:2:], False, (slice(None, 2),)],
-        [np.index_exp[::2], False, (slice(None, None, 2),)],
-        [np.index_exp[2, 2], True, ((2,), (2,))],
-        [np.index_exp[2, ::2], True, ((2,), (slice(None, None, 2),))],
-    ],
-)
-def test_extract_grid_keys(key, spatial, expected):
-    assert _extract_grid_keys(key, spatial=spatial) == expected
+def test_GridDataset_init(GridBackend):
+    grid = GridDataset(GridBackend())
+
+    assert grid.backend == "custom_grid"
+    assert grid.location is None
+    assert grid.name == "dataset short"
+    assert grid.label == "dataset long"
+    assert grid.unit == "dataset unit"
+    assert grid._step is None
+
+    for attr, instance, value in (
+        ("iteration", IterationAxis, None),
+        ("time", TimeAxis, None),
+        ("_data", DataStock, None),
+        ("grid_shape", tuple, (10,)),
+        ("grid_dim", int, 1),
+        ("grid_dtype", np.dtype, np.float),
+        ("axes", list, None),
+        ("x1", GridAxis, None),
+    ):
+        assert hasattr(grid, attr)
+        assert isinstance(getattr(grid, attr), instance)
+        if value:
+            assert getattr(grid, attr) == value
 
 
-@pytest.mark.parametrize(
-    "parameter, value, type_",
-    [
-        ("axes_min", [-1.0], np.ndarray),
-        ("axes_max", [1.0], np.ndarray),
-        ("num_entries", 1, int),
-        ("iterations", [0], np.ndarray),
-        ("time", [0.0], np.ndarray),
-        ("time_unit", "time unit", str),
-        ("data", np.arange(256), np.ndarray),
-        ("backend_name", "1d_grid_backend", str),
-    ],
-)
-def test_GridDataset_with_1d_single_ds(
-    GridDataset_with_1d_Backend, patch_location_exist, parameter, value, type_
-):
-    grid = GridDataset("1d_grid")
-    if type_ == np.ndarray:
-        np.testing.assert_array_equal(getattr(grid, parameter), value)
-    else:
-        assert getattr(grid, parameter) == value
-    assert isinstance(getattr(grid, parameter), type_)
+def test_DummyGridBackend(GridBackend):
+    backend = GridBackend(10)
+    assert backend.iteration == 10
+    assert backend.time_step == 100.0
 
 
-@pytest.fixture(name="GridDataset_with_multiple_1d_grids")
-def _generate_1d_multiple_backends(
-    GridDataset_with_1d_Backend, patch_location_exist,
-) -> GridDataset:
-    grid = GridDataset("1d_grid.0")
-    for i in range(1, 128):
-        grid.append(GridDataset(f"1d_grid.{i}"))
-
-    return grid
+@pytest.mark.parametrize("l", range(10))
+def test_GridDataset_len(l):
+    ds = GridDataset.__new__(GridDataset)
+    ds.iteration = range(l)
+    assert len(ds) == l
 
 
-@pytest.mark.parametrize(
-    "parameter, value, type_",
-    [
-        ("axes_min", np.array([-1.0] * 128).reshape((128, 1)), np.ndarray),
-        ("axes_max", np.array([1.0] * 128).reshape((128, 1)), np.ndarray),
-        ("num_entries", 128, int),
-        ("iterations", np.arange(128), np.ndarray),
-        ("time", np.arange(128) * 0.1, np.ndarray),
-        ("time_unit", "time unit", str),
-        ("data", np.tile(np.arange(256), (128, 1)), np.ndarray),
-        ("backend_name", "1d_grid_backend", str),
-    ],
-)
-def test_GridDataset_with_1d_multiple_ds(
-    GridDataset_with_multiple_1d_grids, parameter, value, type_,
-):
-    example_ds = GridDataset_with_multiple_1d_grids
-    if type_ == np.ndarray:
-        np.testing.assert_array_equal(getattr(example_ds, parameter), value)
-    else:
-        assert getattr(example_ds, parameter) == value
-    assert isinstance(getattr(example_ds, parameter), type_)
+def test_GridDataset_append(GridBackend):
+    ds = GridDataset(GridBackend(1))
+    other = GridDataset(GridBackend(2))
+
+    ds.append(other)
+
+    assert len(ds) == 2
+    assert len(ds.iteration) == 2
+    assert len(ds.time) == 2
+    assert len(ds.x1) == 2
+    assert len(ds.axes) == 1
+    assert len(ds._data._mapping) == 2
 
 
-@pytest.mark.parametrize(
-    "selection, expected_iterations",
-    [
-        (np.s_[5], np.arange(5, 6)),
-        (np.s_[:5], np.arange(5)),
-        (np.s_[5:], np.arange(5, 128)),
-        (np.s_[5:98], np.arange(5, 98)),
-        (np.s_[6:74:4], np.arange(6, 74, 4)),
-        (np.s_[5, :], [5]),
-        (np.s_[5:98, :], np.arange(5, 98)),
-        (np.s_[6:74:4, :], np.arange(6, 74, 4)),
-        (np.s_[8, 12], [8]),
-        (np.s_[8, 14:87], [8]),
-        (np.s_[8, 3:64:3], [8]),
-        # TODO: requires changes on backend
-        # (np.index_exp[:, 12], np.arange(128)),
-        # (np.index_exp[:, 14:87], np.arange(128)),
-        # (np.index_exp[:, 3:64:3], np.arange(128)),
-    ],
-)
-def test_GridDataset_getitem(
-    GridDataset_with_multiple_1d_grids, selection, expected_iterations
-):
-    example_ds = GridDataset_with_multiple_1d_grids
-    new_ds = example_ds[selection]
+def test_GridDataset_data_getter():
+    ds = GridDataset.__new__(GridDataset)
+    ds._data = [i for i in range(10)]
+    ds._step = None
+    np.testing.assert_array_equal(ds.data, range(10))
+    ds._step = 5
+    np.testing.assert_array_equal(ds.data, [5])
 
-    assert new_ds != example_ds
-    assert new_ds.store != example_ds.store
-    np.testing.assert_array_equal(new_ds.iterations, expected_iterations)
-    # TODO: check for spatial selection
+
+def test_GridDataset_data_getter():
+    ds = GridDataset.__new__(GridDataset)
+    ds._step = None
+    ds._data = [i for i in range(10)]
+    np.testing.assert_array_equal(ds.data, range(10))
+
+    new_data = [i * 2 for i in range(10)]
+    ds.data = new_data
+    np.testing.assert_array_equal(ds._data, new_data)
+
+    ds._step = 5
+    ds.data = -5
+    new_data[5] = -5
+    np.testing.assert_array_equal(ds._data, new_data)
+
+
+def test_GridDataset_copy():
+    ds = GridDataset.__new__(GridDataset)
+
+    for f in attr.fields(GridDataset):
+        if f.eq:
+            setattr(ds, f.name, randint(0, 10))
+
+    new = ds.copy()
+
+    assert ds is not new
+    assert ds == new
+
+
+def test_GridDataset_iter():
+    ds = GridDataset.__new__(GridDataset)
+    ds.iteration = {0: 1, 10: 2, 20: 3}
+
+    for s, step in zip(ds, (0, 10, 20)):
+        assert s is ds
+        assert s._step == step
+
+    for (return_s, s), step in zip(ds.iter(), (0, 10, 20)):
+        assert s is ds
+        assert s._step == step
+        assert return_s == step
+
+    for (return_s, s), step in zip(ds.iter(with_iteration=True), (0, 10, 20)):
+        assert s is ds
+        assert s._step == step
+        assert return_s == step
+
+    for s, step in zip(ds.iter(with_iteration=False), (0, 10, 20)):
+        assert s is ds
+        assert s._step == step
+
+
+def test_GridDataset_from_array():
+    ds = GridDataset.from_array(np.arange(10))
+    np.testing.assert_array_equal(ds.data, np.arange(10).reshape((1, 10)))
+
+    ds = GridDataset.from_array(
+        np.arange(10).reshape((2, 5)), time=[0, 1], iteration=[0, 1]
+    )
+    np.testing.assert_array_equal(ds.data, np.arange(10).reshape((2, 5)))

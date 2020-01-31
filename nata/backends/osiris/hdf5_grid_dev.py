@@ -9,8 +9,8 @@ from nata.containers import GridDataset, register_backend
 
 
 @register_backend(GridDataset)
-class Osiris_Hdf5_GridFile(BaseGrid):
-    name = "osiris_hdf5_grid"
+class Osiris_Dev_Hdf5_GridFile(BaseGrid):
+    name = "osiris_dev_hdf5_grid"
 
     @staticmethod
     def is_valid_backend(file_path: Path) -> bool:
@@ -26,7 +26,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
         with h5.File(file_path, mode="r") as f:
             if ("NAME" in f.attrs) and \
                ("TYPE" in f.attrs) and \
-               (not "LABEL" in f.attrs):
+               ("LABEL" in f.attrs):
                 type_ = f.attrs["TYPE"].astype(str)[0]
                 # general naming
                 name_ = f.attrs["NAME"].astype(str)[0]
@@ -49,7 +49,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
     @property
     def dataset_label(self) -> str:
         with h5.File(self.location, mode="r") as fp:
-            return fp[self.dataset_name].attrs["LONG_NAME"].astype(str)[0]
+            return fp.attrs["LABEL"].astype(str)[0]
 
     @property
     def dataset(self):
@@ -81,7 +81,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
     @property
     def dataset_unit(self):
         with h5.File(self.location, mode="r") as fp:
-            units = fp[self.dataset_name].attrs["UNITS"].astype(str)[0]
+            units = fp.attrs["UNITS"].astype(str)[0]
         return units
 
     @property

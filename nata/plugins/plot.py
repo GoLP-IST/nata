@@ -27,21 +27,21 @@ def plot_grid_dataset(
 ) -> Figure:
 
     # raise error if dataset has more than one data object
-    if len(dataset.grid_obj) != 1:
+    if len(dataset) != 1:
         raise NataInvalidPlot
 
     # build plot axes object
     plot_axes = []
 
-    for i in range(dataset.dimension):
+    for axes in dataset.axes:
         new_axes = PlotDataAxis(
-            name=dataset.axes_names[i],
-            label=dataset.axes_labels[i],
-            units=dataset.axes_units[i],
-            type="linear",
-            min=dataset.axes_min[i],
-            max=dataset.axes_max[i],
-            n=dataset.shape[i]
+            name=axes.name,
+            label=axes.label,
+            units=axes.unit,
+            type=axes.axis_type,
+            min=axes.min,
+            max=axes.max,
+            n=axes.length
         )
 
         plot_axes.append(new_axes)
@@ -52,8 +52,8 @@ def plot_grid_dataset(
         label=dataset.label,
         units=dataset.unit,
         values=dataset.data,
-        time=dataset.time,
-        time_units=dataset.time_unit,
+        time=0., #dataset.time,
+        time_units="", #dataset.time.unit,
         axes=plot_axes
     )
 
@@ -74,7 +74,7 @@ def plot_grid_dataset(
         
     # 3. get default plot object for grids
     # TODO: make this an argument?
-    plot = DefaultGridPlotTypes[dataset.dimension]
+    plot = DefaultGridPlotTypes[dataset.grid_dim]
 
     # 4. build plot
     plot_kwargs = filter_kwargs(plot, **kwargs)
