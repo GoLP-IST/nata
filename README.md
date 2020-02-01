@@ -1,47 +1,11 @@
-NATA
-====
+# NATA
 
-Contributing to nata
---------------------
+## Contributing to nata
 
 For contributing to nata, simply fork this repository and apply your desired
 changes. You can always push your changes to your local fork. As soon as you
 are done with your feature or fix, create a pull request.
 
-**Local Development Environment**
+### Local Development Environment
 
-Use a virtual environment for development. Simply use the built in `venv`
-module of python, e.g.
-
-.. code-block:: bash
-
-    python -m venv --prompt nata venv
-    source venv/bin/activate
-
-After this, simply run
-
-.. code-block:: bash
-
-    pip install -e ".[dev]"
-
-which installs all the requirements needed for development. In addition, if you
-wish to test something inside a notebook, you can install it inside the created
-virtual environment.
-
-**Getting a specific python version**
-
-For nata, only the latest python versions are supported. In particular only
-``python>=3.6`` is supported. If you don't have this version installed, you can
-use a tool like `pyenv <https://github.com/pyenv/pyenv>`_.
-
-To install the version ``3.6.9`` you can run
-
-.. code-block:: bash
-
-    pyenv install 3.6.9  # you can use any version here which fulfills the requirements
-
-and use this particular version for nata development, by running
-
-.. code-block:: bash
-
-    pyenv local 3.6.9
+**TODO**
