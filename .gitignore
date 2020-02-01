@@ -187,4 +187,4 @@ $RECYCLE.BIN/
 *.lnk
 
 # venv module files
-venv/
+.venv/
