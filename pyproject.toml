@@ -10,7 +10,7 @@ maintainers = [
   "Fabio Cruz <fabio.cruz@tecnico.ulisboa.pt>"
 ]
 license = "MIT"
-readme = "README.rst"
+readme = "README.md"
 homepage = "https://github.com/GoLP-IST/nata"
 repository = "https://github.com/GoLP-IST/nata"
 documentation = "https://github.com/GoLP-IST/nata"
