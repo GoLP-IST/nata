@@ -32,16 +32,16 @@ def plot_grid_dataset(
 
     # build plot axes object
     plot_axes = []
-
-    for axes in dataset.axes:
+    
+    for ds_axes in dataset.axes:
         new_axes = PlotDataAxis(
-            name=axes.name,
-            label=axes.label,
-            units=axes.unit,
-            type=axes.axis_type,
-            min=axes.min,
-            max=axes.max,
-            n=axes.length
+            name=ds_axes.name,
+            label=ds_axes.label,
+            units=ds_axes.unit,
+            type=ds_axes.axis_type,
+            min=ds_axes.min[0],
+            max=ds_axes.max[0],
+            n=ds_axes.length
         )
 
         plot_axes.append(new_axes)
@@ -51,9 +51,9 @@ def plot_grid_dataset(
         name=dataset.name,
         label=dataset.label,
         units=dataset.unit,
-        values=dataset.data,
-        time=0., #dataset.time,
-        time_units="", #dataset.time.unit,
+        values=dataset.data[0],
+        time=dataset.time.asarray()[0],
+        time_units=dataset.time.unit,
         axes=plot_axes
     )
 
