@@ -84,6 +84,15 @@ class Axes:
     @property
     def plots(self) -> list:
         return self.plots
+    
+    def copy(self):
+        new = copy(self)
+
+        new._plots = copy(self._plots)
+        for plot in new._plots:
+            plot._axes = new
+
+        return new        
 
     def __attrs_post_init__(self):
         # initialize list of plot objects

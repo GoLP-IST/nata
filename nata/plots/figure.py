@@ -114,6 +114,14 @@ class Figure:
     def _repr_html_(self):
         self.show()
 
+    def copy(self):
+        new = copy(self)
+
+        for axes in new.axes.values():
+            axes._fig = new
+
+        return new
+
     def add_axes(
         self,
         **kwargs
@@ -160,10 +168,7 @@ class Figure:
 
     def __add__(self, other):
 
-        new = copy(self)
-        # TODO: move this to a costum copy method?
-        for axes in new.axes.values():
-            axes._fig = new
+        new = self.copy()
 
         new.nrows = ceil((len(new.axes)+len(other.axes))/new.ncols)
 
@@ -172,14 +177,17 @@ class Figure:
                 axes.redo_plots()
 
         for axes in other.axes.values():
+            # get a copy of old axes
+            new_axes = axes.copy()
 
-            # this loses properties of the old axes, namely style options
-            new_axes = new.add_axes()
-            new_axes._plots = copy(axes._plots)
+            # reset parent figure object
+            new_axes._fig = new
 
-            for plot in new_axes._plots:
-                plot._axes = new_axes
-
+            # redo plots in new axes
+            new_axes.index = len(new.axes)+1
             new_axes.redo_plots()
+
+            # add axes to new list
+            new._axes.append(new_axes)
     
         return new
