@@ -29,6 +29,9 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
 ]
 
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/python-poetry/poetry/issues"
+
 [tool.poetry.dependencies]
 python = "^3.6"
 numpy = "^1.18.1"
