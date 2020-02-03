@@ -8,7 +8,7 @@ repos:
         -   id: fix-encoding-pragma
         -   id: flake8
         -   id: no-commit-to-branch
-            description: Don't commit to master
+            name: Don't commit to master
     -   repo: https://github.com/psf/black
         rev: 19.3b0
         hooks:
