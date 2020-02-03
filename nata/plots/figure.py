@@ -115,8 +115,12 @@ class Figure:
         self.show()
 
     def copy(self):
-        new = copy(self)
 
+        self.close()
+
+        new = copy(self)
+        new.open()
+        
         for axes in new.axes.values():
             axes._fig = new
 
@@ -163,7 +167,9 @@ class Figure:
                         plot=plot.__class__,
                         data=plot._data
                     )
-    
+                    
+        new.close()
+
         return new
 
     def __add__(self, other):
@@ -189,5 +195,7 @@ class Figure:
 
             # add axes to new list
             new._axes.append(new_axes)
-    
+
+        new.close()
+
         return new

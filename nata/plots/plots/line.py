@@ -49,10 +49,6 @@ class LinePlot(BasePlot):
     def _default_title(self):
         return self._data.get_time_label()
 
-    def __attrs_post_init__(self):
-        
-        self.build_canvas()
-
     def build_canvas(self):
         # get plot axes and data
         x = self._data.axes[0].values

@@ -83,12 +83,11 @@ class Axes:
 
     @property
     def plots(self) -> list:
-        return self.plots
+        return self._plots
     
     def copy(self):
         new = copy(self)
 
-        new._plots = copy(self._plots)
         for plot in new._plots:
             plot._axes = new
 
@@ -137,11 +136,8 @@ class Axes:
     def redo_plots(self):
         
         self.reset_backend()
-        plots = copy(self._plots)
-        self.init_plots()
-
-        for plot in plots:
-            plot._axes = self
+        
+        for plot in self.plots:
             plot.build_canvas()
 
     def update(self):

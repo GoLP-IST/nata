@@ -52,6 +52,12 @@ class BasePlot(ABC):
     def _default_title(self):
         return ""
         
+    def __attrs_post_init__(self):
         
+        self.build_canvas()
+
+    def build_canvas(self):
+        pass
+
     def clear(self):
         pass
