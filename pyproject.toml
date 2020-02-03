@@ -1,9 +1,74 @@
-[build-system]
-requires = ["setuptools>=40.6.0", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.poetry]
+name = "nata"
+version = "0.1.0"
+description = "Post-processing and visualization for PIC codes"
+authors = [
+  "Anton Helm <anton.helm@tecnico.ulisboa.pt>"
+]
+maintainers = [
+  "Anton Helm <anton.helm@tecnico.ulisboa.pt>",
+  "Fabio Cruz <fabio.cruz@tecnico.ulisboa.pt>"
+]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/GoLP-IST/nata"
+repository = "https://github.com/GoLP-IST/nata"
+documentation = "https://github.com/GoLP-IST/nata"
+keywords = ["post-processing", "visualization", "particle-in-cell"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/python-poetry/poetry/issues"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+numpy = "^1.18.1"
+matplotlib = "^3.1.2"
+h5py = "^2.10.0"
+attrs = "^19.3.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.3.5"
+pytest-cov = "^2.8.1"
+black = "^19.10b0"
+flake8 = "^3.7.9"
+pre-commit = "^2.0.1"
+tox = "^3.14.3"
 
 [tool.black]
 line-length = 80
 target-version = ['py36', 'py37', 'py38']
-
-# TODO: add isort options
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  # The following are specific to Black, you probably don't want those.
+  | blib2to3
+  | tests/data
+  | profiling
+)/
+'''
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
