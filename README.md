@@ -9,3 +9,11 @@ are done with your feature or fix, create a pull request.
 ### Local Development Environment
 
 **TODO**
+
+# Credits
+
+`nata` is written and maintained by [Anton Helm](https://github.com/ahelm)
+and [Fábio Cruz](https://github.com/fabiocruz).
+
+The development is kindly supported by the [Group for Lasers and Plasmas
+(GoLP)](http://epp.tecnico.ulisboa.pt/>).
