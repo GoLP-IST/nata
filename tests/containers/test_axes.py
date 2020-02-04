@@ -1,12 +1,12 @@
-import pytest
-from pytest import raises
+# -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 from nata.containers.axes import Axis
+from nata.containers.axes import DataStock
+from nata.containers.axes import GridAxis
 from nata.containers.axes import IterationAxis
 from nata.containers.axes import TimeAxis
-from nata.containers.axes import GridAxis
-from nata.containers.axes import DataStock
 
 from ..conftest import does_not_raise
 
@@ -153,6 +153,24 @@ def test_IterationAxis_init(Parent):
     assert iteration.unit == "unit"
 
 
+@pytest.mark.parametrize(
+    "value_type, exception",
+    [
+        (int, does_not_raise()),
+        (float, pytest.raises(TypeError)),
+        (complex, pytest.raises(TypeError)),
+        (np.int, does_not_raise()),
+        (np.int_, does_not_raise()),
+        (np.int16, does_not_raise()),
+        (np.int32, does_not_raise()),
+        (np.int64, does_not_raise()),
+    ],
+)
+def test_IterationAxis_passing_intergerType(value_type, exception):
+    with exception:
+        IterationAxis(None, key=1, value=value_type(1))
+
+
 def test_IterationAxis_getitem(Parent):
     iteration = IterationAxis(
         Parent(iterations=[k * 10 for k in range(10)]), key=1, value=10
@@ -204,6 +222,24 @@ def test_TimeAxis_init(Parent):
     assert time.unit == "unit"
 
 
+@pytest.mark.parametrize(
+    "value_type, exception",
+    [
+        (int, pytest.raises(TypeError)),
+        (float, does_not_raise()),
+        (complex, pytest.raises(TypeError)),
+        (np.float, does_not_raise()),
+        (np.float_, does_not_raise()),
+        (np.float16, does_not_raise()),
+        (np.float32, does_not_raise()),
+        (np.float64, does_not_raise()),
+    ],
+)
+def test_TimeAxis_passing_float(value_type, exception):
+    with exception:
+        TimeAxis(None, key=1, value=value_type(1))
+
+
 def test_TimeAxis_getitem(Parent):
     time = TimeAxis(
         Parent(iterations=[k * 10.0 for k in range(10)]), key=1, value=10.0
@@ -234,13 +270,32 @@ def test_TimeAxis_getitem(Parent):
 
 
 def test_GridAxis_init(Parent):
-    gridaxis = GridAxis(Parent(), key=0, value=(-5.0, 5.0), name="x", length=10)
+    GridAxis(Parent(), key=0, value=(-5.0, 5.0), name="x", length=10)
 
     with pytest.raises(TypeError, match="array-like"):
         GridAxis(Parent(), key=0, value=1, name="x", length=10)
 
     with pytest.raises(ValueError, match="two entries"):
         GridAxis(Parent(), key=0, value=(1,), name="x", length=10)
+
+
+@pytest.mark.parametrize(
+    "key_type, exception",
+    [
+        (int, does_not_raise()),
+        (float, pytest.raises(TypeError)),
+        (complex, pytest.raises(TypeError)),
+        (np.int, does_not_raise()),
+        (np.int_, does_not_raise()),
+        (np.int16, does_not_raise()),
+        (np.int32, does_not_raise()),
+        (np.int64, does_not_raise()),
+        (np.floating, pytest.raises(TypeError)),
+    ],
+)
+def test_GridAxis_key_type(key_type, exception):
+    with exception:
+        GridAxis(None, key=key_type(1), value=(-1.0, 1.0), name="x", length=10)
 
 
 def test_GridAxis_asarray():
@@ -318,6 +373,30 @@ def test_DataStock_init():
 
     with pytest.raises(TypeError, match="type"):
         DataStock(key=1, value=np.arange(10, dtype=float), shape=(10,), dtype=1)
+
+
+@pytest.mark.parametrize(
+    "key_type, exception",
+    [
+        (int, does_not_raise()),
+        (float, pytest.raises(TypeError)),
+        (complex, pytest.raises(TypeError)),
+        (np.int, does_not_raise()),
+        (np.int_, does_not_raise()),
+        (np.int16, does_not_raise()),
+        (np.int32, does_not_raise()),
+        (np.int64, does_not_raise()),
+        (np.floating, pytest.raises(TypeError)),
+    ],
+)
+def test_Datastock_key_type(key_type, exception):
+    with exception:
+        DataStock(
+            key=key_type(1),
+            value=np.arange(10, dtype=float),
+            shape=(10,),
+            dtype=float,
+        )
 
 
 def test_DataStock_getitem():
