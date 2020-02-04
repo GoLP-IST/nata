@@ -1,11 +1,12 @@
+# -*- coding: utf-8 -*-
 from pathlib import Path
-from typing import Union
 
 import h5py as h5
 import numpy as np
 
 from nata.backends import BaseGrid
-from nata.containers import GridDataset, register_backend
+from nata.containers import GridDataset
+from nata.containers import register_backend
 
 
 @register_backend(GridDataset)
@@ -24,9 +25,11 @@ class Osiris_Hdf5_GridFile(BaseGrid):
             return False
 
         with h5.File(file_path, mode="r") as f:
-            if ("NAME" in f.attrs) and \
-               ("TYPE" in f.attrs) and \
-               (not "LABEL" in f.attrs):
+            if (
+                ("NAME" in f.attrs)
+                and ("TYPE" in f.attrs)
+                and ("LABEL" not in f.attrs)
+            ):
                 type_ = f.attrs["TYPE"].astype(str)[0]
                 # general naming
                 name_ = f.attrs["NAME"].astype(str)[0]
@@ -54,23 +57,22 @@ class Osiris_Hdf5_GridFile(BaseGrid):
                 return name_
 
     @property
-    def short_name(self) -> str:
+    def dataset(self):
+        with h5.File(self.location, mode="r") as fp:
+            dset = fp[self._dset_name]
+            dataset = np.zeros(dset.shape, dtype=dset.dtype)
+            dset.read_direct(dataset)
+        return dataset.transpose()
+
+    @property
+    def dataset_name(self) -> str:
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["NAME"].astype(str)[0]
 
     @property
-    def long_name(self) -> str:
+    def dataset_label(self) -> str:
         with h5.File(self.location, mode="r") as fp:
             return fp[self._dset_name].attrs["LONG_NAME"].astype(str)[0]
-
-    @property
-    def dataset(self):
-        with h5.File(self.location, mode="r") as fp:
-            dset = fp[self._dset_name]
-            shape = self.shape_from_slice(dset.shape, self._selection)
-            dataset = np.zeros(shape, dtype=dset.dtype)
-            dset.read_direct(dataset, source_sel=self._selection, dest_sel=None)
-        return dataset.transpose()
 
     @property
     def dim(self):
@@ -81,8 +83,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
     @property
     def shape(self):
         with h5.File(self.location, mode="r") as fp:
-            shape = fp[self._dset_name].shape[::-1]
-        return self.shape_from_slice(shape, self._selection)
+            return fp[self._dset_name].shape[::-1]
 
     @property
     def dtype(self):
@@ -97,75 +98,19 @@ class Osiris_Hdf5_GridFile(BaseGrid):
         return units
 
     @property
-    def axis_min(self):
-        # if selection is given -> do interpolation by creating a dummy
-        # linspace array
-        # TODO: remove array creation and turn in simple calculation
-        if self.selection:
-            min_values = []
-            max_values = []
-            with h5.File(self.location, mode="r") as fp:
-                for axis in fp["AXIS"]:
-                    min_values.append(fp["AXIS/" + axis][0])
-                    max_values.append(fp["AXIS/" + axis][1])
-                dset = fp[self.short_name]
-                shape = dset.shape
-
-            min_ = []
-            for i, N in enumerate(shape):
-                if isinstance(self._selection[i], int):
-                    min_.append(
-                        np.linspace(min_values[i], max_values[i], N)[
-                            self._selection
-                        ]
-                    )
-                    continue
-                min_.append(
-                    np.linspace(min_values[i], max_values[i], N)[
-                        self._selection
-                    ][0]
-                )
-
-        else:
-            min_ = []
-            with h5.File(self.location, mode="r") as fp:
-                for axis in fp["AXIS"]:
-                    min_.append(fp["AXIS/" + axis][0])
-
+    def axes_min(self):
+        min_ = []
+        with h5.File(self.location, mode="r") as fp:
+            for axis in fp["AXIS"]:
+                min_.append(fp["AXIS/" + axis][0])
         return np.array(min_)
 
     @property
-    def axis_max(self):
-        if self.selection:
-            min_values = []
-            max_values = []
-            with h5.File(self.location, mode="r") as fp:
-                for axis in fp["AXIS"]:
-                    min_values.append(fp["AXIS/" + axis][0])
-                    max_values.append(fp["AXIS/" + axis][1])
-                dset = fp[self.short_name]
-                shape = dset.shape
-
-            max_ = []
-            for i, N in enumerate(shape):
-                if isinstance(self._selection[i], int):
-                    max_.append(
-                        np.linspace(min_values[i], max_values[i], N)[
-                            self._selection
-                        ]
-                    )
-                    continue
-                max_.append(
-                    np.linspace(min_values[i], max_values[i], N)[
-                        self._selection
-                    ][-1]
-                )
-
-        else:
-            max_ = []
-            with h5.File(self.location, mode="r") as fp:
-                for axis in fp["AXIS"]:
-                    max_.append(fp["AXIS/" + axis][1])
+    def axes_max(self):
+        max_ = []
+        with h5.File(self.location, mode="r") as fp:
+            for axis in fp["AXIS"]:
+                max_.append(fp["AXIS/" + axis][1])
 
         return np.array(max_)
 
@@ -178,7 +123,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
         return np.array(names)
 
     @property
-    def axes_long_names(self):
+    def axes_labels(self):
         long_names = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
