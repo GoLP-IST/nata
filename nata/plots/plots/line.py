@@ -33,10 +33,6 @@ class LinePlot(BasePlot):
         default=None,
         validator=optional(instance_of((int, float)))
     )
-    label: str = attr.ib(
-        default=None, 
-        validator=optional(instance_of(str))
-    )
 
     def _default_xlim(self):
         return (self._data.axes[0].min, self._data.axes[0].max)
@@ -52,6 +48,9 @@ class LinePlot(BasePlot):
 
     def _default_title(self):
         return self._data.get_time_label()
+
+    def _default_label(self):
+        return self._data.get_label()
 
     def build_canvas(self):
         # get plot axes and data

@@ -55,6 +55,9 @@ class ColorPlot(BasePlot):
     def _default_title(self):
         return self._data.get_time_label()
 
+    def _default_label(self):
+        return self._data.get_label()
+
     def build_canvas(self):
         # get plot axes and data
         x = self._data.axes[0].values

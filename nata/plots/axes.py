@@ -11,7 +11,7 @@ import math
 from copy import copy
 
 # from nata.plots import Figure
-from nata.plots import PlotTypes
+from nata.plots import PlotTypes, LabelablePlotTypes
 from nata.plots import PlotData
 
 from nata.utils.attrs import filter_kwargs
@@ -95,7 +95,7 @@ class Axes:
         validator=optional(instance_of(bool))
     )
     legend_loc: str = attr.ib(
-        default="best", 
+        default="upper right", 
         validator=optional(instance_of(str))
     )
     legend_frameon: bool = attr.ib(
@@ -166,6 +166,9 @@ class Axes:
         plot_kwargs = filter_kwargs(plot, **kwargs)
         p = plot(axes=self, data=data, **kwargs)
         self._plots.append(p)
+        
+        if len(self._plots) > 0:
+            self.legend()
 
         return p
 
@@ -178,6 +181,7 @@ class Axes:
 
     def update(self):
         ax = self._ax
+
         ax.set_xscale(self.xscale)
         ax.set_yscale(self.yscale)
 
@@ -195,11 +199,18 @@ class Axes:
         ax.set_aspect(self.aspect)
     
     def legend(self):
-        labels = [p.label or "" for p in self._plots]
+        handles = [
+            p._h[0] for p in self._plots if isinstance(p, LabelablePlotTypes) 
+        ]
+        
+        labels = [
+            p.label for p in self._plots if isinstance(p, LabelablePlotTypes)
+        ]
 
         if self.legend_show and labels:
             # show legend
             self._legend = self._ax.legend(
+                handles = handles,
                 labels = labels,
                 loc=self.legend_loc, 
                 frameon=self.legend_frameon

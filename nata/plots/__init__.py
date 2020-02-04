@@ -8,6 +8,10 @@ PlotTypes = Union[
     LinePlot
 ]
 
+LabelablePlotTypes = Union[
+    LinePlot
+]
+
 DefaultGridPlotTypes = {
     1: LinePlot,
     2: ColorPlot

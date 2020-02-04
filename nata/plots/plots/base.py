@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+
 import attr
+from attr.validators import optional, instance_of
+
 import numpy as np
 
 from nata.plots.data import PlotData
@@ -18,6 +21,11 @@ class BasePlot(ABC):
 
     # plot handle object
     _h: attr.ib(init=False, repr=False)
+
+    label: str = attr.ib(
+        default=None, 
+        validator=optional(instance_of(str))
+    )
     
     # validator for parent axes object
     @_axes.validator
@@ -38,6 +46,12 @@ class BasePlot(ABC):
         if _axes.title is None:
             _axes.title = self._default_title()
 
+    # validator for label
+    @label.validator
+    def label_validator(self, attr, _axes):
+        
+        if self.label is None:
+            self.label = self._default_label()
 
     def _default_xlim(self):
         return ()
@@ -52,6 +66,9 @@ class BasePlot(ABC):
         return ""
 
     def _default_title(self):
+        return ""
+
+    def _default_label(self):
         return ""
         
     def __attrs_post_init__(self):
