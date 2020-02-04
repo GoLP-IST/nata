@@ -15,7 +15,9 @@ class BasePlot(ABC):
     
     # data object
     _data: PlotData = attr.ib(init=True, repr=False)
-    
+
+    # plot handle object
+    _h: attr.ib(init=False, repr=False)
     
     # validator for parent axes object
     @_axes.validator

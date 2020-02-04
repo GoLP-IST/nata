@@ -161,13 +161,20 @@ class Figure:
         new = copy(self)
         
         for key, axes in new.axes.items():
+            for plot in axes._plots:
+                plot.label = f"${plot._data.label}$"
+
             if key in other.axes:
                 for plot in other.axes[key]._plots:
-                    axes.add_plot(
+                    p = axes.add_plot(
                         plot=plot.__class__,
                         data=plot._data
                     )
-                    
+                    p.label = f"${p._data.label}$"
+
+            # force legend show
+            axes.legend()
+
         new.close()
 
         return new

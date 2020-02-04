@@ -18,10 +18,6 @@ class ColorPlot(BasePlot):
         default=None, 
         validator=optional(instance_of((int, float)))
     )
-    cb_draw: bool = attr.ib(
-        default=True, 
-        validator=optional(instance_of(bool))
-    )
     cb_map: str = attr.ib(
         default="rainbow", 
         validator=optional(instance_of(str))
@@ -96,7 +92,7 @@ class ColorPlot(BasePlot):
             )
             
         # build plot
-        c = self._axes._ax.pcolormesh(
+        self._h = self._axes._ax.pcolormesh(
             x, 
             y, 
             z,
@@ -105,18 +101,6 @@ class ColorPlot(BasePlot):
             antialiased=False
             )
 
-        if self.cb_draw:
-            # draw colorbar
-            self.cb = self._axes._ax.get_figure().colorbar(c, aspect=30)
-            
-            # set colorbar title
-            self.cb.set_label(
-                label=self.cb_title, 
-                labelpad=self._axes._fig.pad
-            )
-
         self._axes.update()
 
-    def clear(self):
-        if self.cb:
-            self.cb.remove()
+        self._axes.colorbar(plot=self)

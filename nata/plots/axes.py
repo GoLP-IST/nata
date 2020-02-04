@@ -1,3 +1,5 @@
+from typing import Optional
+
 import attr
 from attr.validators import optional, instance_of, and_, in_
 
@@ -28,6 +30,12 @@ class Axes:
 
     # axes index in the parent figure object
     index: int = attr.ib()
+
+    # backend legend object
+    _legend: attr.ib(init=False, repr=True, default=None)
+
+    # backend colorbar object
+    _cb: attr.ib(init=False, repr=True, default=None)
 
     # the attributes below are property of axes, 
     # however their validation and default assignment is done
@@ -81,6 +89,26 @@ class Axes:
         ))
     )
 
+    # legend options
+    legend_show: bool = attr.ib(
+        default=True, 
+        validator=optional(instance_of(bool))
+    )
+    legend_loc: str = attr.ib(
+        default="best", 
+        validator=optional(instance_of(str))
+    )
+    legend_frameon: bool = attr.ib(
+        default=False, 
+        validator=optional(instance_of(bool))
+    )
+
+    # colorbar options
+    cb_show: bool = attr.ib(
+        default=True, 
+        validator=optional(instance_of(bool))
+    )
+
     @property
     def plots(self) -> list:
         return self._plots
@@ -110,9 +138,15 @@ class Axes:
             self._fig.ncols,
             self.index
         )
+
+        self._legend = None
+        self._cb = None
+        
     def clear_backend(self):
         for plot in self._plots:
             plot.clear()
+
+        self.clear_colorbar()
 
         # TODO: generalize this for arbitrary backend
         self._ax.clear()
@@ -132,6 +166,8 @@ class Axes:
         plot_kwargs = filter_kwargs(plot, **kwargs)
         p = plot(axes=self, data=data, **kwargs)
         self._plots.append(p)
+
+        return p
 
     def redo_plots(self):
         
@@ -157,3 +193,33 @@ class Axes:
 
         # set aspect ratio
         ax.set_aspect(self.aspect)
+    
+    def legend(self):
+        labels = [p.label or "" for p in self._plots]
+
+        if self.legend_show and labels:
+            # show legend
+            self._legend = self._ax.legend(
+                labels = labels,
+                loc=self.legend_loc, 
+                frameon=self.legend_frameon
+            )
+
+    def colorbar(
+        self,
+        plot: PlotTypes
+    ):
+
+        if self.cb_show:
+            # show colorbar
+            self._cb = self._ax.get_figure().colorbar(plot._h, aspect=30)
+            
+            # set colorbar title
+            self._cb.set_label(
+                label=plot.cb_title, 
+                labelpad=self._fig.pad
+            )
+    
+    def clear_colorbar(self):
+        if self._cb:
+            self._cb.remove()
