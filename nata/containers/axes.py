@@ -189,7 +189,7 @@ class GridAxis(Axis):
         **_incomparable,
         repr=False,
         validator=deep_mapping(
-            key_validator=instance_of(int),
+            key_validator=optional(subdtype_of(np.integer)),
             value_validator=instance_of(tuple),
             mapping_validator=instance_of(dict),
         ),
@@ -283,7 +283,7 @@ class DataStock:
         repr=False,
         **_incomparable,
         validator=deep_mapping(
-            key_validator=instance_of(int),
+            key_validator=optional(subdtype_of(np.integer)),
             value_validator=instance_of((BaseGrid, np.ndarray)),
             mapping_validator=instance_of(dict),
         ),

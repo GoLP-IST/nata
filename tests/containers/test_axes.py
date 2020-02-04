@@ -279,6 +279,25 @@ def test_GridAxis_init(Parent):
         GridAxis(Parent(), key=0, value=(1,), name="x", length=10)
 
 
+@pytest.mark.parametrize(
+    "key_type, exception",
+    [
+        (int, does_not_raise()),
+        (float, pytest.raises(TypeError)),
+        (complex, pytest.raises(TypeError)),
+        (np.int, does_not_raise()),
+        (np.int_, does_not_raise()),
+        (np.int16, does_not_raise()),
+        (np.int32, does_not_raise()),
+        (np.int64, does_not_raise()),
+        (np.floating, pytest.raises(TypeError)),
+    ],
+)
+def test_GridAxis_key_type(key_type, exception):
+    with exception:
+        GridAxis(None, key=key_type(1), value=(-1.0, 1.0), name="x", length=10)
+
+
 def test_GridAxis_asarray():
     gridaxis = GridAxis(object, key=0, value=(-5.0, 5.0), name="x", length=10)
     np.testing.assert_array_equal(gridaxis.asarray(), [[-5.0, 5.0]])
@@ -354,6 +373,30 @@ def test_DataStock_init():
 
     with pytest.raises(TypeError, match="type"):
         DataStock(key=1, value=np.arange(10, dtype=float), shape=(10,), dtype=1)
+
+
+@pytest.mark.parametrize(
+    "key_type, exception",
+    [
+        (int, does_not_raise()),
+        (float, pytest.raises(TypeError)),
+        (complex, pytest.raises(TypeError)),
+        (np.int, does_not_raise()),
+        (np.int_, does_not_raise()),
+        (np.int16, does_not_raise()),
+        (np.int32, does_not_raise()),
+        (np.int64, does_not_raise()),
+        (np.floating, pytest.raises(TypeError)),
+    ],
+)
+def test_Datastock_key_type(key_type, exception):
+    with exception:
+        DataStock(
+            key=key_type(1),
+            value=np.arange(10, dtype=float),
+            shape=(10,),
+            dtype=float,
+        )
 
 
 def test_DataStock_getitem():
