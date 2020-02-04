@@ -222,6 +222,24 @@ def test_TimeAxis_init(Parent):
     assert time.unit == "unit"
 
 
+@pytest.mark.parametrize(
+    "value_type, exception",
+    [
+        (int, pytest.raises(TypeError)),
+        (float, does_not_raise()),
+        (complex, pytest.raises(TypeError)),
+        (np.float, does_not_raise()),
+        (np.float_, does_not_raise()),
+        (np.float16, does_not_raise()),
+        (np.float32, does_not_raise()),
+        (np.float64, does_not_raise()),
+    ],
+)
+def test_TimeAxis_passing_float(value_type, exception):
+    with exception:
+        TimeAxis(None, key=1, value=value_type(1))
+
+
 def test_TimeAxis_getitem(Parent):
     time = TimeAxis(
         Parent(iterations=[k * 10.0 for k in range(10)]), key=1, value=10.0

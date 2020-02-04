@@ -142,14 +142,14 @@ class TimeAxis(Axis):
         **_incomparable,
         repr=False,
         validator=deep_mapping(
-            key_validator=instance_of(int),
-            value_validator=instance_of(float),
+            key_validator=optional(subdtype_of(np.integer)),
+            value_validator=subdtype_of(np.floating),
             mapping_validator=instance_of(dict),
         ),
     )
 
     def __init__(self, parent, key, value, label="time", unit=""):
-        if not isinstance(value, float):
+        if not np.issubdtype(type(value), np.floating):
             raise TypeError("Requires `value` to be of type `float`")
 
         super().__init__(
