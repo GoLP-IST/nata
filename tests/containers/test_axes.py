@@ -154,7 +154,7 @@ def test_IterationAxis_init(Parent):
 
 
 @pytest.mark.parametrize(
-    "input_type, exception",
+    "value_type, exception",
     [
         (int, does_not_raise()),
         (float, pytest.raises(TypeError)),
@@ -166,9 +166,9 @@ def test_IterationAxis_init(Parent):
         (np.int64, does_not_raise()),
     ],
 )
-def test_IterationAxis_passing_intergerType(input_type, exception):
+def test_IterationAxis_passing_intergerType(value_type, exception):
     with exception:
-        IterationAxis(None, key=input_type(1), value=input_type(1))
+        IterationAxis(None, key=1, value=value_type(1))
 
 
 def test_IterationAxis_getitem(Parent):
