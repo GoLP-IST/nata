@@ -1,12 +1,12 @@
-import pytest
-from pytest import raises
+# -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 from nata.containers.axes import Axis
+from nata.containers.axes import DataStock
+from nata.containers.axes import GridAxis
 from nata.containers.axes import IterationAxis
 from nata.containers.axes import TimeAxis
-from nata.containers.axes import GridAxis
-from nata.containers.axes import DataStock
 
 from ..conftest import does_not_raise
 
@@ -153,6 +153,24 @@ def test_IterationAxis_init(Parent):
     assert iteration.unit == "unit"
 
 
+@pytest.mark.parametrize(
+    "input_type, exception",
+    [
+        (int, does_not_raise()),
+        (float, pytest.raises(TypeError)),
+        (complex, pytest.raises(TypeError)),
+        (np.int, does_not_raise()),
+        (np.int_, does_not_raise()),
+        (np.int16, does_not_raise()),
+        (np.int32, does_not_raise()),
+        (np.int64, does_not_raise()),
+    ],
+)
+def test_IterationAxis_passing_intergerType(input_type, exception):
+    with exception:
+        IterationAxis(None, key=input_type(1), value=input_type(1))
+
+
 def test_IterationAxis_getitem(Parent):
     iteration = IterationAxis(
         Parent(iterations=[k * 10 for k in range(10)]), key=1, value=10
@@ -234,7 +252,7 @@ def test_TimeAxis_getitem(Parent):
 
 
 def test_GridAxis_init(Parent):
-    gridaxis = GridAxis(Parent(), key=0, value=(-5.0, 5.0), name="x", length=10)
+    GridAxis(Parent(), key=0, value=(-5.0, 5.0), name="x", length=10)
 
     with pytest.raises(TypeError, match="array-like"):
         GridAxis(Parent(), key=0, value=1, name="x", length=10)
