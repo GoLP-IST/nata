@@ -1,18 +1,20 @@
+# -*- coding: utf-8 -*-
 from copy import copy
-from typing import Dict
 from typing import Any
-from typing import Union
+from typing import Dict
 from typing import Tuple
+from typing import Union
 
 import attr
-from attr.validators import instance_of
-from attr.validators import optional
+import numpy as np
 from attr.validators import deep_iterable
 from attr.validators import deep_mapping
 from attr.validators import in_
-import numpy as np
+from attr.validators import instance_of
+from attr.validators import optional
 
 from nata.backends.grid import BaseGrid
+from nata.utils.attrs import subdtype_of
 
 _incomparable = {"order": False, "eq": False}
 
@@ -96,14 +98,14 @@ class IterationAxis(Axis):
         **_incomparable,
         repr=False,
         validator=deep_mapping(
-            key_validator=optional(instance_of(int)),
-            value_validator=instance_of(int),
+            key_validator=optional(subdtype_of(np.integer)),
+            value_validator=subdtype_of(np.integer),
             mapping_validator=instance_of(dict),
         ),
     )
 
     def __init__(self, parent, key, value, label="iteration", unit=""):
-        if not isinstance(value, int):
+        if not np.issubdtype(type(value), np.integer):
             raise TypeError("Requires `value` to be of type `int`")
 
         super().__init__(
@@ -140,14 +142,14 @@ class TimeAxis(Axis):
         **_incomparable,
         repr=False,
         validator=deep_mapping(
-            key_validator=instance_of(int),
-            value_validator=instance_of(float),
+            key_validator=optional(subdtype_of(np.integer)),
+            value_validator=subdtype_of(np.floating),
             mapping_validator=instance_of(dict),
         ),
     )
 
     def __init__(self, parent, key, value, label="time", unit=""):
-        if not isinstance(value, float):
+        if not np.issubdtype(type(value), np.floating):
             raise TypeError("Requires `value` to be of type `float`")
 
         super().__init__(
@@ -187,7 +189,7 @@ class GridAxis(Axis):
         **_incomparable,
         repr=False,
         validator=deep_mapping(
-            key_validator=instance_of(int),
+            key_validator=optional(subdtype_of(np.integer)),
             value_validator=instance_of(tuple),
             mapping_validator=instance_of(dict),
         ),
@@ -281,7 +283,7 @@ class DataStock:
         repr=False,
         **_incomparable,
         validator=deep_mapping(
-            key_validator=instance_of(int),
+            key_validator=optional(subdtype_of(np.integer)),
             value_validator=instance_of((BaseGrid, np.ndarray)),
             mapping_validator=instance_of(dict),
         ),

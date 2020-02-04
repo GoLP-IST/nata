@@ -2,7 +2,7 @@
 
 ## Contributing to nata
 
-For contributing to nata, simply fork this repository and apply your desired
+For contributing to __nata__, simply fork this repository and apply your desired
 changes. You can always push your changes to your local fork. As soon as you
 are done with your feature or fix, create a pull request.
 
@@ -41,9 +41,21 @@ poetry shell
 which will spawn a shell inside the virtual environment.
 
 
+In addition, we use [pre-commit](https://pre-commit.com/) to help us keep
+consistency in our development without extra burden. Please use it as well.
+After you set up poetry, simlpy run
+
+```shell
+poetry run pre-commit install
+```
+
+which will create commit hooks for you and modify files keeping a consistent
+structure.
+
+
 # Credits
 
-`nata` is written and maintained by [Anton Helm](https://github.com/ahelm)
+__nata__ is written and maintained by [Anton Helm](https://github.com/ahelm)
 and [Fábio Cruz](https://github.com/fabiocruz).
 
 The development is kindly supported by the [Group for Lasers and Plasmas
