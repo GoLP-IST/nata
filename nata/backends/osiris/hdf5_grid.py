@@ -143,7 +143,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
     @property
     def iteration(self):
         with h5.File(self.location, mode="r") as fp:
-            time_step = fp.attrs["ITER"].astype(int)[0].item()
+            time_step = fp.attrs["ITER"].astype(int)[0]
         return time_step
 
     @property
