@@ -187,6 +187,14 @@ class Axes:
                 ylabels = [p._default_ylabel(units=True) for p in self._plots]
                 self.ylabel = ", ".join(ylabels)
 
+        if self._title_auto:
+            titles = [p._default_title() for p in self._plots]
+
+            if len(set(titles)) == 1:
+                self.title = set(titles).pop()
+            else:
+                self.title = None
+
     def redo_plots(self):
 
         self.reset_backend()
