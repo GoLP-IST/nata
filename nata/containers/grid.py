@@ -1,29 +1,28 @@
+# -*- coding: utf-8 -*-
+from copy import copy
 from pathlib import Path
-from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Set
 from typing import Tuple
-from typing import List
-from typing import ValuesView
-from typing import Optional
 from typing import Union
-from copy import copy
 
 import attr
-from attr.validators import instance_of
-from attr.validators import deep_iterable
-from attr.validators import optional
 import numpy as np
+from attr.validators import deep_iterable
+from attr.validators import instance_of
+from attr.validators import optional
 
-from nata.containers.base import BaseDataset
 from nata.backends.grid import BaseGrid
 from nata.backends.grid import GridArray
-
+from nata.containers.base import BaseDataset
+from nata.utils.attrs import subdtype_of
 from nata.utils.exceptions import NataInvalidContainer
 
+from .axes import DataStock
+from .axes import GridAxis
 from .axes import IterationAxis
 from .axes import TimeAxis
-from .axes import GridAxis
-from .axes import DataStock
 
 _incomparable = {"eq": False, "order": False}
 
@@ -51,7 +50,7 @@ class GridDataset(BaseDataset):
 
     grid_shape: Tuple[int] = attr.ib(
         validator=deep_iterable(
-            member_validator=instance_of(int),
+            member_validator=subdtype_of(np.integer),
             iterable_validator=instance_of(tuple),
         )
     )

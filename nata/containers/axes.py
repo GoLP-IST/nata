@@ -183,7 +183,7 @@ class TimeAxis(Axis):
 @attr.s(init=False, slots=True)
 class GridAxis(Axis):
     name: str = attr.ib(validator=instance_of(str))
-    length: int = attr.ib(validator=instance_of(int))
+    length: int = attr.ib(validator=subdtype_of(np.integer))
     axis_type: str = attr.ib(validator=in_(["linear", "logarithmic"]))
     _mapping: Dict[int, Tuple[float, float]] = attr.ib(
         **_incomparable,
@@ -289,7 +289,7 @@ class DataStock:
         ),
     )
     shape: Tuple[int] = attr.ib(
-        validator=deep_iterable(instance_of(int), instance_of(tuple))
+        validator=deep_iterable(subdtype_of(np.integer), instance_of(tuple))
     )
     dim: int = attr.ib(validator=instance_of(int))
     dtype: np.dtype = attr.ib(validator=instance_of((type, np.dtype)))
