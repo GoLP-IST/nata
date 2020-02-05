@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*-
 from pathlib import Path
-from typing import Union
 
-from nata.utils.zdf import read, info
 import numpy as np
 
 from nata.backends import BaseGrid
-from nata.containers import GridDataset, register_backend
+from nata.containers import GridDataset
+from nata.containers import register_backend
+from nata.utils.zdf import info
+from nata.utils.zdf import read
 
 
 @register_backend(GridDataset)
@@ -28,14 +30,10 @@ class Osiris_zdf_GridFile(BaseGrid):
         return False
 
     @property
-    def short_name(self) -> str:
+    def _dset_name(self) -> str:
         z_info = info(str(self.location))
-        return z_info.grid.name
-
-    @property
-    def long_name(self) -> str:
-        z_info = info(str(self.location))
-        return z_info.grid.label
+        label = z_info.grid.label
+        return self.clean(label)
 
     @property
     def dataset(self):
@@ -43,14 +41,25 @@ class Osiris_zdf_GridFile(BaseGrid):
         return z_data.transpose()
 
     @property
+    def dataset_name(self) -> str:
+        z_info = info(str(self.location))
+        label = z_info.grid.label
+        return self.clean(label)
+
+    @property
+    def dataset_label(self) -> str:
+        z_info = info(str(self.location))
+        return z_info.grid.label
+
+    @property
     def dim(self):
         z_info = info(str(self.location))
-        return z_info.grid.ndims.astype(int)
+        return z_info.grid.ndims
 
     @property
     def shape(self):
         z_info = info(str(self.location))
-        return tuple(z_info.grid.nx.astype(int))
+        return tuple(z_info.grid.nx)
 
     @property
     def dtype(self):
@@ -63,7 +72,7 @@ class Osiris_zdf_GridFile(BaseGrid):
         return z_info.grid.units
 
     @property
-    def axis_min(self):
+    def axes_min(self):
         min_values = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
@@ -71,7 +80,7 @@ class Osiris_zdf_GridFile(BaseGrid):
         return np.array(min_values)
 
     @property
-    def axis_max(self):
+    def axes_max(self):
         max_values = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
@@ -83,11 +92,13 @@ class Osiris_zdf_GridFile(BaseGrid):
         names = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
-            names.append(axis.name)
+            label = axis.label
+            name = self.clean(label)
+            names.append(name)
         return np.array(names)
 
     @property
-    def axes_long_names(self):
+    def axes_labels(self):
         long_names = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
@@ -116,3 +127,14 @@ class Osiris_zdf_GridFile(BaseGrid):
     def time_unit(self):
         z_info = info(str(self.location))
         return z_info.iteration.tunits
+
+    def clean(self, name):
+        return (
+            name.lower()
+            .replace("_", "")
+            .replace("^", "")
+            .replace("{", "")
+            .replace("}", "")
+            .replace("\\", "")
+            .replace(" ", "_")
+        )
