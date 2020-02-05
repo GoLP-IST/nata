@@ -47,6 +47,7 @@ class ZDF_Grid_Axis:
         self.type = 0
         self.min = 0.0
         self.max = 0.0
+        self.name = ""
         self.label = ""
         self.units = ""
 
@@ -55,6 +56,7 @@ class ZDF_Grid_Info:
     def __init__(self):
         self.ndims = 0
         self.nx = []
+        self.name = ""
         self.label = ""
         self.units = ""
         self.has_axis = 0
@@ -149,6 +151,7 @@ class ZDFfile:
             0x00130000: "cdset_end",
             0x00200000: "iteration",
             0x00210000: "grid_info",
+            0x00210001: "grid_info",
             0x00220000: "part_info",
             0x00230000: "track_info",
         }
@@ -286,6 +289,16 @@ class ZDFfile:
         info.ndims = self.__read_uint32()
         info.nx = self.__read_uint64_arr(info.ndims)
 
+        info.name = ""
+
+        # Minimum version supporting names
+        min_version = 0x00000001
+
+        # Get version
+        version = rec.id & 0x0000FFFF
+        if version >= min_version:
+            info.name = self.__read_string()
+
         info.label = self.__read_string()
         info.units = self.__read_string()
         info.has_axis = self.__read_int32()
@@ -296,6 +309,11 @@ class ZDFfile:
                 ax.type = self.__read_int32()
                 ax.min = self.__read_float64()
                 ax.max = self.__read_float64()
+
+                ax.name = ""
+                if version >= min_version:
+                    ax.name = self.__read_string()
+
                 ax.label = self.__read_string()
                 ax.units = self.__read_string()
                 info.axis.append(ax)
