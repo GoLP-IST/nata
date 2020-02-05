@@ -60,6 +60,9 @@ class GridDataset(BaseDataset):
 
     _data: DataStock = attr.ib(repr=False, **_incomparable)
 
+    def info(self, full: bool = False):  # pragma: no cover
+        return self.__repr__()
+
     def __init__(self, gridobj: Union[str, Path, BaseGrid]):
         if not isinstance(gridobj, BaseGrid):
             for backend in self._backends:

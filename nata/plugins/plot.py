@@ -1,137 +1,231 @@
-from nata.containers import BaseDataset, GridDataset, ParticleDataset
+from typing import Union, Optional
+
+from nata.utils.exceptions import NataInvalidPlot
+
+from nata.containers import DatasetCollection, BaseDataset, \
+                            GridDataset, ParticleDataset
 from nata.plugins.register import register_container_plugin
 
-from nata.plots import PlotAxis, PlotData, GridPlot1D, GridPlot2D, ParticlePlot2D
+from nata.plots import PlotDataAxis, PlotData
+from nata.plots import Figure
+from nata.plots import Axes
+from nata.plots import DefaultGridPlotTypes
+
+# from nata.plots.grid import GridPlotObj
+# from nata.plots.particle import ParticlePlot1D
+
+from nata.utils.attrs import filter_kwargs
 
 import numpy as np
 
 @register_container_plugin(GridDataset, name="plot")
-def plot_grid_dataset(dataset, show=True, **kwargs):
-    if   dataset.dimension == 1:
-        if   len(dataset.grid_obj) == 1:
-            axes = np.empty(dataset.dimension, dtype=PlotAxis)
-            axes[0] = PlotAxis(
-                name=dataset.axes_names[0],
-                label=dataset.axes_labels[0],
-                units=dataset.axes_units[0],
-                xtype="linear",
-                xmin=dataset.axes_min[0],
-                xmax=dataset.axes_max[0],
-                nx=dataset.shape[0]
-            )
+def plot_grid_dataset(
+    dataset: GridDataset,
+    fig: Optional[Figure] = None,
+    axes: Optional[Axes] = None,
+    **kwargs
+) -> Figure:
 
-            data = PlotData(
-                name=dataset.name,
-                label=dataset.label,
-                units=dataset.unit,
-                data=dataset.data,
-                time=dataset.time,
-                time_units=dataset.time_units
-            )
+    # raise error if dataset has more than one data object
+    if len(dataset) != 1:
+        raise NataInvalidPlot
 
-            dataset._p = GridPlot1D(
-                parent=dataset,
-                axes=axes,
-                data=data,
-                show=show, 
-                **kwargs
-            )
-        else:
-            NotImplementedError("Not yet implemented")
+    # 1. build figure
+    if fig is None:
+        
+        fig_kwargs = filter_kwargs(Figure, **kwargs)
+        fig = Figure(**fig_kwargs)
 
-    elif (dataset.dimension == 2):
-        if   len(dataset.grid_obj) == 1:
-            axes = np.empty(dataset.dimension, dtype=PlotAxis)
-            
-            for i in range(dataset.dimension):
-                axes[i] = PlotAxis(
-                    name=dataset.axes_names[i],
-                    label=dataset.axes_labels[i],
-                    units=dataset.axes_units[i],
-                    xtype="linear",
-                    xmin=dataset.axes_min[i],
-                    xmax=dataset.axes_max[i],
-                    nx=dataset.shape[i]
-                )
+        # ignore axes
+        axes = None
+    
+    # 2. build axes
+    if axes is None:
 
-            data = PlotData(
-                name=dataset.name,
-                label=dataset.label,
-                units=dataset.unit,
-                data=dataset.data,
-                time=dataset.time,
-                time_units=dataset.time_units
-            )
+        axes_kwargs = filter_kwargs(Axes, **kwargs)
+        axes = fig.add_axes(**axes_kwargs)
+        
+    # 3. get default plot object for grids
+    # TODO: make this an argument?
+    plot = DefaultGridPlotTypes[dataset.grid_dim]
 
-            dataset._p = GridPlot2D(
-                parent=dataset,
-                axes=axes,
-                data=data,
-                show=show, 
-                **kwargs
-            )
-
-@register_container_plugin(ParticleDataset, name="plot")
-def plot_particle_dataset(dataset, sel=None, show=True, **kwargs):
-    if   len(dataset.prt_objs) == 1:
-        axes = np.empty(2, dtype=PlotAxis)
-        for i in range(2):
-            idx = np.argwhere(dataset.quantities == sel[i])
-            name = dataset.quantities[idx[0]][0]
-            
-            axes[i] = PlotAxis(
-                name=name,
-                label=dataset.quantities_labels[name],
-                units=dataset.quantities_units[name],
-                xtype="linear",
-                xmin=np.min(dataset.data[name]),
-                xmax=np.max(dataset.data[name]),
-                nx=10
-            )
-
-        dataset._p = ParticlePlot2D(
-            parent=dataset,
-            sel=sel,
-            axes=axes,
-            show=show, 
-            **kwargs
+    # TODO: make this a method of the dataset?
+    # build plot axes object
+    plot_axes = []
+    
+    for ds_axes in dataset.axes:
+        new_axes = PlotDataAxis(
+            name=ds_axes.name,
+            label=ds_axes.label,
+            units=ds_axes.unit,
+            type=ds_axes.axis_type,
+            min=ds_axes.min[0],
+            max=ds_axes.max[0],
+            n=ds_axes.length
         )
-    else:
-        NotImplementedError("Not yet implemented")
 
-# @register_container_plugin(DatasetCollection, name="plot")
-# def plot_collection(collection, show=True, **kwargs):
-#     if   isinstance(collection, GridDataset):
-#         if   dataset.dimension == 1:
-#             if   len(dataset.grid_obj) == 1:
-#                 axes = np.empty(dataset.dimension, dtype=PlotAxis)
-#                 axes[0] = PlotAxis(
-#                     name=dataset.axes_names[0],
-#                     label=dataset.axes_labels[0],
-#                     units=dataset.axes_units[0],
-#                     xtype="linear",
-#                     xmin=dataset.axes_min[0],
-#                     xmax=dataset.axes_max[0],
-#                     nx=dataset.shape[0]
-#                 )
+        plot_axes.append(new_axes)
+    
+    # build data object
+    data = PlotData(
+        name=dataset.name,
+        label=dataset.label,
+        units=dataset.unit,
+        values=dataset.data[0],
+        time=dataset.time.asarray()[0],
+        time_units=dataset.time.unit,
+        axes=plot_axes
+    )
 
-#                 data = PlotData(
-#                     name=dataset.name,
-#                     label=dataset.label,
-#                     units=dataset.unit,
-#                     data=dataset.data,
-#                     time=dataset.time,
-#                     time_units=dataset.time_units
-#                 )
+    # 4. build plot
+    plot_kwargs = filter_kwargs(plot, **kwargs)
+    axes.add_plot(
+        plot=plot,
+        data=data,
+        **plot_kwargs
+    )
 
-#                 dataset._p = GridPlot1D(
-#                     parent=dataset,
-#                     axes=axes,
-#                     data=data,
-#                     show=show, 
-#                     **kwargs
-#                 )
-#             else:
-#                 NotImplementedError("Not yet implemented")
-#     else:
-#         raise NotImplementedError("Not yet implemented")
+    fig.close()
+
+    return fig
+
+# @register_container_plugin(ParticleDataset, name="plot")
+# def plot_particle_dataset(dataset, sel=None, fig=None, **kwargs):
+
+#     # raise error if dataset has more than one data object
+#     if   len(dataset.prt_objs) != 1:
+#         raise NataInvalidPlot
+
+#     axes = np.empty(2, dtype=PlotAxis)
+#     for i in range(2):
+#         idx = np.argwhere(dataset.quantities == sel[i])
+#         name = dataset.quantities[idx[0]][0]
+        
+#         axes[i] = PlotAxis(
+#             name=name,
+#             label=dataset.quantities_labels[name],
+#             units=dataset.quantities_units[name],
+#             xmin=np.min(dataset.data[name]),
+#             xmax=np.max(dataset.data[name])
+#         )
+
+#     # build data object
+#     data = PlotData(
+#         name=dataset.name,
+#         values=np.array([
+#             dataset.data[sel[0]],
+#             dataset.data[sel[1]]
+#         ]),
+#         time=dataset.time,
+#         time_units=dataset.time_units
+#     )
+
+#     # build figure object is no figure is passed as argument
+#     if fig is None:
+#         fig_kwargs = filter_kwargs(Figure, **kwargs)
+#         fig = Figure(**fig_kwargs)
+
+#     # add plot to figure object
+#     plot_kwargs = filter_kwargs(ParticlePlot1D, **kwargs)
+#     fig.add_plot(ParticlePlot1D, axes, data, **plot_kwargs)
+
+#     return fig
+
+@register_container_plugin(DatasetCollection, name="plot")
+def plot_collection(
+    collection: DatasetCollection,
+    order: Optional[list] = [],
+    styles: Optional[dict] = {},
+    # fig: Optional[Figure] = None,
+    # axes: Optional[Axes] = None,
+    **kwargs
+) -> Figure:
+
+    # check if collection is not empty
+    if not collection.store:
+        raise ValueError(
+            "Collection is empty."
+        ) 
+
+    # check if order elements exist in collection
+    for key in order:
+        if key not in collection.store.keys():
+            raise ValueError(
+            f"Order key `{key}` is not a part of the collection."
+        )
+    
+    if len(order) > 0 and len(order) < len(collection.store):
+        
+        # get collection keys as list
+        unused_keys = list(collection.store.keys())
+
+        # remove elemets already in order
+        for key in order:
+            unused_keys.remove(key)
+
+        # add unused keys to order
+        for key in unused_keys:
+            order.append(key)
+        
+    elif not order:
+        order = collection.store.keys()
+
+     # build figure object
+    fig_kwargs = filter_kwargs(Figure, **kwargs)
+    
+    fig = Figure(**fig_kwargs)
+
+    for key in order:
+        # get dataset
+        dataset = collection.store[key]
+
+        # get dataset plot specific kwargs
+        ds_kwargs = {}
+        if key in styles:
+            ds_kwargs = styles[key]
+
+        # add new axes
+        axes_kwargs = filter_kwargs(Axes, **ds_kwargs)
+        axes = fig.add_axes(**axes_kwargs)
+
+        plot = DefaultGridPlotTypes[dataset.grid_dim]
+
+        # TODO: make this a method of the dataset?
+        # build plot axes object
+        plot_axes = []
+        
+        for ds_axes in dataset.axes:
+            new_axes = PlotDataAxis(
+                name=ds_axes.name,
+                label=ds_axes.label,
+                units=ds_axes.unit,
+                type=ds_axes.axis_type,
+                min=ds_axes.min[0],
+                max=ds_axes.max[0],
+                n=ds_axes.length
+            )
+
+            plot_axes.append(new_axes)
+        
+        # build data object
+        data = PlotData(
+            name=dataset.name,
+            label=dataset.label,
+            units=dataset.unit,
+            values=dataset.data[0],
+            time=dataset.time.asarray()[0],
+            time_units=dataset.time.unit,
+            axes=plot_axes
+        )
+
+        # build plot
+        plot_kwargs = filter_kwargs(plot, **ds_kwargs)
+        axes.add_plot(
+            plot=plot,
+            data=data,
+            **plot_kwargs
+        )
+
+    fig.close()
+
+    return fig

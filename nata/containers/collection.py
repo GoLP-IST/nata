@@ -17,17 +17,19 @@ class DatasetCollection:
     store: Dict[str, DatasetTypes] = attr.ib(factory=dict)
 
     def info(self, full: bool = False):  # pragma: no cover
-        printer = PrettyPrinter(header="Collection")
-        printer.add_line(f"Root path: {self.root_path}")
-        printer.add_line(f"Number of datasets: {len(self.store)}")
-        printer.add_line(f"Datasets: " + ", ".join(self.datasets))
-        printer.new_linebreak()
+        return self.__repr__()
 
-        if full:
-            for dset in self.store.values():
-                dset.info(printer=printer, root_path=self.root_path)
+        # printer = PrettyPrinter(header="Collection")
+        # printer.add_line(f"Root path: {self.root_path}")
+        # printer.add_line(f"Number of datasets: {len(self.store)}")
+        # printer.add_line(f"Datasets: " + ", ".join(self.datasets))
+        # printer.new_linebreak()
 
-        printer.flush()
+        # if full:
+        #     for dset in self.store.values():
+        #         dset.info(printer=printer, root_path=self.root_path)
+
+        # printer.flush()
 
     @property
     def datasets(self):
@@ -74,3 +76,7 @@ class DatasetCollection:
 
     def __getitem__(self, key):
         return self.store[key]
+
+    @classmethod
+    def register_plugin(cls, plugin_name, plugin):
+        setattr(cls, plugin_name, plugin)

@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Union
 
 import h5py as h5
 import numpy as np
 
 from nata.backends import BaseGrid
-from nata.containers import GridDataset
-from nata.containers import register_backend
+from nata.containers import GridDataset, register_backend
 
 
 @register_backend(GridDataset)
-class Osiris_Hdf5_GridFile(BaseGrid):
-    name = "osiris_hdf5_grid"
+class Osiris_Dev_Hdf5_GridFile(BaseGrid):
+    name = "osiris_dev_hdf5_grid"
 
     @staticmethod
     def is_valid_backend(file_path: Path) -> bool:
@@ -25,11 +24,9 @@ class Osiris_Hdf5_GridFile(BaseGrid):
             return False
 
         with h5.File(file_path, mode="r") as f:
-            if (
-                ("NAME" in f.attrs)
-                and ("TYPE" in f.attrs)
-                and ("LABEL" not in f.attrs)
-            ):
+            if ("NAME" in f.attrs) and \
+               ("TYPE" in f.attrs) and \
+               ("LABEL" in f.attrs):
                 type_ = f.attrs["TYPE"].astype(str)[0]
                 # general naming
                 name_ = f.attrs["NAME"].astype(str)[0]
@@ -45,26 +42,6 @@ class Osiris_Hdf5_GridFile(BaseGrid):
         return False
 
     @property
-    def _dset_name(self) -> str:
-        with h5.File(self.location, mode="r") as fp:
-            short_name = fp.attrs["NAME"].astype(str)[0]
-            if short_name in fp:
-                return short_name
-
-            name_ = short_name.split()[-1]
-            name_ = name_.replace("_", "")
-            if name_ in fp:
-                return name_
-
-    @property
-    def dataset(self):
-        with h5.File(self.location, mode="r") as fp:
-            dset = fp[self._dset_name]
-            dataset = np.zeros(dset.shape, dtype=dset.dtype)
-            dset.read_direct(dataset)
-        return dataset.transpose()
-
-    @property
     def dataset_name(self) -> str:
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["NAME"].astype(str)[0]
@@ -72,29 +49,39 @@ class Osiris_Hdf5_GridFile(BaseGrid):
     @property
     def dataset_label(self) -> str:
         with h5.File(self.location, mode="r") as fp:
-            return fp[self._dset_name].attrs["LONG_NAME"].astype(str)[0]
+            return fp.attrs["LABEL"].astype(str)[0]
+
+    @property
+    def dataset(self):
+        with h5.File(self.location, mode="r") as fp:
+            dset = fp[self.dataset_name]
+            shape = dset.shape
+            dataset = np.zeros(shape, dtype=dset.dtype)
+            dset.read_direct(dataset, source_sel=None, dest_sel=None)
+        return dataset.transpose()
 
     @property
     def dim(self):
         with h5.File(self.location, mode="r") as fp:
-            ndim = fp[self._dset_name].ndim
+            ndim = fp[self.dataset_name].ndim
         return ndim
 
     @property
     def shape(self):
         with h5.File(self.location, mode="r") as fp:
-            return fp[self._dset_name].shape[::-1]
+            shape = fp[self.dataset_name].shape[::-1]
+        return shape
 
     @property
     def dtype(self):
         with h5.File(self.location, mode="r") as fp:
-            dtype = fp[self._dset_name].dtype
+            dtype = fp[self.dataset_name].dtype
         return dtype
 
     @property
     def dataset_unit(self):
         with h5.File(self.location, mode="r") as fp:
-            units = fp[self._dset_name].attrs["UNITS"].astype(str)[0]
+            units = fp.attrs["UNITS"].astype(str)[0]
         return units
 
     @property
@@ -103,6 +90,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 min_.append(fp["AXIS/" + axis][0])
+
         return np.array(min_)
 
     @property
@@ -143,7 +131,7 @@ class Osiris_Hdf5_GridFile(BaseGrid):
     @property
     def iteration(self):
         with h5.File(self.location, mode="r") as fp:
-            time_step = fp.attrs["ITER"].astype(int)[0]
+            time_step = fp.attrs["ITER"].astype(int)[0].item()
         return time_step
 
     @property

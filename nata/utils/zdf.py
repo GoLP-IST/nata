@@ -40,11 +40,13 @@ class ZDF_Grid_Axis:
         self.type = 0
         self.min = 0.
         self.max = 0.
+        self.name = ''
         self.label = ''
         self.units = ''
 
 class ZDF_Grid_Info:
     def __init__( self ):
+        self.name = ''
         self.ndims = 0
         self.nx = []
         self.label = ''
@@ -268,9 +270,11 @@ class ZDFfile:
         if ( rec is False ):
             rec = self.read_record()
         info = ZDF_Grid_Info()
+        
         info.ndims = self.__read_uint32()
         info.nx = self.__read_uint64_arr( info.ndims )
 
+        info.name = self.__read_string()
         info.label = self.__read_string()
         info.units = self.__read_string()
         info.has_axis = self.__read_int32()
@@ -281,6 +285,7 @@ class ZDFfile:
                 ax.type  = self.__read_int32()
                 ax.min   = self.__read_float64()
                 ax.max   = self.__read_float64()
+                ax.name = self.__read_string()
                 ax.label = self.__read_string()
                 ax.units = self.__read_string()
                 info.axis.append(ax)

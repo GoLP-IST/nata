@@ -30,7 +30,7 @@ class Osiris_zdf_GridFile(BaseGrid):
     @property
     def short_name(self) -> str:
         z_info = info(str(self.location))
-        return z_info.grid.label
+        return z_info.grid.name
 
     @property
     def long_name(self) -> str:
@@ -50,7 +50,7 @@ class Osiris_zdf_GridFile(BaseGrid):
     @property
     def shape(self):
         z_info = info(str(self.location))
-        return z_info.grid.nx
+        return tuple(z_info.grid.nx.astype(int))
 
     @property
     def dtype(self):
@@ -83,7 +83,7 @@ class Osiris_zdf_GridFile(BaseGrid):
         names = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
-            names.append(axis.label)
+            names.append(axis.name)
         return np.array(names)
 
     @property

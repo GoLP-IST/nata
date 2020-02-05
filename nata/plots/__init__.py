@@ -1,5 +1,24 @@
-from .axis import PlotAxis
-from .data import PlotData
-from .base import BasePlot
-from .grid import GridPlot, GridPlot1D, GridPlot2D
-from .particle import ParticlePlot2D
+from typing import Union
+
+from .plots.line import LinePlot
+from .plots.color import ColorPlot
+# from Scatter import ScatterPlot
+
+PlotTypes = Union[
+    LinePlot
+]
+
+LabelablePlotTypes = Union[
+    LinePlot
+]
+
+DefaultGridPlotTypes = {
+    1: LinePlot,
+    2: ColorPlot
+}
+
+# DefaultParticlePlotType = ScatterPlot
+
+from .data import PlotDataAxis, PlotData
+from .figure import Figure
+from .axes import Axes

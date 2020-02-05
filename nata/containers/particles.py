@@ -33,7 +33,7 @@ class ParticleDataset(BaseDataset):
     _dtype: np.dtype = attr.ib(init=False)
     _num_particles: Dict[int, int] = attr.ib(init=False, factory=dict)
 
-    time_unit: np.ndarray = attr.ib(init=False)
+    time_units: np.ndarray = attr.ib(init=False)
 
     @property
     def data(self) -> np.ndarray:
@@ -81,6 +81,8 @@ class ParticleDataset(BaseDataset):
         self._dtype = prt_obj.dtype
         self.tagged = prt_obj.has_tags
         self.time_unit = prt_obj.time_unit
+
+        self.time_units = prt_obj.time_unit
 
         self.location = prt_obj.location.parent
         self.store[prt_obj.iteration] = prt_obj
