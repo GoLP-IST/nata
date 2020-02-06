@@ -28,8 +28,8 @@ class ColorPlot(BasePlot):
         default=1e-5, validator=optional(instance_of((int, float)))
     )
     cb_title: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    antialiased: bool = attr.ib(
-        default=False, validator=optional(instance_of(bool))
+    interpolation: str = attr.ib(
+        default="none", validator=optional(instance_of(str))
     )
 
     @cb_title.validator
@@ -62,9 +62,13 @@ class ColorPlot(BasePlot):
         return f"${self._data.axes[1].units}$"
 
     def build_canvas(self):
-        # get plot axes and data
-        x = self._data.axes[0].values
-        y = self._data.axes[1].values
+        # get plot extent and data
+        extent = (
+            self._data.axes[0].min,
+            self._data.axes[0].max,
+            self._data.axes[1].min,
+            self._data.axes[1].max,
+        )
         z = np.transpose(self._data.values)
 
         # build color map norm
@@ -90,13 +94,13 @@ class ColorPlot(BasePlot):
             self.cb_norm = clr.Normalize(vmin=self.vmin, vmax=self.vmax)
 
         # build plot
-        self._h = self._axes._ax.pcolormesh(
-            x,
-            y,
+        self._h = self._axes._ax.imshow(
             z,
+            extent=extent,
+            origin="lower",
             cmap=self.cb_map,
             norm=self.cb_norm,
-            antialiased=self.antialiased,
+            interpolation=self.interpolation,
         )
 
         self._axes.update()
