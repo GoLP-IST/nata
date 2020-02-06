@@ -23,6 +23,9 @@ class LinePlot(BasePlot):
     ms: float = attr.ib(
         default=None, validator=optional(instance_of((int, float)))
     )
+    antialiased: bool = attr.ib(
+        default=True, validator=optional(instance_of(bool))
+    )
 
     def _default_xlim(self):
         return (self._data.axes[0].min, self._data.axes[0].max)
@@ -64,6 +67,7 @@ class LinePlot(BasePlot):
             marker=self.marker,
             ms=self.ms,
             label=self.label,
+            antialiased=self.antialiased,
         )
 
         self._axes.update()
