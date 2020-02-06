@@ -28,6 +28,9 @@ class ColorPlot(BasePlot):
         default=1e-5, validator=optional(instance_of((int, float)))
     )
     cb_title: str = attr.ib(default=None, validator=optional(instance_of(str)))
+    antialiased: bool = attr.ib(
+        default=False, validator=optional(instance_of(bool))
+    )
 
     @cb_title.validator
     def cb_title_validator(self, attr, cb_title):
@@ -71,10 +74,10 @@ class ColorPlot(BasePlot):
 
             # adjust min and max values
             # TODO: do this only if vmin was not init
-            self.vmin = np.min(z)
+            # self.vmin = np.min(z)
 
             # if self.vmax_auto:
-            self.vmax = np.max(z)
+            # self.vmax = np.max(z)
 
             # set color map norm
             self.cb_norm = clr.LogNorm(vmin=self.vmin, vmax=self.vmax)
@@ -88,7 +91,12 @@ class ColorPlot(BasePlot):
 
         # build plot
         self._h = self._axes._ax.pcolormesh(
-            x, y, z, cmap=self.cb_map, norm=self.cb_norm, antialiased=False
+            x,
+            y,
+            z,
+            cmap=self.cb_map,
+            norm=self.cb_norm,
+            antialiased=self.antialiased,
         )
 
         self._axes.update()
