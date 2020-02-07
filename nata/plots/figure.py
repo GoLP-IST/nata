@@ -3,6 +3,7 @@ from copy import copy
 from math import ceil
 
 import attr
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -18,13 +19,14 @@ class Figure:
     # axes contained in the figure
     _axes: list = attr.ib(init=False, repr=False)
 
-    # backend object
+    # backend objects
     _plt: attr.ib(init=False, repr=False)
+    _mpl: attr.ib(init=False, repr=False)
 
     # backend figure object
     _fig: attr.ib(init=False, repr=False)
 
-    # plotting options
+    # backend object options
     figsize: tuple = attr.ib(
         default=(9, 6),
         validator=attr.validators.instance_of((tuple, np.ndarray)),
@@ -34,6 +36,10 @@ class Figure:
     )
     nrows: int = attr.ib(default=1)
     ncols: int = attr.ib(default=1)
+
+    # style-related variables
+    _rc: dict = attr.ib(repr=False, default={})
+
     fontsize: int = attr.ib(default=16)
     pad: int = attr.ib(default=10)
 
@@ -62,6 +68,7 @@ class Figure:
 
     def init_backend(self):
         self._plt = plt
+        self._mpl = mpl
 
     def open(self):
         # TODO: generalize this for arbitrary backend
@@ -77,36 +84,34 @@ class Figure:
         self.open()
 
     def set_style(self, style="default"):
+
         # TODO: allow providing of a general style from arguments
         #       or from a style file
 
-        # fonts
-        # self._plt.rc('font', **{
-        # 'family':'sans-serif',
-        # 'sans-serif':['Helvetica']
-        # })
-        self._plt.rc("text", usetex=True)
+        self._rc["text.usetex"] = True
 
-        # self._plt.rc('font', size=self.fontsize, serif="Palatino")
-        self._plt.rc("axes", titlesize=self.fontsize)
-        self._plt.rc("axes", labelsize=self.fontsize)
-        self._plt.rc("xtick", labelsize=self.fontsize)
-        self._plt.rc("ytick", labelsize=self.fontsize)
-        self._plt.rc("legend", fontsize=self.fontsize)
-        self._plt.rc("figure", titlesize=self.fontsize)
+        # font sizes
+        self._rc["font.size"] = self.fontsize
+        self._rc["axes.titlesize"] = self.fontsize
+        self._rc["axes.labelsize"] = self.fontsize
+        self._rc["xtick.labelsize"] = self.fontsize
+        self._rc["ytick.labelsize"] = self.fontsize
+        self._rc["legend.fontsize"] = self.fontsize
+        self._rc["figure.titlesize"] = self.fontsize
 
         # padding
-        self._plt.rc("xtick.major", pad=self.pad)
-        self._plt.rc("ytick.major", pad=self.pad)
+        self._rc["xtick.major.pad"] = self.pad
+        self._rc["ytick.major.pad"] = self.pad
 
     def show(self):
         # TODO: generalize this for arbitrary backend
-        dummy = self._plt.figure()
-        new_manager = dummy.canvas.manager
-        new_manager.canvas.figure = self._fig
+        with mpl.rc_context(rc=self._rc):
+            dummy = self._plt.figure()
+            new_manager = dummy.canvas.manager
+            new_manager.canvas.figure = self._fig
 
-        self._fig.tight_layout()
-        self._plt.show()
+            self._fig.tight_layout()
+            self._plt.show()
 
     def _repr_html_(self):
         self.show()

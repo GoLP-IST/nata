@@ -3,6 +3,7 @@ from copy import copy
 from typing import Optional
 
 import attr
+import matplotlib as mpl
 from attr.validators import and_
 from attr.validators import in_
 from attr.validators import instance_of
@@ -116,9 +117,10 @@ class Axes:
 
     def init_backend(self):
         # TODO: generalize this for arbitrary backend
-        self._ax = self._fig._fig.add_subplot(
-            self._fig.nrows, self._fig.ncols, self.index
-        )
+        with mpl.rc_context(rc=self._fig._rc):
+            self._ax = self._fig._fig.add_subplot(
+                self._fig.nrows, self._fig.ncols, self.index
+            )
 
         self._legend = None
         self._cb = None
@@ -222,23 +224,25 @@ class Axes:
 
     def update_backend(self):
         # TODO: generalize this for arbitrary backend
-        ax = self._ax
 
-        ax.set_xscale(self.xscale)
-        ax.set_yscale(self.yscale)
+        with mpl.rc_context(rc=self._fig._rc):
+            ax = self._ax
 
-        ax.set_xlim(self.xlim)
-        ax.set_ylim(self.ylim)
+            ax.set_xscale(self.xscale)
+            ax.set_yscale(self.yscale)
 
-        # set axes labels
-        ax.set_xlabel(self.xlabel, labelpad=self._fig.pad)
-        ax.set_ylabel(self.ylabel, labelpad=self._fig.pad)
+            ax.set_xlim(self.xlim)
+            ax.set_ylim(self.ylim)
 
-        # set title
-        ax.set_title(label=self.title, pad=self._fig.pad)
+            # set axes labels
+            ax.set_xlabel(self.xlabel)
+            ax.set_ylabel(self.ylabel)
 
-        # set aspect ratio
-        ax.set_aspect(self.aspect)
+            # set title
+            ax.set_title(label=self.title)
+
+            # set aspect ratio
+            ax.set_aspect(self.aspect)
 
     def legend(self):
         handles = [
@@ -250,22 +254,25 @@ class Axes:
         ]
 
         if self.legend_show:
-            # show legend
-            self._legend = self._ax.legend(
-                handles=handles,
-                labels=labels,
-                loc=self.legend_loc,
-                frameon=self.legend_frameon,
-            )
+            with mpl.rc_context(rc=self._fig._rc):
+                # show legend
+                self._legend = self._ax.legend(
+                    handles=handles,
+                    labels=labels,
+                    loc=self.legend_loc,
+                    frameon=self.legend_frameon,
+                )
 
     def colorbar(self, plot: PlotTypes):
 
         if self.cb_show:
-            # show colorbar
-            self._cb = self._ax.get_figure().colorbar(plot._h, aspect=30)
 
-            # set colorbar title
-            self._cb.set_label(label=plot.cb_title, labelpad=self._fig.pad)
+            with mpl.rc_context(rc=self._fig._rc):
+                # show colorbar
+                self._cb = self._ax.get_figure().colorbar(plot._h, aspect=30)
+
+                # set colorbar title
+                self._cb.set_label(label=plot.cb_title)
 
     def clear_colorbar(self):
         if self._cb:
