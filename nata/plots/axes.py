@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from copy import copy
+from typing import Optional
 
 import attr
 from attr.validators import and_
@@ -137,16 +138,31 @@ class Axes:
         self.clear_backend()
         self.init_backend()
 
-    def add_plot(self, plot: PlotTypes, data: PlotData, **kwargs):
-        plot_kwargs = filter_kwargs(plot, **kwargs)
-        p = plot(axes=self, data=data, **plot_kwargs)
-        self._plots.append(p)
+    def add_plot(
+        self,
+        plot_type: Optional[PlotTypes] = None,
+        plot: Optional[PlotTypes] = None,
+        data: Optional[PlotData] = None,
+        **kwargs,
+    ):
+
+        if plot is None:
+            plot_kwargs = filter_kwargs(plot_type, **kwargs)
+            plot = plot_type(axes=self, data=data, **plot_kwargs)
+        else:
+            plot._axes = self
+
+        self._plots.append(plot)
+
+        return plot
+
+    def update(self):
+
+        self.update_plot_options()
+        self.update_backend()
 
         if len(self._plots) > 1:
-            self.update_plot_options()
-            self.update()
             self.legend()
-        return p
 
     def update_plot_options(self):
         if self._xlim_auto:
@@ -202,7 +218,9 @@ class Axes:
         for plot in self.plots:
             plot.build_canvas()
 
-    def update(self):
+        self.update()
+
+    def update_backend(self):
         # TODO: generalize this for arbitrary backend
         ax = self._ax
 
