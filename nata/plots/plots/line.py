@@ -69,5 +69,3 @@ class LinePlot(BasePlot):
             label=self.label,
             antialiased=self.antialiased,
         )
-
-        self._axes.update()

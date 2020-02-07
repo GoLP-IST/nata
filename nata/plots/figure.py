@@ -157,10 +157,9 @@ class Figure:
 
             if key in other.axes:
                 for plot in other.axes[key]._plots:
-                    axes.add_plot(plot=plot.__class__, data=plot._data)
+                    axes.add_plot(plot=plot)
 
-                    axes.update_plot_options()
-                    axes.update()
+            axes.redo_plots()
 
         new.close()
 
@@ -170,13 +169,12 @@ class Figure:
 
         new = self.copy()
 
-        new.nrows = ceil((len(new.axes) + len(other.axes)) / new.ncols)
+        new.nrows = ceil((len(new._axes) + len(other._axes)) / new.ncols)
 
-        if new.nrows > self.nrows:
-            for axes in new.axes.values():
-                axes.redo_plots()
+        for axes in new._axes:
+            axes.redo_plots()
 
-        for axes in other.axes.values():
+        for axes in other._axes:
             # get a copy of old axes
             new_axes = axes.copy()
 
@@ -184,7 +182,7 @@ class Figure:
             new_axes._fig = new
 
             # redo plots in new axes
-            new_axes.index = len(new.axes) + 1
+            new_axes.index = len(new._axes) + 1
             new_axes.redo_plots()
 
             # add axes to new list

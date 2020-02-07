@@ -103,6 +103,4 @@ class ColorPlot(BasePlot):
             interpolation=self.interpolation,
         )
 
-        self._axes.update()
-
         self._axes.colorbar(plot=self)
