@@ -6,6 +6,11 @@ import attr
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from attr.validators import and_
+from attr.validators import in_
+from attr.validators import instance_of
+from attr.validators import optional
+from pkg_resources import resource_filename
 
 from nata.plots import PlotTypes
 from nata.plots.axes import Axes
@@ -31,17 +36,23 @@ class Figure:
         default=(9, 6),
         validator=attr.validators.instance_of((tuple, np.ndarray)),
     )
-    facecolor: str = attr.ib(
-        default="#ffffff", validator=attr.validators.instance_of(str)
-    )
     nrows: int = attr.ib(default=1)
     ncols: int = attr.ib(default=1)
 
     # style-related variables
+    _style: str = attr.ib(
+        default="light",
+        validator=optional(and_(instance_of(str), in_(("light", "dark")))),
+    )
+    _fname: str = attr.ib(default=None, validator=optional(instance_of(str)))
     _rc: dict = attr.ib(repr=False, default={})
 
-    fontsize: int = attr.ib(default=16)
-    pad: int = attr.ib(default=10)
+    fontsize: int = attr.ib(
+        default=None, validator=optional(instance_of((int, float)))
+    )
+    pad: int = attr.ib(
+        default=None, validator=optional(instance_of((int, float)))
+    )
 
     @property
     def axes(self) -> dict:
@@ -54,14 +65,14 @@ class Figure:
         # initialize list of axes objects
         self.init_axes()
 
+        # set plotting style
+        self.set_style()
+
         # initialize plotting backend
         self.init_backend()
 
         # open figure object
         self.open()
-
-        # set plotting style
-        self.set_style(style="default")
 
     def init_axes(self):
         self._axes = []
@@ -72,9 +83,7 @@ class Figure:
 
     def open(self):
         # TODO: generalize this for arbitrary backend
-        self._fig = self._plt.figure(
-            figsize=self.figsize, facecolor=self.facecolor
-        )
+        self._fig = self._plt.figure(figsize=self.figsize)
 
     def close(self):
         self._plt.close(self._fig)
@@ -83,29 +92,32 @@ class Figure:
         self.close()
         self.open()
 
-    def set_style(self, style="default"):
+    def set_style(self):
 
-        # TODO: allow providing of a general style from arguments
-        #       or from a style file
-
-        self._rc["text.usetex"] = True
+        if not self._fname:
+            print(resource_filename(__name__, "styles/" + self._style + ".rc"))
+            self._fname = resource_filename(
+                __name__, "styles/" + self._style + ".rc"
+            )
 
         # font sizes
-        self._rc["font.size"] = self.fontsize
-        self._rc["axes.titlesize"] = self.fontsize
-        self._rc["axes.labelsize"] = self.fontsize
-        self._rc["xtick.labelsize"] = self.fontsize
-        self._rc["ytick.labelsize"] = self.fontsize
-        self._rc["legend.fontsize"] = self.fontsize
-        self._rc["figure.titlesize"] = self.fontsize
+        # if self.fontsize:
+        #     self._rc["font.size"] = self.fontsize
+        #     self._rc["axes.titlesize"] = self.fontsize
+        #     self._rc["axes.labelsize"] = self.fontsize
+        #     self._rc["xtick.labelsize"] = self.fontsize
+        #     self._rc["ytick.labelsize"] = self.fontsize
+        #     self._rc["legend.fontsize"] = self.fontsize
+        #     self._rc["figure.titlesize"] = self.fontsize
 
-        # padding
-        self._rc["xtick.major.pad"] = self.pad
-        self._rc["ytick.major.pad"] = self.pad
+        # # padding
+        # if self.pad:
+        #     self._rc["xtick.major.pad"] = self.pad
+        #     self._rc["ytick.major.pad"] = self.pad
 
     def show(self):
         # TODO: generalize this for arbitrary backend
-        with mpl.rc_context(rc=self._rc):
+        with mpl.rc_context(fname=self._fname, rc=self._rc):
             dummy = self._plt.figure()
             new_manager = dummy.canvas.manager
             new_manager.canvas.figure = self._fig

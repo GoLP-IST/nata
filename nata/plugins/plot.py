@@ -32,6 +32,7 @@ def plot_grid_dataset(
     if fig is None:
 
         fig_kwargs = filter_kwargs(Figure, **kwargs)
+        print(fig_kwargs)
         fig = Figure(**fig_kwargs)
 
         # ignore axes
