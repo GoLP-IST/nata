@@ -1,13 +1,14 @@
-from abc import ABC, abstractmethod
+# -*- coding: utf-8 -*-
+from abc import ABC
 from pathlib import Path
-from typing import Set, Any, Optional
+from typing import Any
+from typing import Optional
+from typing import Set
 
 import attr
 from attr import validators
-from attr import converters
 
 from nata.containers import location_exist
-from nata.utils.info_printer import PrettyPrinter
 
 
 def register_backend(container):
@@ -27,7 +28,7 @@ class BaseDataset(ABC):
     appendable = False
 
     location: Optional[Path] = attr.ib(
-        validator=validators.optional(location_exist)
+        validator=validators.optional(location_exist), eq=False, order=False
     )
 
     @classmethod
