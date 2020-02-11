@@ -40,19 +40,12 @@ class Figure:
     ncols: int = attr.ib(default=1)
 
     # style-related variables
-    _style: str = attr.ib(
+    style: str = attr.ib(
         default="light",
         validator=optional(and_(instance_of(str), in_(("light", "dark")))),
     )
-    _fname: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    _rc: dict = attr.ib(repr=False, default={})
-
-    fontsize: int = attr.ib(
-        default=None, validator=optional(instance_of((int, float)))
-    )
-    pad: int = attr.ib(
-        default=None, validator=optional(instance_of((int, float)))
-    )
+    fname: str = attr.ib(default=None, validator=optional(instance_of(str)))
+    rc: dict = attr.ib(repr=False, default={})
 
     @property
     def axes(self) -> dict:
@@ -94,30 +87,14 @@ class Figure:
 
     def set_style(self):
 
-        if not self._fname:
-            print(resource_filename(__name__, "styles/" + self._style + ".rc"))
-            self._fname = resource_filename(
-                __name__, "styles/" + self._style + ".rc"
+        if not self.fname:
+            self.fname = resource_filename(
+                __name__, "styles/" + self.style + ".rc"
             )
-
-        # font sizes
-        # if self.fontsize:
-        #     self._rc["font.size"] = self.fontsize
-        #     self._rc["axes.titlesize"] = self.fontsize
-        #     self._rc["axes.labelsize"] = self.fontsize
-        #     self._rc["xtick.labelsize"] = self.fontsize
-        #     self._rc["ytick.labelsize"] = self.fontsize
-        #     self._rc["legend.fontsize"] = self.fontsize
-        #     self._rc["figure.titlesize"] = self.fontsize
-
-        # # padding
-        # if self.pad:
-        #     self._rc["xtick.major.pad"] = self.pad
-        #     self._rc["ytick.major.pad"] = self.pad
 
     def show(self):
         # TODO: generalize this for arbitrary backend
-        with mpl.rc_context(fname=self._fname, rc=self._rc):
+        with mpl.rc_context(fname=self.fname, rc=self.rc):
             dummy = self._plt.figure()
             new_manager = dummy.canvas.manager
             new_manager.canvas.figure = self._fig
@@ -127,6 +104,11 @@ class Figure:
 
     def _repr_html_(self):
         self.show()
+
+    def save(self, path, dpi=150):
+        # TODO: generalize this for arbitrary backend
+        with mpl.rc_context(fname=self.fname, rc=self.rc):
+            self._fig.savefig(path, dpi=dpi, bbox_inches="tight")
 
     def copy(self):
 

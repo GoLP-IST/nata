@@ -117,7 +117,7 @@ class Axes:
 
     def init_backend(self):
         # TODO: generalize this for arbitrary backend
-        with mpl.rc_context(fname=self._fig._fname, rc=self._fig._rc):
+        with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
             self._ax = self._fig._fig.add_subplot(
                 self._fig.nrows, self._fig.ncols, self.index
             )
@@ -225,7 +225,7 @@ class Axes:
     def update_backend(self):
         # TODO: generalize this for arbitrary backend
 
-        with mpl.rc_context(fname=self._fig._fname, rc=self._fig._rc):
+        with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
             ax = self._ax
 
             ax.set_xscale(self.xscale)
@@ -254,7 +254,7 @@ class Axes:
         ]
 
         if self.legend_show:
-            with mpl.rc_context(fname=self._fig._fname, rc=self._fig._rc):
+            with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
                 # show legend
                 self._legend = self._ax.legend(
                     handles=handles,
@@ -267,7 +267,7 @@ class Axes:
 
         if self.cb_show:
 
-            with mpl.rc_context(fname=self._fig._fname, rc=self._fig._rc):
+            with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
                 # show colorbar
                 self._cb = self._ax.get_figure().colorbar(plot._h, aspect=30)
 

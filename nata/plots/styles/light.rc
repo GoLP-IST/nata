@@ -2,12 +2,14 @@
 text.usetex : True
 
 # colors
-figure.facecolor : white
-xtick.color      : black
-ytick.color      : black
-axes.facecolor   : white
-axes.edgecolor   : black
-text.color       : black
+text.color        : black
+figure.facecolor  : white
+xtick.color       : black
+ytick.color       : black
+axes.facecolor    : white
+axes.edgecolor    : black
+axes.labelcolor   : black
+savefig.facecolor : white
 
 # font sizes
 font.size        : 20
