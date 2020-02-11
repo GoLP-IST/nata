@@ -33,7 +33,7 @@ class Osiris_zdf_GridFile(BaseGrid):
     def _dset_name(self) -> str:
         z_info = info(str(self.location))
         label = z_info.grid.label
-        return self.clean(label)
+        return z_info.grid.name or self.clean(label)
 
     @property
     def dataset(self):
@@ -44,7 +44,7 @@ class Osiris_zdf_GridFile(BaseGrid):
     def dataset_name(self) -> str:
         z_info = info(str(self.location))
         label = z_info.grid.label
-        return self.clean(label)
+        return z_info.grid.name or self.clean(label)
 
     @property
     def dataset_label(self) -> str:
@@ -93,8 +93,7 @@ class Osiris_zdf_GridFile(BaseGrid):
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
             label = axis.label
-            name = self.clean(label)
-            names.append(name)
+            names.append(axis.name or self.clean(label))
         return np.array(names)
 
     @property
