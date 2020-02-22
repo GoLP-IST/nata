@@ -36,9 +36,8 @@ class BaseGrid(ABC):
     def dataset_label(self):
         pass
 
-    @property
     @abstractmethod
-    def dataset(self):
+    def get_data(self, indexing):
         pass
 
     @property
@@ -234,8 +233,8 @@ class GridArray(BaseGrid):
         return False
 
     @property
-    def dataset(self):
-        return self._dataset
+    def get_data(self, indexing):
+        return self._array[indexing]
 
     @property
     def dataset_name(self):
