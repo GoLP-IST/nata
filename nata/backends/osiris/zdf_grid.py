@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 
@@ -15,7 +16,13 @@ class Osiris_zdf_GridFile(BaseGrid):
     name = "osiris_zdf_grid"
 
     @staticmethod
-    def is_valid_backend(file_path: Path) -> bool:
+    def is_valid_backend(file_path: Union[Path, str]) -> bool:
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+
+        if not isinstance(file_path, Path):
+            return False
+
         if not file_path.is_file():
             return False
 
@@ -35,8 +42,8 @@ class Osiris_zdf_GridFile(BaseGrid):
         label = z_info.grid.label
         return z_info.grid.name or self.clean(label)
 
-    @property
-    def dataset(self):
+    def get_data(self, indexing):
+        # TODO: apply indexing here
         (z_data, z_info) = read(str(self.location))
         return z_data.transpose()
 
