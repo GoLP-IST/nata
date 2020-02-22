@@ -140,7 +140,6 @@ class GridArray(BaseGrid):
         eq=False,
         order=False,
     )
-    _dataset: np.ndarray = attr.ib(default=None, init=False)
     _dataset_name: str = attr.ib(
         default=None,
         validator=validators.optional(
@@ -203,7 +202,6 @@ class GridArray(BaseGrid):
         # e.g. 1d array can be (1, x) but should be (x,)
         if self.array.shape[0] == 1 and len(self.array.shape) > 1:
             self.array = self.array.reshape(self.array.shape[1:])
-        self._dataset = self.array
 
         if self._dataset_label is None:
             self._dataset_label = ""
@@ -249,15 +247,15 @@ class GridArray(BaseGrid):
 
     @property
     def dim(self):
-        return len(self.shape)
+        return self.array.ndim
 
     @property
     def shape(self):
-        return self.dataset.shape
+        return self.array.shape
 
     @property
     def dtype(self):
-        return self.dataset.dtype
+        return self.array.dtype
 
     @property
     def dataset_unit(self):
