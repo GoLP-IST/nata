@@ -1,13 +1,13 @@
-from abc import ABC, abstractmethod
+# -*- coding: utf-8 -*-
+from abc import ABC
+from abc import abstractmethod
 from pathlib import Path
-from typing import Tuple
 from typing import Optional
-from math import ceil
 
 import attr
+import numpy as np
 from attr import converters
 from attr import validators
-import numpy as np
 
 
 @attr.s
@@ -125,13 +125,15 @@ def _is_identifier(instance, attribute, value):
 
     if if_raise:
         raise ValueError(
-            f"attribute {attribute.name.strip('_')} has an invalid string '{value}'"
+            f"attribute {attribute.name.strip('_')} "
+            + f"has an invalid string '{value}'"
         )
 
 
 @attr.s
 class GridArray(BaseGrid):
     name = "GridArray"
+    location = attr.ib(default=None, init=False)
     array: np.ndarray = attr.ib(
         default=None,
         validator=validators.instance_of(np.ndarray),
@@ -228,7 +230,9 @@ class GridArray(BaseGrid):
             self._time_unit = ""
 
     @staticmethod
-    def is_valid_backend(file_path):
+    def is_valid_backend(obj):
+        if isinstance(obj, np.ndarray):
+            return True
         return False
 
     @property
