@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Union
 
 import h5py as h5
 import numpy as np
@@ -14,7 +15,13 @@ class Osiris_Hdf5_GridFile(BaseGrid):
     name = "osiris_hdf5_grid"
 
     @staticmethod
-    def is_valid_backend(file_path: Path) -> bool:
+    def is_valid_backend(file_path: Union[Path, str]) -> bool:
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+
+        if not isinstance(file_path, Path):
+            return False
+
         if not file_path.is_file():
             return False
 
@@ -56,8 +63,8 @@ class Osiris_Hdf5_GridFile(BaseGrid):
             if name_ in fp:
                 return name_
 
-    @property
-    def dataset(self):
+    def get_data(self, indexing):
+        # TODO: apply indexing here
         with h5.File(self.location, mode="r") as fp:
             dset = fp[self._dset_name]
             dataset = np.zeros(dset.shape, dtype=dset.dtype)
