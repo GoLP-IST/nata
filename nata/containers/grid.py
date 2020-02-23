@@ -26,12 +26,10 @@ from .axes import TimeAxis
 from .base import BaseDataset
 from .base import convert_unstructured_data_to_array
 
-_incomparable = {"eq": False, "order": False}
-
 BackendBased = TypeVar("BackendBased", str, Path, BaseGrid)
 
 
-@attr.s(init=False, eq=False, order=False)
+@attr.s(init=False, eq=False)
 class GridDataset(BaseDataset):
     """Container class storing grid datasets"""
 
