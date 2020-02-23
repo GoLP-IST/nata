@@ -10,10 +10,11 @@ from attr.validators import instance_of
 from nata.utils.attrs import attrib_equality
 from nata.utils.attrs import subdtype_of
 
+# avoid attrs of writing specifc dunder methods
 _incomparable = {"order": False, "eq": False}
 
 
-@attr.s(slots=True, eq=False, order=False)
+@attr.s(slots=True, **_incomparable)
 class UnnamedAxis:
     _data: np.ndarray = attr.ib(
         converter=converters.optional(np.array), repr=False
@@ -79,7 +80,7 @@ class UnnamedAxis:
         self._data = np.hstack([self.data, other.data])
 
 
-@attr.s(slots=True, eq=False, order=False)
+@attr.s(slots=True, **_incomparable)
 class Axis(UnnamedAxis):
     name: str = attr.ib(validator=subdtype_of(np.str_))
     label: str = attr.ib(validator=subdtype_of(np.str_))
@@ -91,21 +92,21 @@ class Axis(UnnamedAxis):
         return attrib_equality(self, other, "name, label, unit, _data_ndim")
 
 
-@attr.s(slots=True, eq=False, order=False)
+@attr.s(slots=True, **_incomparable)
 class IterationAxis(Axis):
     name: str = attr.ib(default="iteration", validator=subdtype_of(np.str_))
     label: str = attr.ib(default="iteration", validator=subdtype_of(np.str_))
     unit: str = attr.ib(default="", validator=subdtype_of(np.str_))
 
 
-@attr.s(slots=True, eq=False, order=False)
+@attr.s(slots=True, **_incomparable)
 class TimeAxis(Axis):
     name: str = attr.ib(default="time", validator=subdtype_of(np.str_))
     label: str = attr.ib(default="time", validator=subdtype_of(np.str_))
     unit: str = attr.ib(default="", validator=subdtype_of(np.str_))
 
 
-@attr.s(slots=True, eq=False, order=False)
+@attr.s(slots=True, **_incomparable)
 class GridAxis(Axis):
     axis_length: int = attr.ib(validator=instance_of(int))
     axis_type: str = attr.ib(
