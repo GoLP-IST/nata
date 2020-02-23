@@ -14,13 +14,10 @@ _incomparable = {"order": False, "eq": False}
 
 
 @attr.s(slots=True, eq=False, order=False)
-class Axis:
+class UnnamedAxis:
     _data: np.ndarray = attr.ib(
         converter=converters.optional(np.array), repr=False
     )
-    name: str = attr.ib(validator=subdtype_of(np.str_))
-    label: str = attr.ib(validator=subdtype_of(np.str_))
-    unit: str = attr.ib(validator=subdtype_of(np.str_))
 
     _data_ndim: Tuple[int] = attr.ib(init=False, repr=False)
 
@@ -33,7 +30,7 @@ class Axis:
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return attrib_equality(self, other, "name, label, unit, _data_ndim")
+        return attrib_equality(self, other, "_data_ndim")
 
     def __getitem__(self, key):
         return self._data[key]
@@ -80,6 +77,18 @@ class Axis:
     def append(self, other):
         self._check_appendability(other)
         self._data = np.hstack([self.data, other.data])
+
+
+@attr.s(slots=True, eq=False, order=False)
+class Axis(UnnamedAxis):
+    name: str = attr.ib(validator=subdtype_of(np.str_))
+    label: str = attr.ib(validator=subdtype_of(np.str_))
+    unit: str = attr.ib(validator=subdtype_of(np.str_))
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return attrib_equality(self, other, "name, label, unit, _data_ndim")
 
 
 @attr.s(slots=True, eq=False, order=False)
@@ -142,7 +151,7 @@ class GridAxis(Axis):
             return np.linspace(min_, max_, N)
 
     def __array__(self, dtype=None):
-        if len(self) == 0:
+        if len(self) == 1:
             return self._get_axis_values(
                 self._data[0], self._data[1], self.axis_length
             )
