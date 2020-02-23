@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-from copy import copy
 from pathlib import Path
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import TypeVar
 from typing import Union
 
 import attr
@@ -15,27 +17,31 @@ from attr.validators import optional
 
 from nata.backends.grid import BaseGrid
 from nata.backends.grid import GridArray
-from nata.containers.base import BaseDataset
+from nata.utils.attrs import attrib_equality
 from nata.utils.attrs import subdtype_of
-from nata.utils.exceptions import NataInvalidContainer
 
-from .axes import DataStock
 from .axes import GridAxis
 from .axes import IterationAxis
 from .axes import TimeAxis
+from .base import BaseDataset
+from .base import convert_unstructured_data_to_array
 
 _incomparable = {"eq": False, "order": False}
 
+BackendBased = TypeVar("BackendBased", str, Path, BaseGrid)
 
-@attr.s(init=False)
+
+@attr.s(init=False, eq=False, order=False)
 class GridDataset(BaseDataset):
-    _backends: Set[BaseGrid] = set()
-    backend: Optional[str] = attr.ib(validator=optional(instance_of(str)))
+    """Container class storing grid datasets"""
+
+    _backends: Set[BaseGrid] = set((GridArray,))
+    backend: Optional[str] = attr.ib(validator=optional(subdtype_of(np.str_)))
     appendable = True
 
-    name: str = attr.ib(validator=instance_of(str))
-    label: str = attr.ib(validator=instance_of(str))
-    unit: str = attr.ib(validator=instance_of(str))
+    name: str = attr.ib(validator=subdtype_of(np.str_))
+    label: str = attr.ib(validator=subdtype_of(np.str_))
+    unit: str = attr.ib(validator=subdtype_of(np.str_))
 
     iteration: IterationAxis = attr.ib(validator=instance_of(IterationAxis))
     time: TimeAxis = attr.ib(validator=instance_of(TimeAxis))
@@ -44,83 +50,131 @@ class GridDataset(BaseDataset):
         validator=deep_iterable(
             member_validator=instance_of(GridAxis),
             iterable_validator=instance_of(list),
-        ),
-        repr=lambda values: "[" + ", ".join(v.name for v in values) + "]",
+        )
     )
 
-    grid_shape: Tuple[int] = attr.ib(
+    _data: Union[np.ndarray, List[Union[np.ndarray, BaseGrid]]] = attr.ib(
+        repr=False
+    )
+    dtype: np.dtype = attr.ib(validator=instance_of(np.dtype))
+    data_shape: Tuple[int] = attr.ib(
         validator=deep_iterable(
             member_validator=subdtype_of(np.integer),
             iterable_validator=instance_of(tuple),
         )
     )
-    grid_dim: int = attr.ib(validator=instance_of(int))
-    grid_dtype: np.dtype = attr.ib(validator=instance_of((type, np.dtype)))
-
-    _data: DataStock = attr.ib(repr=False, **_incomparable)
+    data_ndim: int = attr.ib(validator=subdtype_of(np.integer))
 
     def info(self, full: bool = False):  # pragma: no cover
         return self.__repr__()
 
-    def __init__(self, gridobj: Union[str, Path, BaseGrid]):
-        if not isinstance(gridobj, BaseGrid):
-            for backend in self._backends:
-                if backend.is_valid_backend(gridobj):
-                    gridobj = backend(gridobj)
-                    break
-            else:
-                raise NataInvalidContainer
+    def __init__(self, grid: Optional[BackendBased], **kwargs: Dict[str, Any]):
+        if grid is None:
+            self._init_from_kwargs(**kwargs)
+        else:
+            self._init_from_backend(grid)
 
-        self.backend = gridobj.name
-        self.location = gridobj.location
-        self.name = gridobj.dataset_name
-        self.label = gridobj.dataset_label
-        self.unit = gridobj.dataset_unit
+        attr.validate(self)
 
-        self.iteration = IterationAxis(
-            parent=self, key=gridobj.iteration, value=gridobj.iteration
-        )
-        self.time = TimeAxis(
-            parent=self,
-            key=gridobj.iteration,
-            value=gridobj.time_step,
-            unit=gridobj.time_unit,
-        )
-        self._data = DataStock(
-            key=gridobj.iteration,
-            value=gridobj,
-            shape=gridobj.shape,
-            dtype=gridobj.dtype,
-        )
-        self.grid_shape = self._data.shape
-        self.grid_dim = self._data.dim
-        self.grid_dtype = self._data.dtype
+    def _init_from_kwargs(self, **kwargs: Dict[str, Any]):
+        for prop in (
+            "backend",
+            "name",
+            "label",
+            "unit",
+            "iteration",
+            "time",
+            "axes",
+            "_data",
+            "data_shape",
+            "data_ndim",
+            "dtype",
+        ):
+            setattr(self, prop, kwargs[prop])
+
+        for axis in kwargs["axes"]:
+            setattr(self, axis.name, axis)
+
+    def _init_from_backend(self, grid: BackendBased):
+        if not isinstance(grid, BaseGrid):
+            grid = self._convert_to_backend(grid)
+
+        self.backend = grid.name
+
+        self.name = grid.dataset_name
+        self.label = grid.dataset_label
+        self.unit = grid.dataset_unit
+
+        self.iteration = IterationAxis(grid.iteration)
+        self.time = TimeAxis(grid.time_step, unit=grid.time_unit)
 
         self.axes = []
 
         for (name, label, unit, min_, max_, length) in zip(
-            gridobj.axes_names,
-            gridobj.axes_labels,
-            gridobj.axes_units,
-            gridobj.axes_min,
-            gridobj.axes_max,
-            gridobj.shape,
+            grid.axes_names,
+            grid.axes_labels,
+            grid.axes_units,
+            grid.axes_min,
+            grid.axes_max,
+            grid.shape,
         ):
             axis = GridAxis(
-                parent=self,
-                key=gridobj.iteration,
-                value=[min_, max_],
+                (min_, max_),
+                axis_length=length,
                 name=name,
                 label=label,
                 unit=unit,
-                length=length,
             )
             setattr(self, name, axis)
             self.axes.append(axis)
 
-        self._step = None
+        self.data_shape = grid.shape
+        self.data_ndim = grid.dim
+        self.dtype = grid.dtype
 
-        attr.validate(self)
+        self._data = [grid]
+        self._data_indices = None
+
+    def __eq__(self, other: Union["GridDataset", Any]):
+        if not isinstance(other, self.__class__):
+            return False
+
+        if not attrib_equality(self, other, "name, label, unit"):
+            return False
+
+        if self.iteration != other.iteration and self.time != other.time:
+            return False
+
+        for axis in self.axes:
+            if not hasattr(other, axis.name):
+                return False
+
+            if axis != getattr(other, axis.name):
+                return False
+
+        return True
+
+    def __array__(self, dtype=None):
+        if not isinstance(self._data, np.ndarray):
+            self._data = convert_unstructured_data_to_array(
+                self._data, self.dtype, self._data_indices
+            )
+
+        return self._data
+
+    def __len__(self):
+        return len(self.iteration)
+
+    @property
+    def shape(self):
+        if len(self) == 1:
+            return self.data_shape
+        else:
+            return (len(self),) + self.data_shape
+
+    @property
+    def ndim(self):
+        return len(self.shape)
 
     @classmethod
     def from_array(
@@ -232,47 +286,29 @@ class GridDataset(BaseDataset):
         return ds
 
     def append(self, other: "GridDataset"):
-        if self != other:
-            raise ValueError(f"can not append '{other}' to '{self}'")
+        self._check_appendability(other)
 
-        self.iteration.update(other.iteration)
-        self.time.update(other.time)
-        for axis, other_axis in zip(self.axes, other.axes):
-            axis.update(other_axis)
-        self._data.update(other._data)
-
-    def __len__(self):
-        return len(self.iteration)
-
-    @property
-    def data(self) -> np.ndarray:
-        if self._step is None:
-            return self._data[:]
-        else:
-            return self._data[self._step]
-
-    @data.setter
-    def data(self, new_data: np.ndarray) -> None:
-        if self._step is None:
-            self._data[:] = new_data
-        else:
-            self._data[self._step] = new_data
-
-    def copy(self):
-        # TODO: check that axis parents reference new copy
-        return copy(self)
-
-    def iter(self, with_iteration=True):
-        for step in self.iteration.keys():
-            self._step = step
-            if with_iteration:
-                yield self._step, self
+        if isinstance(self._data, np.ndarray):
+            if isinstance(other._data, np.ndarray):
+                self._data = np.stack([self._data, other._data])
             else:
-                yield self
-        self._step = None
+                if len(self) == 1:
+                    self._data = [self._data] + [d for d in other._data]
+                else:
+                    self._data = [d for d in self._data]
+                    self._data += [d for d in other._data]
+        else:
+            if isinstance(other._data, np.ndarray):
+                if len(other) == 1:
+                    self._data.append(other._data)
+                else:
+                    for d in other._data:
+                        self._data.append(d)
+            else:
+                for d in other._data:
+                    self._data.append(d)
 
-    def __iter__(self):
-        for step in self.iteration.keys():
-            self._step = step
-            yield self
-        self._step = None
+        self.iteration.append(other.iteration)
+        self.time.append(other.time)
+        for axis, other_axis in zip(self.axes, other.axes):
+            axis.append(other_axis)
