@@ -5,13 +5,14 @@ from typing import Union
 import h5py as h5
 import numpy as np
 
-from nata.backends import BaseGrid
 from nata.containers import GridDataset
 from nata.containers import register_backend
 
+from ..grid import GridBackend
+
 
 @register_backend(GridDataset)
-class Osiris_Dev_Hdf5_GridFile(BaseGrid):
+class Osiris_Dev_Hdf5_GridFile(GridBackend):
     name = "osiris_dev_hdf5_grid"
 
     @staticmethod

@@ -11,7 +11,7 @@ from attr import validators
 
 
 @attr.s
-class BaseGrid(ABC):
+class GridBackend(ABC):
     location: Optional[Path] = attr.ib(
         default=None, converter=converters.optional(Path)
     )
@@ -130,7 +130,7 @@ def _is_identifier(instance, attribute, value):
 
 
 @attr.s
-class GridArray(BaseGrid):
+class GridArray(GridBackend):
     name = "GridArray"
     location = attr.ib(default=None, init=False)
     array: np.ndarray = attr.ib(

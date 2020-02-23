@@ -15,8 +15,8 @@ from attr.validators import deep_iterable
 from attr.validators import instance_of
 from attr.validators import optional
 
-from nata.backends.grid import BaseGrid
 from nata.backends.grid import GridArray
+from nata.backends.grid import GridBackend
 from nata.utils.attrs import attrib_equality
 from nata.utils.attrs import subdtype_of
 
@@ -26,14 +26,14 @@ from .axes import TimeAxis
 from .base import BaseDataset
 from .base import convert_unstructured_data_to_array
 
-BackendBased = TypeVar("BackendBased", str, Path, BaseGrid)
+BackendBased = TypeVar("BackendBased", str, Path, GridBackend)
 
 
 @attr.s(init=False, eq=False)
 class GridDataset(BaseDataset):
     """Container class storing grid datasets"""
 
-    _backends: Set[BaseGrid] = set((GridArray,))
+    _backends: Set[GridBackend] = set((GridArray,))
     backend: Optional[str] = attr.ib(validator=optional(subdtype_of(np.str_)))
     appendable = True
 
@@ -51,7 +51,7 @@ class GridDataset(BaseDataset):
         )
     )
 
-    _data: Union[np.ndarray, List[Union[np.ndarray, BaseGrid]]] = attr.ib(
+    _data: Union[np.ndarray, List[Union[np.ndarray, GridBackend]]] = attr.ib(
         repr=False
     )
     dtype: np.dtype = attr.ib(validator=instance_of(np.dtype))
@@ -94,7 +94,7 @@ class GridDataset(BaseDataset):
             setattr(self, axis.name, axis)
 
     def _init_from_backend(self, grid: BackendBased):
-        if not isinstance(grid, BaseGrid):
+        if not isinstance(grid, GridBackend):
             grid = self._convert_to_backend(grid)
 
         self.backend = grid.name

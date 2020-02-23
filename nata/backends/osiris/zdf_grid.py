@@ -4,15 +4,16 @@ from typing import Union
 
 import numpy as np
 
-from nata.backends import BaseGrid
 from nata.containers import GridDataset
 from nata.containers import register_backend
 from nata.utils.zdf import info
 from nata.utils.zdf import read
 
+from ..grid import GridBackend
+
 
 @register_backend(GridDataset)
-class Osiris_zdf_GridFile(BaseGrid):
+class Osiris_zdf_GridFile(GridBackend):
     name = "osiris_zdf_grid"
 
     @staticmethod
