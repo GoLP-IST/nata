@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from abc import ABC
 from typing import Any
 from typing import List
 from typing import Set
@@ -39,7 +38,7 @@ def convert_unstructured_data_to_array(
     return np.squeeze(np.array(data, dtype=dtype, copy=False))
 
 
-class BaseDataset(ABC):
+class BaseDataset:
     _backends: Set[Any] = set()
     appendable = False
 
