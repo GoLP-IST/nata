@@ -4,7 +4,6 @@ from typing import Any
 from typing import List
 from typing import Set
 
-import attr
 import numpy as np
 
 from nata.utils.exceptions import NataInvalidContainer
@@ -40,7 +39,6 @@ def convert_unstructured_data_to_array(
     return np.squeeze(np.array(data, dtype=dtype, copy=False))
 
 
-@attr.s(init=False)
 class BaseDataset(ABC):
     _backends: Set[Any] = set()
     appendable = False
