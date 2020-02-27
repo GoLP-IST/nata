@@ -49,7 +49,7 @@ tox = "^3.14.3"
 isort = "^4.3.21"
 
 [tool.isort]
-skip=["nata/backends/__init__.py"]
+skip_glob=["__init__.py"]
 atomic=true
 force_single_line=true
 known_first_party="nata"
