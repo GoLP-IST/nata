@@ -12,6 +12,8 @@ repos:
         hooks:
         -   id: isort
             additional_dependencies: [toml]
+            # excludes all the init files from sorting
+            exclude: ^.*\/__init__\.py$
     -   repo: https://github.com/psf/black
         rev: 19.10b0
         hooks:
