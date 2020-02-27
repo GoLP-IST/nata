@@ -1,6 +1,6 @@
 repos:
     -   repo: https://github.com/pre-commit/pre-commit-hooks
-        rev: v2.3.0
+        rev: v2.5.0
         hooks:
         -   id: no-commit-to-branch
             name: Don't commit to master
@@ -11,12 +11,12 @@ repos:
         rev: 4.3.21
         hooks:
         -   id: isort
-            additional_dependencies: [pyproject]
+            additional_dependencies: [toml]
     -   repo: https://github.com/psf/black
-        rev: 19.3b0
+        rev: 19.10b0
         hooks:
         -   id: black
     -   repo: https://github.com/pre-commit/pre-commit-hooks
-        rev: v2.3.0
+        rev: v2.5.0
         hooks:
         -   id: flake8
