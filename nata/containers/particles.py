@@ -1,175 +1,134 @@
-from typing import Set, ValuesView, Dict, Optional
+# -*- coding: utf-8 -*-
 from pathlib import Path
-from copy import copy
+from typing import Any
+from typing import Dict
+from typing import Optional
+from typing import Set
+from typing import TypeVar
+from typing import Union
 
 import attr
 import numpy as np
+from attr.validators import deep_iterable
+from attr.validators import instance_of
+from attr.validators import optional
 
-from nata.containers import BaseDataset
-from nata.backends import BaseParticles
-from nata.utils import props_as_arr
-from nata.utils.exceptions import NataInvalidContainer
-from nata.utils.info_printer import PrettyPrinter
+from nata.backends.particles import ParticleArray
+from nata.backends.particles import ParticleBackend
+from nata.utils.attrs import attrib_equality
+from nata.utils.attrs import subdtype_of
+
+from .axes import IterationAxis
+from .axes import ParticleQuantity
+from .axes import TimeAxis
+from .axes import UnnamedAxis
+from .base import BaseDataset
+
+ParticleBackendBased = TypeVar(
+    "ParticleBackendBased", str, Path, ParticleBackend
+)
 
 
-@attr.s
+@attr.s(init=False, eq=False)
 class ParticleDataset(BaseDataset):
-    _backends: Set[BaseParticles] = set()
-    backend: BaseParticles.name = attr.ib(init=False)
+    """Container class storing particle datasets"""
+
+    _backends: Set[ParticleBackend] = set((ParticleArray,))
+    backend: Optional[str] = attr.ib(validator=optional(subdtype_of(np.str_)))
     appendable = True
 
-    # data storage
-    prt_objs: ValuesView = attr.ib(init=False, repr=False)
-    store: Dict[int, BaseParticles] = attr.ib(
-        init=False, factory=dict, repr=False
+    name: str = attr.ib(validator=subdtype_of(np.str_))
+    dtype: np.dtype = attr.ib(validator=instance_of(np.dtype))
+
+    iteration: IterationAxis = attr.ib(validator=instance_of(IterationAxis))
+    time: TimeAxis = attr.ib(validator=instance_of(TimeAxis))
+    num_particles: UnnamedAxis = attr.ib(validator=instance_of(UnnamedAxis))
+
+    quantities: np.ndarray = attr.ib(
+        validator=deep_iterable(
+            member_validator=subdtype_of(np.str_),
+            iterable_validator=instance_of(np.ndarray),
+        ),
+        eq=False,
+    )
+    quantity_labels: np.ndarray = attr.ib(
+        validator=deep_iterable(
+            member_validator=subdtype_of(np.str_),
+            iterable_validator=instance_of(np.ndarray),
+        ),
+        eq=False,
+    )
+    quantity_units: np.ndarray = attr.ib(
+        validator=deep_iterable(
+            member_validator=subdtype_of(np.str_),
+            iterable_validator=instance_of(np.ndarray),
+        ),
+        eq=False,
     )
 
-    # information about the object - particle object
-    name: str = attr.ib(init=False)
-    quantities: np.ndarray = attr.ib(init=False)
-    quantities_labels: Dict[str, str] = attr.ib(init=False)
-    quantities_units: Dict[str, str] = attr.ib(init=False)
-    tagged: bool = attr.ib(init=False)
-    _dtype: np.dtype = attr.ib(init=False)
-    _num_particles: Dict[int, int] = attr.ib(init=False, factory=dict)
+    def info(self, full: bool = False):  # pragma: no cover
+        return self.__repr__()
 
-    time_units: np.ndarray = attr.ib(init=False)
-
-    @property
-    def data(self) -> np.ndarray:
-        if len(self.store) == 1:
-            prt_obj = next(iter(self.store.values()))
-            return prt_obj.dataset
-
-        shape = (len(self.store), max(self._num_particles.values()))
-        d = np.ma.zeros(shape, dtype=self._dtype)
-        d.mask = np.zeros(shape, dtype=bool)
-
-        for i, iteration in enumerate(self.iterations):
-            num_prt = self._num_particles[iteration]
-            d[i, :num_prt] = self.store[iteration].dataset
-            d.mask[i, num_prt:] = True
-        return d
-
-    @property
-    def iterations(self):
-        return props_as_arr(self.prt_objs, "iteration", int)
-
-    @property
-    def time(self):
-        return props_as_arr(self.prt_objs, "time_step", float)
-
-    @property
-    def backend_name(self) -> str:
-        backend = next(iter(self.store.values()))
-        return backend.name
-
-    def __attrs_post_init__(self):
-        for backend in self._backends:
-            if backend.is_valid_backend(self.location):
-                prt_obj = backend(self.location)
-                break
-        else:
-            raise NataInvalidContainer
-
-        self.backend = prt_obj.name
-        self.name = prt_obj.short_name
-        self.quantities = prt_obj.quantities_list
-        self.quantities_labels = prt_obj.quantities_long_names
-        self.quantities_units = prt_obj.quantities_units
-        self._num_particles[prt_obj.iteration] = prt_obj.num_particles
-        self._dtype = prt_obj.dtype
-        self.tagged = prt_obj.has_tags
-        self.time_unit = prt_obj.time_unit
-
-        self.time_units = prt_obj.time_unit
-
-        self.location = prt_obj.location.parent
-        self.store[prt_obj.iteration] = prt_obj
-        self.prt_objs = self.store.values()
-
-    def __getitem__(self, key):
-        if isinstance(key, slice) or isinstance(key, int):
-            new = copy(self)
-            new._reduce_store(new.iterations[key])
-            new.prt_objs = new.store.values()
-            return new
-
-        raise NotImplementedError(
-            "Currently only temporal slices are supported!"
-        )
-
-    def _reduce_store(self, to_keep: np.ndarray):
-        # if single item - is passed
-        if not to_keep.shape:
-            to_keep = (to_keep,)
-
-        self.store = {
-            key: val for key, val in self.store.items() if key in to_keep
-        }
-
-    def info(
+    def __init__(
         self,
-        printer: Optional[PrettyPrinter] = None,
-        root_path: Optional[Path] = None,
-    ):  # pragma: no cover
-        requires_flush = False
-
-        if printer is None:
-            printer = PrettyPrinter(header=f"Dataset '{self.name}'")
-            requires_flush = True
+        particles: Optional[ParticleBackendBased],
+        **kwargs: Dict[str, Any],
+    ):
+        if particles is None:
+            self._init_from_kwargs(**kwargs)
         else:
-            printer.add_line(f'* Dateset: "{self.name}" *')
-            printer.add_line("-" * (15 + len(self.name)))
-        if root_path is None:
-            # global root and prints absolute path
-            root_path = Path.cwd()
+            self._init_from_backend(particles)
 
-        printer.indent()
-        printer.add_line(f"location: {self.location.relative_to(root_path)}")
-        printer.add_line(f"backend: {self.backend_name}")
-        printer.add_line(
-            f"num. particles (max): {max(self._num_particles.values())}"
-        )
-        if (
-            not isinstance(self.iterations, (np.int, np.int32, np.int64, int))
-            and len(self.iterations) > 4
+        attr.validate(self)
+
+    def _init_from_kwargs(self, **kwargs: Dict[str, Any]):
+        raise NotImplementedError
+
+    def _init_from_backend(self, particles: ParticleBackendBased):
+        if not isinstance(particles, ParticleBackend):
+            particles = self._convert_to_backend(particles)
+
+        self.backend = particles.name
+
+        self.name = particles.dataset_name
+        self.dtype = particles.dtype
+
+        self.iteration = IterationAxis(data=particles.iteration)
+        self.time = TimeAxis(data=particles.time_step, unit=particles.time_unit)
+        self.num_particles = UnnamedAxis(data=particles.num_particles)
+
+        self.quantities = np.asarray(particles.quantities)
+        self.quantity_labels = np.asarray(particles.quantity_labels)
+        self.quantity_units = np.asarray(particles.quantity_units)
+
+        for quantity, label, unit in zip(
+            self.quantities, self.quantity_labels, self.quantity_units
         ):
-            printer.add_line(
-                f"iterations: ["
-                + f"{self.iterations[0]} "
-                + f"{self.iterations[1]} "
-                + f"... {self.iterations[-1]} ] "
+            q = ParticleQuantity(
+                data=[particles],
+                len=[particles.num_particles],
+                dtype=self.dtype[quantity],
+                name=quantity,
+                label=label,
+                unit=unit,
             )
-            printer.add_line(
-                f"time_steps: ["
-                + f"{self.time[0]} "
-                + f"{self.time[1]} "
-                + f"... {self.time[-1]} ] "
-            )
-        else:
-            printer.add_line(f"iterations: {self.iterations}")
-            printer.add_line(f"time steps: {self.time}")
+            setattr(self, quantity, q)
 
-        printer.add_line(f"quantaties: {self.quantities}")
-        printer.undent()
+    def _check_dataset_equality(self, other: Union["ParticleDataset", Any]):
+        if not isinstance(other, self.__class__):
+            return False
 
-        if requires_flush:
-            printer.flush()
+        if not attrib_equality(self, other):
+            return False
 
-    def append(self, other: "ParticleDataset"):
-        # TODO: Find a better way to check both types if they are mergable
-        if not isinstance(other, ParticleDataset):
-            raise ValueError(
-                "Can not append something of different container type!"
-            )
-        if not self.name == other.name:
-            raise ValueError(
-                "Mismatch in names for container."
-                + "Only equally named containers can be appended!"
-            )
-        if not self.backend_name == other.backend_name:
-            raise ValueError("Mixed backends are not allowed!")
+        return True
 
-        self.store.update(other.store)
-        self._num_particles.update(other._num_particles)
+    def append(self, other: Union["ParticleDataset", Any]):
+        self._check_appendability(other)
+
+        self.iteration.append(other.iteration)
+        self.time.append(other.time)
+        self.num_particles.append(other.num_particles)
+
+        for q in self.quantities:
+            getattr(self, q).append(getattr(other, q))
