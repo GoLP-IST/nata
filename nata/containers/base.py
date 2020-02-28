@@ -22,7 +22,7 @@ def register_backend(container):
 # TODO: specify data type that it is a list of np.ndarrays and backends with
 #       read_data method
 def convert_unstructured_data_to_array(
-    data: List[Any], dtype, indices, fields=None
+    data: List[Any], dtype=None, indices=None, fields=None
 ):
     # read out arrays if they are not in the list
     for i, elem in enumerate(data):
@@ -59,6 +59,9 @@ class BaseDataset:
             f"Unable to find proper backend for {type(obj)}"
         )
 
+    def _check_dataset_equality(self, other):
+        raise NotImplementedError
+
     def _check_appendability(self, other: "BaseDataset"):
         if not self.appendable:
             raise TypeError(f"'{self.__class__}' is not appendable")
@@ -68,7 +71,5 @@ class BaseDataset:
                 f"Can not append '{type(other)}' to '{self.__class__}'"
             )
 
-        if self != other:
-            raise ValueError(
-                f"Can not append different '{self.__class__.__name__}'"
-            )
+        if not self._check_dataset_equality(other):
+            raise ValueError(f"{other} can not be appended")
