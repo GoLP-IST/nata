@@ -23,22 +23,97 @@ def _dummy_parent():
     yield Parent
 
 
+@pytest.mark.wip
 @pytest.mark.parametrize(
-    "key, value, label, unit, exception",
+    "data, name, label, unit",
     (
-        (1, 100, "some label", "some unit", does_not_raise()),
-        (None, 100, "some label", "some unit", does_not_raise()),
+        (1, "name", "some label", "some unit"),
+        ((2, 3), "name", "some label", "some unit"),
     ),
+    ids=["integer", "tuple"],
 )
-def test_Axis_init(Parent, key, value, label, unit, exception):
-    parent = Parent()
-    with exception:
-        axis = Axis(parent=parent, key=key, value=value, label=label, unit=unit)
-        assert axis._parent is parent
-        assert axis._mapping == {key: value}
-        assert axis.label == label
-        assert axis.unit == unit
-        assert axis._dtype == int
+def test_Axis_init(data, name, label, unit):
+    axis = Axis(data, name, label, unit)
+    assert axis.name == name
+    assert axis.label == label
+    assert axis.unit == unit
+    expected = np.array(data)
+    np.testing.assert_array_equal(np.array(axis), expected)
+    np.testing.assert_array_equal(axis.data, expected)
+    assert axis.dtype == expected.dtype
+    assert axis.shape == expected.shape
+    assert axis.ndim == expected.ndim
+
+
+@pytest.mark.wip
+@pytest.mark.parametrize(
+    "v1, v2, expected",
+    ((1, 2, np.array([1, 2])), ([1, 2], [2, 3], np.array([[1, 2], [2, 3]]),)),
+    ids=["integer", "tuple"],
+)
+def test_Axis_append_single_element(v1, v2, expected):
+    axis = Axis(v1, "name", "label", "unit")
+    new_axis = axis.append(Axis(v2, "name", "label", "unit"))
+
+    assert new_axis is not axis
+    np.testing.assert_array_equal(new_axis, expected)
+
+
+@pytest.mark.wip
+@pytest.mark.xfail(reason="Not implemented yet")
+@pytest.mark.parametrize(
+    "v1, v2, expected",
+    [
+        [(1, 2, 3, 4), (5,), np.arange(1, 6)],
+        [(1, 2, 3, 4), (5, 6, 7), np.arange(1, 8)],
+    ],
+    ids=["multi+single", "multi+multi"],
+)
+def test_Axis_append_multi_elements(v1, v2, expected):
+    axis1 = Axis(v1[0], "name", "label", "unit")
+    for v in v1[1:]:
+        axis1 = axis1.append(Axis(v, "name", "label", "unit"))
+
+    axis2 = Axis(v2[0], "name", "label", "unit")
+    for v in v2[1:]:
+        axis2 = axis2.append(Axis(v, "name", "label", "unit"))
+
+    np.testing.assert_array_equal(axis1.append(axis2), expected)
+
+
+@pytest.mark.wip
+def test_IterationAxis():
+    assert IterationAxis(0)
+    # should allow keyword arguments
+    assert IterationAxis(0, unit="test")
+
+
+@pytest.mark.wip
+def test_Axis_equality():
+    assert Axis(0, "name", "label", "unit") == Axis(1, "name", "label", "unit")
+    assert Axis(0, "name", "label", "unit") != Axis(1, "other", "label", "unit")
+
+
+@pytest.mark.wip
+def test_IterationAxis_equality():
+    assert IterationAxis(0) == IterationAxis(1)
+    assert IterationAxis(0) != IterationAxis(1, label="something else")
+
+
+@pytest.mark.wip
+def test_TimeAxis_equality():
+    assert TimeAxis(0) == TimeAxis(1)
+    assert TimeAxis(0) != TimeAxis(1, label="something else")
+
+
+@pytest.mark.wip
+def test_GridAxis_equality():
+    assert GridAxis(0, "name", "label", "unit") == GridAxis(
+        1, "name", "label", "unit"
+    )
+    assert GridAxis(0, "name", "label", "unit") != GridAxis(
+        1, "name", "some label", "unit"
+    )
 
 
 def test_Axis_update(Parent):
