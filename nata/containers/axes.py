@@ -27,10 +27,16 @@ class UnnamedAxis:
     _data_ndim: Tuple[int] = attr.ib(init=False, repr=False)
 
     def __attrs_post_init__(self):
-        self._data_ndim = self._data.ndim
+        if self._data is not None:
+            self._data_ndim = self._data.ndim
+        else:
+            self._data_ndim = 0
 
     def __array__(self, dtype=None):
-        return self._data.astype(dtype)
+        if dtype:
+            return self._data.astype(dtype)
+        else:
+            return self._data
 
     # TODO: requires rewriting -> we should not depend
     def __eq__(self, other):
@@ -116,41 +122,51 @@ class TimeAxis(Axis):
 
 @axis_attrs
 class GridAxis(Axis):
+    min_: float = attr.ib(converter=float)
+    max_: float = attr.ib(converter=float)
     axis_length: int = attr.ib(validator=instance_of(int))
     axis_type: str = attr.ib(
         default="linear",
         validator=[subdtype_of(np.str_), in_(("linear", "logarithmic"))],
     )
+    _data: np.ndarray = attr.ib(default=None, repr=False, eq=False)
+
+    def __attrs_post_init__(self):
+        if self._data is None:
+            self._data = np.array([self.min_, self.max_])
+        self._data_ndim = self._data.ndim
 
     # we might be able to remove this and just use the 'Axis' definition
     # -> has to be tried but I think we can just use attrs to pass the arguments
     def __iter__(self):
         if len(self) == 1:
             yield self.__class__(
-                self._data,
-                self.name,
-                self.label,
-                self.unit,
-                self.axis_length,
-                self.axis_type,
+                min_=self._data[0],
+                max_=self._data[1],
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+                axis_length=self.axis_length,
+                axis_type=self.axis_type,
             )
         else:
             for d in self._data:
                 yield self.__class__(
-                    d,
-                    self.name,
-                    self.label,
-                    self.unit,
-                    self.axis_length,
-                    self.axis_type,
+                    min_=d[0],
+                    max_=d[1],
+                    name=self.name,
+                    label=self.label,
+                    unit=self.unit,
+                    axis_length=self.axis_length,
+                    axis_type=self.axis_type,
                 )
 
     @property
     def shape(self):
-        if len(self):
-            return (len(self), self.axis_length)
-        else:
+        if self._data.ndim == 1:
             return (self.axis_length,)
+        else:
+            return (len(self), self.axis_length)
 
     def _get_axis_values(self, min_, max_, N):
         if self.axis_type == "logarithmic":
