@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
@@ -24,151 +23,245 @@ from .axes import GridAxis
 from .axes import IterationAxis
 from .axes import TimeAxis
 from .base import BaseDataset
-from .base import convert_unstructured_data_to_array
 
-BackendBased = TypeVar("BackendBased", str, Path, GridBackend)
+GridBackendBased = TypeVar("GridBackendBased", str, Path, GridBackend)
 
 
-@attr.s(init=False, eq=False)
-class GridDataset(BaseDataset):
-    """Container class storing grid datasets"""
+def _asanyarray_converter(data):
+    data = np.asanyarray(data)
 
-    _backends: Set[GridBackend] = set((GridArray,))
-    backend: Optional[str] = attr.ib(validator=optional(subdtype_of(np.str_)))
-    appendable = True
+    if not data.ndim:
+        data = data.reshape((1,))
 
-    name: str = attr.ib(validator=subdtype_of(np.str_))
-    label: str = attr.ib(validator=subdtype_of(np.str_))
-    unit: str = attr.ib(validator=subdtype_of(np.str_))
+    return data
 
-    iteration: IterationAxis = attr.ib(validator=instance_of(IterationAxis))
-    time: TimeAxis = attr.ib(validator=instance_of(TimeAxis))
 
-    axes: List[GridAxis] = attr.ib(
-        validator=deep_iterable(
-            member_validator=instance_of(GridAxis),
-            iterable_validator=instance_of(list),
-        )
-    )
+def _deduct_prop_from_data(data, deduced_prop, default=None):
+    prop_store = set()
+    err_msg = f"Mixed data provided for property '{deduced_prop}'"
 
-    _data: Union[np.ndarray, List[Union[np.ndarray, GridBackend]]] = attr.ib(
-        repr=False
-    )
-    dtype: np.dtype = attr.ib(validator=instance_of(np.dtype))
-    data_shape: Tuple[int] = attr.ib(
-        validator=deep_iterable(
-            member_validator=subdtype_of(np.integer),
-            iterable_validator=instance_of(tuple),
-        )
-    )
-    data_ndim: int = attr.ib(validator=subdtype_of(np.integer))
+    for d in data:
+        prop_store |= set((getattr(d, deduced_prop, None),))
 
-    def info(self, full: bool = False):  # pragma: no cover
-        return self.__repr__()
+    if len(prop_store) not in (1, 2):
+        raise ValueError(err_msg)
 
-    def __init__(self, grid: Optional[BackendBased], **kwargs: Dict[str, Any]):
-        if grid is None:
-            self._init_from_kwargs(**kwargs)
+    if len(prop_store) == 2:
+        try:
+            prop_store.remove(None)
+        except KeyError:
+            raise ValueError(err_msg)
+
+    prop = prop_store.pop()
+    return prop if prop is not None else default
+
+
+def _generate_axes_list(data):
+    axes_names = tuple()
+    axes_labels = tuple()
+    axes_units = tuple()
+    axes_lengths = tuple()
+
+    axes_min = []
+    axes_max = []
+
+    for d in data:
+        if not hasattr(d, "axes_names"):
+            continue
+
+        names = tuple(d.axes_names)
+        labels = tuple(d.axes_labels)
+        units = tuple(d.axes_units)
+        lengths = d.shape
+
+        axes_min.append(getattr(d, "axes_min", None))
+        axes_max.append(getattr(d, "axes_max", None))
+
+        if any(tuple() == v for v in (axes_names, axes_labels, units, lengths)):
+            axes_names = names
+            axes_labels = labels
+            axes_units = units
+            axes_lengths = lengths
         else:
-            self._init_from_backend(grid)
+            if (names, labels, units, lengths) != (
+                axes_names,
+                axes_labels,
+                axes_units,
+                axes_lengths,
+            ):
+                raise ValueError("Mismatch between axes props in data")
 
-        attr.validate(self)
+    axes = []
 
-    def _init_from_kwargs(self, **kwargs: Dict[str, Any]):
-        for prop in (
-            "backend",
-            "name",
-            "label",
-            "unit",
-            "iteration",
-            "time",
-            "axes",
-            "_data",
-            "data_shape",
-            "data_ndim",
-            "dtype",
-        ):
-            setattr(self, prop, kwargs[prop])
-
-        for axis in kwargs["axes"]:
-            setattr(self, axis.name, axis)
-
-    def _init_from_backend(self, grid: BackendBased):
-        if not isinstance(grid, GridBackend):
-            grid = self._convert_to_backend(grid)
-
-        self.backend = grid.name
-
-        self.name = grid.dataset_name
-        self.label = grid.dataset_label
-        self.unit = grid.dataset_unit
-
-        self.iteration = IterationAxis(grid.iteration)
-        self.time = TimeAxis(grid.time_step, unit=grid.time_unit)
-
-        self.axes = []
-
-        for (name, label, unit, min_, max_, length) in zip(
-            grid.axes_names,
-            grid.axes_labels,
-            grid.axes_units,
-            grid.axes_min,
-            grid.axes_max,
-            grid.shape,
-        ):
-            axis = GridAxis(
-                (min_, max_),
-                axis_length=length,
+    for name, label, unit, min_, max_, l in zip(
+        axes_names, axes_labels, axes_units, axes_min, axes_max, axes_lengths
+    ):
+        axes.append(
+            GridAxis(
+                min_=min_,
+                max_=max_,
+                axis_length=l,
                 name=name,
                 label=label,
                 unit=unit,
             )
-            setattr(self, name, axis)
-            self.axes.append(axis)
+        )
 
-        self.data_shape = grid.shape
-        self.data_ndim = grid.dim
-        self.dtype = grid.dtype
+    return axes
 
-        self._data = [grid]
-        self._data_indices = None
 
-    def __eq__(self, other: Union["GridDataset", Any]):
-        if not isinstance(other, self.__class__):
-            return False
+@attr.s(eq=False)
+class GridDataset(BaseDataset):
+    """Container class storing grid datasets"""
 
-        if not attrib_equality(self, other, "name, label, unit"):
-            return False
+    _backends: Set[GridBackend] = set((GridArray,))
+    appendable = True
 
-        if self.iteration != other.iteration and self.time != other.time:
-            return False
+    _data: np.ndarray = attr.ib(converter=_asanyarray_converter, repr=False)
+    _shape: Tuple[int] = attr.ib(
+        default=None,
+        validator=optional(
+            deep_iterable(
+                member_validator=instance_of(int),
+                iterable_validator=instance_of(tuple),
+            )
+        ),
+    )
+    dtype: np.dtype = attr.ib(
+        default=None, validator=optional(instance_of(np.dtype))
+    )
+    backend: Optional[str] = attr.ib(
+        default=None, validator=optional(subdtype_of(np.str_))
+    )
+
+    name: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
+    label: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
+    unit: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
+
+    iteration: IterationAxis = attr.ib(
+        default=None, validator=optional(instance_of(IterationAxis))
+    )
+    time: TimeAxis = attr.ib(
+        default=None, validator=optional(instance_of(TimeAxis))
+    )
+
+    axes: List[Optional[GridAxis]] = attr.ib(
+        default=None,
+        validator=optional(
+            deep_iterable(
+                member_validator=optional(instance_of(GridAxis)),
+                iterable_validator=instance_of(list),
+            )
+        ),
+    )
+
+    # TODO: add dimensionality of the dataset
+
+    def __attrs_post_init__(self):
+        for i, d in enumerate(self._data):
+            if not isinstance(d, (np.ndarray, GridBackend)):
+                self._data[i] = self._convert_to_backend(d)
+
+        self.dtype = (
+            self.dtype
+            if self.dtype is not None
+            else _deduct_prop_from_data(self._data, "dtype")
+        )
+        self._shape = (
+            self._shape
+            if self._shape is not None
+            else _deduct_prop_from_data(self._data, "shape")
+        )
+
+        self.name = (
+            self.name
+            if self.name is not None
+            else _deduct_prop_from_data(self._data, "dataset_name")
+        )
+        self.label = (
+            self.label
+            if self.label is not None
+            else _deduct_prop_from_data(self._data, "dataset_label")
+        )
+        self.unit = (
+            self.unit
+            if self.unit is not None
+            else _deduct_prop_from_data(self._data, "dataset_unit")
+        )
+
+        self.iteration = (
+            self.iteration
+            if self.iteration is not None
+            else IterationAxis(
+                data=_deduct_prop_from_data(self._data, "iteration")
+            )
+        )
+        self.time = (
+            self.time
+            if self.time is not None
+            else TimeAxis(
+                data=_deduct_prop_from_data(self._data, "time_step"),
+                unit=_deduct_prop_from_data(self._data, "time_unit", ""),
+            )
+        )
+
+        self.axes = (
+            self.axes
+            if self.axes is not None
+            else _generate_axes_list(self._data)
+        )
 
         for axis in self.axes:
-            if not hasattr(other, axis.name):
-                return False
+            setattr(self, axis.name, axis)
 
-            if axis != getattr(other, axis.name):
-                return False
+        # cross validate - just for the ake for safety - we can remove later on
+        attr.validate(self)
 
-        return True
+    def __iter__(self):
+        if len(self) == 1:
+            yield self
+        else:
+            for d, it, t in zip(self._data, self.iteration, self.time):
+                yield self.__class__(
+                    data=[d],
+                    dtype=self.dtype,
+                    backend=self.backend,
+                    name=self.name,
+                    label=self.label,
+                    unit=self.unit,
+                    iteration=it,
+                    time=t,
+                    axes=self.axes,
+                )
 
     def __array__(self, dtype=None):
-        if not isinstance(self._data, np.ndarray):
-            self._data = convert_unstructured_data_to_array(
-                self._data, self.dtype, self._data_indices
-            )
+        if self._data.dtype == object:
+            data = np.empty((len(self),) + self._shape, dtype=self.dtype)
+            for i, d in enumerate(self._data):
+                if isinstance(d, np.ndarray):
+                    data[i] = d
+                else:
+                    data[i] = d.get_data(indexing=None)
 
-        return self._data
+            self._data = data
+
+        return np.squeeze(self._data)
 
     def __len__(self):
         return len(self.iteration)
 
+    def info(self, full: bool = False):  # pragma: no cover
+        return self.__repr__()
+
     @property
     def shape(self):
-        if len(self) == 1:
-            return self.data_shape
+        if self._data.dtype == object:
+            if len(self) == 1:
+                return self._shape
+            else:
+                return (len(self),) + self._shape
         else:
-            return (len(self),) + self.data_shape
+            return self._data.shape
 
     @property
     def ndim(self):
@@ -283,28 +376,31 @@ class GridDataset(BaseDataset):
 
         return ds
 
+    def _check_dataset_equality(self, other: Union["GridDataset", Any]):
+        if not isinstance(other, self.__class__):
+            return False
+
+        if not attrib_equality(self, other, "name, label, unit"):
+            return False
+
+        if self.iteration != other.iteration and self.time != other.time:
+            return False
+
+        for axis in self.axes:
+            if not hasattr(other, axis.name):
+                return False
+
+            if axis != getattr(other, axis.name):
+                return False
+
+        return True
+
     def append(self, other: "GridDataset"):
         self._check_appendability(other)
 
-        if isinstance(self._data, np.ndarray):
-            if isinstance(other._data, np.ndarray):
-                self._data = np.stack([self._data, other._data])
-            else:
-                if len(self) == 1:
-                    self._data = [self._data] + [d for d in other._data]
-                else:
-                    self._data = [d for d in self._data]
-                    self._data += [d for d in other._data]
-        else:
-            if isinstance(other._data, np.ndarray):
-                if len(other) == 1:
-                    self._data.append(other._data)
-                else:
-                    for d in other._data:
-                        self._data.append(d)
-            else:
-                for d in other._data:
-                    self._data.append(d)
+        self._data = np.array(
+            [d for d in self._data] + [d for d in other._data]
+        )
 
         self.iteration.append(other.iteration)
         self.time.append(other.time)
