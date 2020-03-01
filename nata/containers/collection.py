@@ -1,18 +1,23 @@
+# -*- coding: utf-8 -*-
 from pathlib import Path
-from typing import Dict, Set, Union
+from typing import Dict
+from typing import Set
+from typing import Union
 
 import attr
 import numpy as np
 
-from nata.containers import GridDataset, ParticleDataset, location_exist
-from nata.containers.types import DatasetTypes
+from nata.utils.attrs import location_exists
 from nata.utils.exceptions import NataInvalidContainer
-from nata.utils.info_printer import PrettyPrinter
+
+from . import DatasetTypes
+from . import GridDataset
+from . import ParticleDataset
 
 
 @attr.s
 class DatasetCollection:
-    root_path: Path = attr.ib(converter=Path, validator=location_exist)
+    root_path: Path = attr.ib(converter=Path, validator=location_exists)
     _container_set: Set[DatasetTypes] = set([GridDataset, ParticleDataset])
     store: Dict[str, DatasetTypes] = attr.ib(factory=dict)
 
