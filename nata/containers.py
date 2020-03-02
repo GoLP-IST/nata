@@ -322,6 +322,10 @@ class GridDataset(BaseDataset):
     def ndim(self):
         return len(self.shape)
 
+    @property
+    def grid_dim(self):
+        return len(self.axes)
+
     @classmethod
     def from_array(
         cls,
