@@ -1,15 +1,15 @@
+# -*- coding: utf-8 -*-
 from random import randint
 
 import attr
-import pytest
 import numpy as np
+import pytest
 
-from nata.containers.grid import GridDataset
-from nata.containers.grid import BaseGrid
+from nata.containers.axes import GridAxis
 from nata.containers.axes import IterationAxis
 from nata.containers.axes import TimeAxis
-from nata.containers.axes import GridAxis
-from nata.containers.axes import DataStock
+from nata.containers.grid import GridBackend
+from nata.containers.grid import GridDataset
 
 
 @pytest.fixture(name="remove_GridDataset_backends")
@@ -28,7 +28,7 @@ def _removeBackends():
 
 @pytest.fixture(name="GridBackend")
 def _return_custom_grid():
-    class CustomGrid(BaseGrid):
+    class CustomGrid(GridBackend):
         @property
         def name(self):
             return "custom_grid"
@@ -111,30 +111,57 @@ def _return_custom_grid():
     return CustomGrid
 
 
-def test_GridDataset_init(GridBackend):
-    grid = GridDataset(GridBackend())
+@pytest.mark.wip
+def test_GridDataset_init():
+    grid = GridDataset(np.arange(10))
 
-    assert grid.backend == "custom_grid"
-    assert grid.location is None
-    assert grid.name == "dataset short"
-    assert grid.label == "dataset long"
-    assert grid.unit == "dataset unit"
-    assert grid._step is None
+    assert grid.backend == "GridArray"
+    assert grid.name == "array_1"
+    assert grid.label == ""
+    assert grid.unit == ""
 
-    for attr, instance, value in (
-        ("iteration", IterationAxis, None),
-        ("time", TimeAxis, None),
-        ("_data", DataStock, None),
-        ("grid_shape", tuple, (10,)),
-        ("grid_dim", int, 1),
-        ("grid_dtype", np.dtype, np.float),
-        ("axes", list, None),
-        ("x1", GridAxis, None),
+    # check for axis
+    for attrib, instance, value in (
+        ("iteration", IterationAxis, (0,)),
+        ("time", TimeAxis, (0.0,)),
+        ("x1", GridAxis, (0.0, 1.0)),
     ):
-        assert hasattr(grid, attr)
-        assert isinstance(getattr(grid, attr), instance)
-        if value:
-            assert getattr(grid, attr) == value
+        assert hasattr(grid, attrib)
+        assert isinstance(getattr(grid, attrib), instance)
+        np.testing.assert_array_equal(getattr(grid, attrib), value)
+
+    # creating new grid through kwargs
+    grid = GridDataset(
+        None,
+        backend=grid.backend,
+        name=grid.name,
+        label=grid.label,
+        unit=grid.unit,
+        iteration=grid.iteration,
+        time=grid.time,
+        axes=grid.axes,
+        _data=grid._data,
+    )
+
+    assert grid.backend == "GridArray"
+    assert grid.name == "array_1"
+    assert grid.label == ""
+    assert grid.unit == ""
+
+    for attrib, instance, value in (
+        ("iteration", IterationAxis, (0,)),
+        ("time", TimeAxis, (0.0,)),
+        ("x1", GridAxis, (0.0, 1.0)),
+    ):
+        assert hasattr(grid, attrib)
+        assert isinstance(getattr(grid, attrib), instance)
+        np.testing.assert_array_equal(getattr(grid, attrib), value)
+
+
+@pytest.mark.wip
+def test_GridDataset_equality():
+    assert GridDataset(np.arange(10)) == GridDataset(np.arange(10))
+    assert GridDataset(np.arange(10)) != 42
 
 
 def test_DummyGridBackend(GridBackend):
@@ -173,7 +200,7 @@ def test_GridDataset_data_getter():
     np.testing.assert_array_equal(ds.data, [5])
 
 
-def test_GridDataset_data_getter():
+def test_GridDataset_data_getter_2():
     ds = GridDataset.__new__(GridDataset)
     ds._step = None
     ds._data = [i for i in range(10)]

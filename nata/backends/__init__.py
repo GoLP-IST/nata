@@ -1,5 +1,6 @@
-from .grid import BaseGrid
-from .particles import BaseParticles
+# -*- coding: utf-8 -*-
+from .grid import GridBackend
+from .particles import ParticleBackend
 
-# import different backends - each backend should register in a container
-import nata.backends.osiris
+# add backends to different PIC codes
+from .osiris import *

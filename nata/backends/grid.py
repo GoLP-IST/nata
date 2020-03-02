@@ -1,17 +1,17 @@
-from abc import ABC, abstractmethod
+# -*- coding: utf-8 -*-
+from abc import ABC
+from abc import abstractmethod
 from pathlib import Path
-from typing import Tuple
 from typing import Optional
-from math import ceil
 
 import attr
+import numpy as np
 from attr import converters
 from attr import validators
-import numpy as np
 
 
 @attr.s
-class BaseGrid(ABC):
+class GridBackend(ABC):
     location: Optional[Path] = attr.ib(
         default=None, converter=converters.optional(Path)
     )
@@ -36,9 +36,8 @@ class BaseGrid(ABC):
     def dataset_label(self):
         pass
 
-    @property
     @abstractmethod
-    def dataset(self):
+    def get_data(self, indexing):
         pass
 
     @property
@@ -125,20 +124,21 @@ def _is_identifier(instance, attribute, value):
 
     if if_raise:
         raise ValueError(
-            f"attribute {attribute.name.strip('_')} has an invalid string '{value}'"
+            f"attribute {attribute.name.strip('_')} "
+            + f"has an invalid string '{value}'"
         )
 
 
 @attr.s
-class GridArray(BaseGrid):
+class GridArray(GridBackend):
     name = "GridArray"
+    location = attr.ib(default=None, init=False)
     array: np.ndarray = attr.ib(
         default=None,
         validator=validators.instance_of(np.ndarray),
         eq=False,
         order=False,
     )
-    _dataset: np.ndarray = attr.ib(default=None, init=False)
     _dataset_name: str = attr.ib(
         default=None,
         validator=validators.optional(
@@ -201,7 +201,6 @@ class GridArray(BaseGrid):
         # e.g. 1d array can be (1, x) but should be (x,)
         if self.array.shape[0] == 1 and len(self.array.shape) > 1:
             self.array = self.array.reshape(self.array.shape[1:])
-        self._dataset = self.array
 
         if self._dataset_label is None:
             self._dataset_label = ""
@@ -228,12 +227,14 @@ class GridArray(BaseGrid):
             self._time_unit = ""
 
     @staticmethod
-    def is_valid_backend(file_path):
+    def is_valid_backend(obj):
+        if isinstance(obj, np.ndarray):
+            return True
         return False
 
     @property
-    def dataset(self):
-        return self._dataset
+    def get_data(self, indexing):
+        return self._array[indexing]
 
     @property
     def dataset_name(self):
@@ -245,15 +246,15 @@ class GridArray(BaseGrid):
 
     @property
     def dim(self):
-        return len(self.shape)
+        return self.array.ndim
 
     @property
     def shape(self):
-        return self.dataset.shape
+        return self.array.shape
 
     @property
     def dtype(self):
-        return self.dataset.dtype
+        return self.array.dtype
 
     @property
     def dataset_unit(self):

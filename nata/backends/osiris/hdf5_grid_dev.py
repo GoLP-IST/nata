@@ -1,19 +1,28 @@
+# -*- coding: utf-8 -*-
 from pathlib import Path
 from typing import Union
 
 import h5py as h5
 import numpy as np
 
-from nata.backends import BaseGrid
-from nata.containers import GridDataset, register_backend
+from nata.containers import GridDataset
+from nata.containers import register_backend
+
+from ..grid import GridBackend
 
 
 @register_backend(GridDataset)
-class Osiris_Dev_Hdf5_GridFile(BaseGrid):
+class Osiris_Dev_Hdf5_GridFile(GridBackend):
     name = "osiris_dev_hdf5_grid"
 
     @staticmethod
-    def is_valid_backend(file_path: Path) -> bool:
+    def is_valid_backend(file_path: Union[Path, str]) -> bool:
+        if isinstance(file_path, str):
+            file_path = Path(file_path)
+
+        if not isinstance(file_path, Path):
+            return False
+
         if not file_path.is_file():
             return False
 
@@ -24,9 +33,11 @@ class Osiris_Dev_Hdf5_GridFile(BaseGrid):
             return False
 
         with h5.File(file_path, mode="r") as f:
-            if ("NAME" in f.attrs) and \
-               ("TYPE" in f.attrs) and \
-               ("LABEL" in f.attrs):
+            if (
+                ("NAME" in f.attrs)
+                and ("TYPE" in f.attrs)
+                and ("LABEL" in f.attrs)
+            ):
                 type_ = f.attrs["TYPE"].astype(str)[0]
                 # general naming
                 name_ = f.attrs["NAME"].astype(str)[0]
@@ -51,8 +62,8 @@ class Osiris_Dev_Hdf5_GridFile(BaseGrid):
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["LABEL"].astype(str)[0]
 
-    @property
-    def dataset(self):
+    def get_data(self, indexing):
+        # TODO: apply indexing here
         with h5.File(self.location, mode="r") as fp:
             dset = fp[self.dataset_name]
             shape = dset.shape
