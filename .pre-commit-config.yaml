@@ -18,7 +18,7 @@ repos:
         rev: 19.10b0
         hooks:
         -   id: black
-    -   repo: https://github.com/pre-commit/pre-commit-hooks
-        rev: v2.5.0
+    -   repo: https://gitlab.com/pycqa/flake8.git
+        rev: 3.7.9
         hooks:
         -   id: flake8
