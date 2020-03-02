@@ -1,10 +1,10 @@
+# -*- coding: utf-8 -*-
 import pathlib
 from typing import Union
 
 import attr
 
 from nata.containers import DatasetCollection
-from nata.containers import GridDataset
 
 
 @attr.s
@@ -62,8 +62,7 @@ class _FileList:
 
 
 def load(
-    path: Union[str, pathlib.Path],
-    recursive: bool = True,
+    path: Union[str, pathlib.Path], recursive: bool = True,
 ) -> DatasetCollection:
     """
     Lazy function for loading simulation data.
