@@ -147,6 +147,8 @@ def _generate_axes_list(data):
                 raise ValueError("Mismatch between axes props in data")
 
     axes = []
+    axes_min = np.transpose(axes_min)
+    axes_max = np.transpose(axes_max)
 
     for name, label, unit, min_, max_, l in zip(
         axes_names, axes_labels, axes_units, axes_min, axes_max, axes_lengths
