@@ -308,7 +308,52 @@ class GridDataset(BaseDataset):
         return len(self.iteration)
 
     def __getitem__(self, key):
-        return self.__array__()[key]
+        if isinstance(key, int):
+            # new data
+            new_data = self._data[key]
+            # new iteration
+            new_iteration = IterationAxis(
+                data=self.iteration.data[key],
+                name=self.iteration.name,
+                label=self.iteration.label,
+                unit=self.iteration.unit,
+            )
+            # new time
+            new_time = TimeAxis(
+                data=self.time.data[key],
+                name=self.time.name,
+                label=self.time.label,
+                unit=self.time.unit,
+            )
+            # new axes
+            new_grid_axes = []
+
+            for axis in self.axes:
+                new_grid_axes.append(
+                    GridAxis(
+                        data=axis.data[key],
+                        axis_length=axis.axis_length,
+                        axis_type=axis.axis_type,
+                        name=axis.name,
+                        label=axis.label,
+                        unit=axis.unit,
+                    )
+                )
+
+            return self.__class__(
+                data=new_data,
+                dtype=self.dtype,
+                backend=self.backend,
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+                iteration=new_iteration,
+                time=new_time,
+                axes=new_grid_axes,
+            )
+
+        else:
+            return self.__array__()[key]
 
     def info(self, full: bool = False):  # pragma: no cover
         return self.__repr__()
@@ -321,7 +366,10 @@ class GridDataset(BaseDataset):
             else:
                 return (len(self),) + self._shape
         else:
-            return self._data.shape
+            if len(self) == 1:
+                return self._data.shape[1:]
+            else:
+                return self._data.shape
 
     @property
     def ndim(self):
