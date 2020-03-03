@@ -307,6 +307,9 @@ class GridDataset(BaseDataset):
     def __len__(self):
         return len(self.iteration)
 
+    def __getitem__(self, key):
+        return self.__array__()[key]
+
     def info(self, full: bool = False):  # pragma: no cover
         return self.__repr__()
 
