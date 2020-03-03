@@ -122,17 +122,19 @@ class TimeAxis(Axis):
 
 @axis_attrs
 class GridAxis(Axis):
-    min_: float = attr.ib(converter=float)
-    max_: float = attr.ib(converter=float)
     axis_length: int = attr.ib(validator=instance_of(int))
     axis_type: str = attr.ib(
         default="linear",
         validator=[subdtype_of(np.str_), in_(("linear", "logarithmic"))],
     )
+    min_: float = attr.ib(default=None, converter=converters.optional(float))
+    max_: float = attr.ib(default=None, converter=converters.optional(float))
     _data: np.ndarray = attr.ib(default=None, repr=False, eq=False)
 
     def __attrs_post_init__(self):
-        if self._data is None:
+        if self._data is None and (
+            (self.min_ is not None) and (self.max_ is not None)
+        ):
             self._data = np.array([self.min_, self.max_])
         self._data_ndim = self._data.ndim
 
