@@ -31,7 +31,7 @@ class LinePlot(BasePlot):
         return (self._data.axes[0].min, self._data.axes[0].max)
 
     def _default_ylim(self):
-        return (np.min(self._data.values), np.max(self._data.values))
+        return (np.min(self._data.data), np.max(self._data.data))
 
     def _default_xlabel(self, units=True):
         return self._data.axes[0].get_label(units)
@@ -53,8 +53,8 @@ class LinePlot(BasePlot):
 
     def build_canvas(self):
         # get plot axes and data
-        x = self._data.axes[0].values
-        y = np.transpose(self._data.values)
+        x = self._data.axes[0].data
+        y = self._data.data
 
         # build plot
         self._h = self._axes._ax.plot(
