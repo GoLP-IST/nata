@@ -389,12 +389,7 @@ def test_GridAxis_axis_values():
     )
 
     gridaxis = GridAxis(
-        object,
-        key=0,
-        value=(1.0, 1000.0),
-        name="x",
-        length=4,
-        axis_type="logarithmic",
+        object, key=0, value=(1.0, 1000.0), name="x", length=4, axis_type="log",
     )
     np.testing.assert_almost_equal(
         gridaxis.axis_values, np.logspace(0.0, 3.0, 4).reshape((1, 4))

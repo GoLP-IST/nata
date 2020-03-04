@@ -125,7 +125,7 @@ class GridAxis(Axis):
     axis_length: int = attr.ib(validator=instance_of(int))
     axis_type: str = attr.ib(
         default="linear",
-        validator=[subdtype_of(np.str_), in_(("linear", "logarithmic"))],
+        validator=[subdtype_of(np.str_), in_(("linear", "log"))],
     )
     min_: float = attr.ib(default=None, converter=converters.optional(float))
     max_: float = attr.ib(default=None, converter=converters.optional(float))
@@ -171,7 +171,7 @@ class GridAxis(Axis):
             return (len(self), self.axis_length)
 
     def _get_axis_values(self, min_, max_, N):
-        if self.axis_type == "logarithmic":
+        if self.axis_type == "log":
             min_, max_ = np.log10((min_, max_))
             return np.logspace(min_, max_, N)
         else:
