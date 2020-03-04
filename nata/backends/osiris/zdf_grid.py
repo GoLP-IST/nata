@@ -67,7 +67,10 @@ class Osiris_zdf_GridFile(GridBackend):
     @property
     def shape(self):
         z_info = info(str(self.location))
-        return tuple(z_info.grid.nx)
+        nx = []
+        for n in z_info.grid.nx:
+            nx.append(n.item())
+        return tuple(nx)
 
     @property
     def dtype(self):
