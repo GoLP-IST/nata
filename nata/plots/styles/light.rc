@@ -1,5 +1,5 @@
 # tex
-text.usetex : True
+# text.usetex : True
 
 # colors
 text.color        : black
@@ -12,14 +12,18 @@ axes.labelcolor   : black
 savefig.facecolor : white
 
 # font sizes
-font.size        : 20
-axes.titlesize   : 20
-axes.labelsize   : 20
-xtick.labelsize  : 20
-ytick.labelsize  : 20
-legend.fontsize  : 20
-figure.titlesize : 20
+font.size        : 15
+axes.titlesize   : 15
+axes.labelsize   : 15
+xtick.labelsize  : 15
+ytick.labelsize  : 15
+legend.fontsize  : 15
+figure.titlesize : 15
 
 # padding
-xtick.major.pad : 10
-ytick.major.pad : 10
+xtick.major.pad : 8
+xtick.minor.pad : 8
+ytick.major.pad : 8
+ytick.minor.pad : 8
+axes.titlepad   : 10
+axes.labelpad   : 10
