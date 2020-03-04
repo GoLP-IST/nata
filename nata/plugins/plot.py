@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
 
+import numpy as np
+
 from nata.containers import DatasetCollection
 from nata.containers import GridDataset
 from nata.plots import Axes
@@ -11,9 +13,6 @@ from nata.plots import PlotDataAxis
 from nata.plugins.register import register_container_plugin
 from nata.utils.attrs import filter_kwargs
 from nata.utils.exceptions import NataInvalidPlot
-
-# from nata.plots.grid import GridPlotObj
-# from nata.plots.particle import ParticlePlot1D
 
 
 @register_container_plugin(GridDataset, name="plot")
@@ -57,9 +56,7 @@ def plot_grid_dataset(
             label=ds_axes.label,
             units=ds_axes.unit,
             type=ds_axes.axis_type,
-            min=ds_axes.min[0],
-            max=ds_axes.max[0],
-            n=ds_axes.length,
+            data=np.array(ds_axes),
         )
 
         plot_axes.append(new_axes)
@@ -69,8 +66,8 @@ def plot_grid_dataset(
         name=dataset.name,
         label=dataset.label,
         units=dataset.unit,
-        values=dataset.data[0],
-        time=dataset.time.asarray()[0],
+        data=np.array(dataset),
+        time=np.array(dataset.time),
         time_units=dataset.time.unit,
         axes=plot_axes,
     )
@@ -196,9 +193,7 @@ def plot_collection(
                 label=ds_axes.label,
                 units=ds_axes.unit,
                 type=ds_axes.axis_type,
-                min=ds_axes.min[0],
-                max=ds_axes.max[0],
-                n=ds_axes.length,
+                data=np.array(ds_axes),
             )
 
             plot_axes.append(new_axes)
@@ -208,8 +203,8 @@ def plot_collection(
             name=dataset.name,
             label=dataset.label,
             units=dataset.unit,
-            values=dataset.data[0],
-            time=dataset.time.asarray()[0],
+            data=np.array(dataset),
+            time=np.array(dataset.time),
             time_units=dataset.time.unit,
             axes=plot_axes,
         )

@@ -69,7 +69,7 @@ class ColorPlot(BasePlot):
             self._data.axes[1].min,
             self._data.axes[1].max,
         )
-        z = np.transpose(self._data.values)
+        z = np.transpose(self._data.data)
 
         # build color map norm
         if self.cb_scale == "log":

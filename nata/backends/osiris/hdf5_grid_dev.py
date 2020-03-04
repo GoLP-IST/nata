@@ -53,6 +53,26 @@ class Osiris_Dev_Hdf5_GridFile(GridBackend):
         return False
 
     @property
+    def _dset_name(self) -> str:
+        with h5.File(self.location, mode="r") as fp:
+            short_name = fp.attrs["NAME"].astype(str)[0]
+            if short_name in fp:
+                return short_name
+
+            name_ = short_name.split()[-1]
+            name_ = name_.replace("_", "")
+            if name_ in fp:
+                return name_
+
+    def get_data(self, indexing):
+        # TODO: apply indexing here
+        with h5.File(self.location, mode="r") as fp:
+            dset = fp[self._dset_name]
+            dataset = np.zeros(dset.shape, dtype=dset.dtype)
+            dset.read_direct(dataset)
+        return dataset.transpose()
+
+    @property
     def dataset_name(self) -> str:
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["NAME"].astype(str)[0]
@@ -62,31 +82,21 @@ class Osiris_Dev_Hdf5_GridFile(GridBackend):
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["LABEL"].astype(str)[0]
 
-    def get_data(self, indexing):
-        # TODO: apply indexing here
-        with h5.File(self.location, mode="r") as fp:
-            dset = fp[self.dataset_name]
-            shape = dset.shape
-            dataset = np.zeros(shape, dtype=dset.dtype)
-            dset.read_direct(dataset, source_sel=None, dest_sel=None)
-        return dataset.transpose()
-
     @property
     def dim(self):
         with h5.File(self.location, mode="r") as fp:
-            ndim = fp[self.dataset_name].ndim
+            ndim = fp[self._dset_name].ndim
         return ndim
 
     @property
     def shape(self):
         with h5.File(self.location, mode="r") as fp:
-            shape = fp[self.dataset_name].shape[::-1]
-        return shape
+            return fp[self._dset_name].shape[::-1]
 
     @property
     def dtype(self):
         with h5.File(self.location, mode="r") as fp:
-            dtype = fp[self.dataset_name].dtype
+            dtype = fp[self._dset_name].dtype
         return dtype
 
     @property
@@ -101,7 +111,6 @@ class Osiris_Dev_Hdf5_GridFile(GridBackend):
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 min_.append(fp["AXIS/" + axis][0])
-
         return np.array(min_)
 
     @property
@@ -142,7 +151,7 @@ class Osiris_Dev_Hdf5_GridFile(GridBackend):
     @property
     def iteration(self):
         with h5.File(self.location, mode="r") as fp:
-            time_step = fp.attrs["ITER"].astype(int)[0].item()
+            time_step = fp.attrs["ITER"].astype(int)[0]
         return time_step
 
     @property

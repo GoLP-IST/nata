@@ -8,24 +8,14 @@ class PlotDataAxis:
     name: str = attr.ib(default="")
     label: str = attr.ib(default="")
     units: str = attr.ib(default="")
-    min: float = attr.ib(default=0)
-    max: float = attr.ib(default=0)
-    n: int = attr.ib(default=0)
+    data: np.array = attr.ib(default=[])
+    min: float = attr.ib(default=0, init=False)
+    max: float = attr.ib(default=0, init=False)
     type: str = attr.ib(default="")
 
     def __attrs_post_init__(self):
-        # build plot data axis values
-        self.set_values()
-
-    def set_values(self):
-        if self.type == "linear":
-            self.values = np.linspace(start=self.min, stop=self.max, num=self.n)
-
-        elif self.type == "log":
-            base = (self.max / self.min) ** (1 / self.n)
-            self.values = self.min * np.logspace(
-                start=0, stop=self.n, num=self.n, base=base
-            )
+        self.min = np.min(self.data)
+        self.max = np.max(self.data)
 
     def get_label(self, units=True):
         label = ""
@@ -41,7 +31,7 @@ class PlotData:
     name: str = attr.ib(default="")
     label: str = attr.ib(default="")
     units: str = attr.ib(default="")
-    values: np.ndarray = attr.ib(default=[])
+    data: np.ndarray = attr.ib(default=[])
     axes: list = attr.ib(default=())
 
     # time properties
