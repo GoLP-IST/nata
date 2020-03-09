@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+from typing import List
 from typing import Optional
 
 import numpy as np
 
 from nata.containers import DatasetCollection
 from nata.containers import GridDataset
+from nata.containers import ParticleDataset
 from nata.plots import Axes
 from nata.plots import DefaultGridPlotTypes
+from nata.plots import DefaultParticlePlotType
 from nata.plots import Figure
 from nata.plots import PlotData
 from nata.plots import PlotDataAxis
@@ -83,47 +86,76 @@ def plot_grid_dataset(
     return fig
 
 
-# @register_container_plugin(ParticleDataset, name="plot")
-# def plot_particle_dataset(dataset, sel=None, fig=None, **kwargs):
+@register_container_plugin(ParticleDataset, name="plot")
+def plot_particle_dataset(
+    dataset: ParticleDataset,
+    quants: List[str] = [],
+    c_quant: Optional[str] = None,
+    fig: Optional[Figure] = None,
+    axes: Optional[Axes] = None,
+    **kwargs,
+) -> Figure:
 
-#     # raise error if dataset has more than one data object
-#     if   len(dataset.prt_objs) != 1:
-#         raise NataInvalidPlot
+    # raise error if dataset has more than one data object
+    if len(dataset) != 1:
+        raise NataInvalidPlot
 
-#     axes = np.empty(2, dtype=PlotAxis)
-#     for i in range(2):
-#         idx = np.argwhere(dataset.quantities == sel[i])
-#         name = dataset.quantities[idx[0]][0]
+    # 1. build figure
+    if fig is None:
 
-#         axes[i] = PlotAxis(
-#             name=name,
-#             label=dataset.quantities_labels[name],
-#             units=dataset.quantities_units[name],
-#             xmin=np.min(dataset.data[name]),
-#             xmax=np.max(dataset.data[name])
-#         )
+        fig_kwargs = filter_kwargs(Figure, **kwargs)
+        fig = Figure(**fig_kwargs)
 
-#     # build data object
-#     data = PlotData(
-#         name=dataset.name,
-#         values=np.array([
-#             dataset.data[sel[0]],
-#             dataset.data[sel[1]]
-#         ]),
-#         time=dataset.time,
-#         time_units=dataset.time_units
-#     )
+        # ignore axes
+        axes = None
 
-#     # build figure object is no figure is passed as argument
-#     if fig is None:
-#         fig_kwargs = filter_kwargs(Figure, **kwargs)
-#         fig = Figure(**fig_kwargs)
+    # 2. build axes
+    if axes is None:
 
-#     # add plot to figure object
-#     plot_kwargs = filter_kwargs(ParticlePlot1D, **kwargs)
-#     fig.add_plot(ParticlePlot1D, axes, data, **plot_kwargs)
+        axes_kwargs = filter_kwargs(Axes, **kwargs)
+        axes = fig.add_axes(**axes_kwargs)
 
-#     return fig
+    # 3. get default plot type for grids
+    # TODO: make this an argument?
+    plot_type = DefaultParticlePlotType
+
+    # TODO: make this a method of the dataset?
+    # build plot axes object
+
+    plot_axes = []
+    plot_data = []
+
+    if c_quant:
+        quants.append(c_quant)
+
+    for quant in quants:
+        q = getattr(dataset, quant)
+
+        new_axes = PlotDataAxis(name=q.name, label=q.label, units=q.unit,)
+
+        plot_axes.append(new_axes)
+        plot_data.append(np.array(q))
+
+    # build data object
+    data = PlotData(
+        name=dataset.name,
+        label=dataset.name,
+        units="",
+        data=plot_data,
+        time=np.array(dataset.time),
+        time_units=dataset.time.unit,
+        axes=plot_axes,
+    )
+
+    # 4. build plot
+    plot_kwargs = filter_kwargs(plot_type, **kwargs)
+    axes.add_plot(plot_type=plot_type, data=data, **plot_kwargs)
+
+    axes.update()
+
+    fig.close()
+
+    return fig
 
 
 @register_container_plugin(DatasetCollection, name="plot")

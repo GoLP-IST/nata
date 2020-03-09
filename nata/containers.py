@@ -629,6 +629,9 @@ class ParticleDataset(BaseDataset):
         for q in self.quantities:
             getattr(self, q).append(getattr(other, q))
 
+    def __len__(self):
+        return len(self.iteration)
+
 
 DatasetTypes = TypeVar("DatasetTypes", GridDataset, ParticleDataset)
 
