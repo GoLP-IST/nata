@@ -7,12 +7,12 @@ import numpy as np
 from nata.containers import DatasetCollection
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
-from nata.plots import Axes
 from nata.plots import DefaultGridPlotTypes
 from nata.plots import DefaultParticlePlotType
-from nata.plots import Figure
-from nata.plots import PlotData
-from nata.plots import PlotDataAxis
+from nata.plots.axes import Axes
+from nata.plots.data import PlotData
+from nata.plots.data import PlotDataAxis
+from nata.plots.figure import Figure
 from nata.plugins.register import register_container_plugin
 from nata.utils.attrs import filter_kwargs
 from nata.utils.exceptions import NataInvalidPlot
@@ -131,7 +131,7 @@ def plot_particle_dataset(
     for quant in quants:
         q = getattr(dataset, quant)
 
-        new_axes = PlotDataAxis(name=q.name, label=q.label, units=q.unit,)
+        new_axes = PlotDataAxis(name=q.name, label=q.label, units=q.unit)
 
         plot_axes.append(new_axes)
         plot_data.append(np.array(q))

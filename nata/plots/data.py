@@ -10,8 +10,8 @@ class PlotDataAxis:
     name: str = attr.ib(default="")
     label: str = attr.ib(default="")
     units: str = attr.ib(default="")
-    data: np.array = attr.ib(
-        default=None, validator=optional(instance_of(np.array))
+    data: np.ndarray = attr.ib(
+        default=None, validator=optional(instance_of(np.ndarray))
     )
     min: float = attr.ib(default=0, init=False)
     max: float = attr.ib(default=0, init=False)
