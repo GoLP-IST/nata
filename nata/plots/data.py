@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import attr
 import numpy as np
+from attr.validators import instance_of
+from attr.validators import optional
 
 
 @attr.s
@@ -8,14 +10,17 @@ class PlotDataAxis:
     name: str = attr.ib(default="")
     label: str = attr.ib(default="")
     units: str = attr.ib(default="")
-    data: np.array = attr.ib(default=[])
+    data: np.ndarray = attr.ib(
+        default=None, validator=optional(instance_of(np.ndarray))
+    )
     min: float = attr.ib(default=0, init=False)
     max: float = attr.ib(default=0, init=False)
-    type: str = attr.ib(default="")
+    type: str = attr.ib(default="", validator=optional(instance_of(str)))
 
     def __attrs_post_init__(self):
-        self.min = np.min(self.data)
-        self.max = np.max(self.data)
+        if self.data is not None:
+            self.min = np.min(self.data)
+            self.max = np.max(self.data)
 
     def get_label(self, units=True):
         label = ""
@@ -30,7 +35,7 @@ class PlotDataAxis:
 class PlotData:
     name: str = attr.ib(default="")
     label: str = attr.ib(default="")
-    units: str = attr.ib(default="")
+    units: str = attr.ib(default="", validator=optional(instance_of(str)))
     data: np.ndarray = attr.ib(default=[])
     axes: list = attr.ib(default=())
 

@@ -10,7 +10,6 @@ from attr.validators import instance_of
 from attr.validators import optional
 
 # from nata.plots import Figure
-from nata.plots import LabelablePlotTypes
 from nata.plots import PlotData
 from nata.plots import PlotTypes
 from nata.utils.attrs import filter_kwargs
@@ -245,15 +244,8 @@ class Axes:
             ax.set_aspect(self.aspect)
 
     def legend(self):
-        handles = [
-            p._h[0] for p in self._plots if isinstance(p, LabelablePlotTypes)
-        ]
-
-        labels = [
-            p.label for p in self._plots if isinstance(p, LabelablePlotTypes)
-        ]
-
         if self.legend_show:
+            handles, labels = self._ax.get_legend_handles_labels()
             with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
                 # show legend
                 self._legend = self._ax.legend(

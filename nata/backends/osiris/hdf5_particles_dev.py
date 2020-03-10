@@ -12,8 +12,8 @@ from ..particles import ParticleBackend
 
 
 @register_backend(ParticleDataset)
-class Osiris_Hdf5_ParticleFile(ParticleBackend):
-    name = "osiris_hdf5_particles"
+class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
+    name = "osiris_dev_hdf5_particles"
 
     @staticmethod
     def is_valid_backend(file_path: Union[Path, str]) -> bool:
@@ -33,7 +33,7 @@ class Osiris_Hdf5_ParticleFile(ParticleBackend):
             return False
 
         with h5.File(file_path, mode="r") as f:
-            if ("TYPE" in f.attrs) and ("LABELS" not in f.attrs):
+            if ("TYPE" in f.attrs) and ("LABELS" in f.attrs):
                 type_ = f.attrs["TYPE"].astype(str)[0]
 
                 if type_ == "particles":
@@ -99,22 +99,39 @@ class Osiris_Hdf5_ParticleFile(ParticleBackend):
                 if isinstance(item, h5.Dataset):
                     quantities.append(key)
 
-        return np.array(quantities)
+        return quantities
 
     @property
     def quantity_labels(self):
-        names = []
+        ordered_quants = self.quantities
+        labels = []
+
         with h5.File(self.location, mode="r") as fp:
-            for quant in self.quantities:
-                names.append(fp[quant].attrs["LONG_NAME"].astype(str)[0])
-        return names
+            unordered_labels = fp.attrs["LABELS"].astype(str)
+            unordered_quants = fp.attrs["QUANTS"].astype(str)
+
+            order = []
+            for quant in unordered_quants:
+                order.append(ordered_quants.index(quant))
+
+            labels = [unordered_labels[i] for i in order]
+
+        return labels
 
     @property
     def quantity_units(self):
+        ordered_quants = self.quantities
         units = []
+
         with h5.File(self.location, mode="r") as fp:
-            for quant in self.quantities:
-                units.append(fp[quant].attrs["UNITS"].astype(str)[0])
+            unordered_units = fp.attrs["UNITS"].astype(str)
+            unordered_quants = fp.attrs["QUANTS"].astype(str)
+
+            order = []
+            for quant in unordered_quants:
+                order.append(ordered_quants.index(quant))
+
+            units = [unordered_units[i] for i in order]
 
         return units
 
