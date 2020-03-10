@@ -20,7 +20,73 @@ from nata.plots.figure import Figure
 from nata.plugins.register import register_container_plugin
 from nata.utils.attrs import filter_kwargs
 from nata.utils.env import inside_notebook
-from nata.utils.exceptions import NataInvalidPlot
+
+
+@register_container_plugin(GridDataset, name="plot_data")
+def grid_plot_data(dataset: GridDataset) -> PlotData:
+
+    a = []
+
+    for ds_a in dataset.axes:
+        new_a = PlotDataAxis(
+            name=ds_a.name,
+            label=ds_a.label,
+            units=ds_a.unit,
+            type=ds_a.axis_type,
+            data=np.array(ds_a),
+        )
+
+        a.append(new_a)
+
+    d = PlotData(
+        name=dataset.name,
+        label=dataset.label,
+        units=dataset.unit,
+        data=np.array(dataset),
+        time=np.array(dataset.time),
+        time_units=dataset.time.unit,
+        axes=a,
+    )
+
+    return d
+
+
+@register_container_plugin(GridDataset, name="plot_type")
+def grid_plot_type(dataset: GridDataset) -> PlotData:
+    return DefaultGridPlotTypes[dataset.grid_dim]
+
+
+@register_container_plugin(ParticleDataset, name="plot_data")
+def particle_plot_data(
+    dataset: ParticleDataset, quants: List[str] = []
+) -> PlotData:
+
+    a = []
+    d = []
+
+    for quant in quants:
+        q = getattr(dataset, quant)
+        new_a = PlotDataAxis(name=q.name, label=q.label, units=q.unit)
+
+        a.append(new_a)
+        d.append(np.array(q))
+
+    p_d = PlotData(
+        name=dataset.name,
+        label=dataset.name,
+        units="",
+        data=d,
+        time=np.array(dataset.time),
+        time_units=dataset.time.unit,
+        axes=a,
+    )
+
+    return p_d
+
+
+@register_container_plugin(ParticleDataset, name="plot_type")
+def particle_plot_type(dataset: ParticleDataset) -> PlotData:
+    return DefaultParticlePlotType
 
 
 @register_container_plugin(GridDataset, name="plot")
@@ -37,7 +103,7 @@ def plot_grid_dataset(
 
     else:
         plot_data = dataset.plot_data()
-        plot_type = dataset.plot_type
+        plot_type = dataset.plot_type()
 
         # build figure
         fig = build_figure(
@@ -57,32 +123,29 @@ def plot_particle_dataset(
     c_quant: Optional[str] = None,
     fig: Optional[Figure] = None,
     axes: Optional[Axes] = None,
+    interactive: bool = True,
     **kwargs,
 ) -> Figure:
-
-    # raise error if dataset has more than one data object
-    if len(dataset) != 1:
-        raise NataInvalidPlot
-
-    # get default plot type for grids
-    # TODO: make this an argument?
-    plot_type = DefaultParticlePlotType
-
-    # build plot axes object
-    # TODO: make this a method of the dataset?
 
     if c_quant:
         quants.append(c_quant)
 
-    plot_data = dataset.plot_data(quants=quants)
-    plot_type = dataset.plot_type
+    if len(dataset) > 1 and inside_notebook() and interactive:
+        build_interactive_tools(dataset, **kwargs)
 
-    # build figure
-    fig = build_figure(
-        plot_data=plot_data, plot_type=plot_type, fig=fig, axes=axes, **kwargs
-    )
+    else:
+        plot_data = dataset.plot_data(quants=quants)
+        plot_type = dataset.plot_type()
 
-    return fig
+        # build figure
+        fig = build_figure(
+            plot_data=plot_data,
+            plot_type=plot_type,
+            fig=fig,
+            axes=axes,
+            **kwargs,
+        )
+        return fig
 
 
 @register_container_plugin(DatasetCollection, name="plot")
@@ -266,7 +329,7 @@ def build_interactive_tools(dataset, **kwargs):
             n = int(sel)
 
         plot_data = dataset[n].plot_data()
-        plot_type = dataset[n].plot_type
+        plot_type = dataset[n].plot_type()
 
         # build figure
         fig = build_figure(plot_data=plot_data, plot_type=plot_type, **kwargs)
