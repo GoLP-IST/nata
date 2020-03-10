@@ -201,7 +201,9 @@ class ParticleQuantity(Axis):
     _data: np.ndarray = attr.ib(converter=np.array, eq=False)
     _dtype: np.dtype = attr.ib(validator=instance_of(np.dtype))
     _len: np.ndarray = attr.ib(
-        converter=np.array, validator=array_validator(dtype=np.integer)
+        converter=np.array,
+        validator=array_validator(dtype=np.integer),
+        eq=False,
     )
 
     def __array__(self, dtype=None):
