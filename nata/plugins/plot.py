@@ -4,17 +4,22 @@ from typing import Optional
 
 import numpy as np
 
+from IPython.display import display
+from ipywidgets import Layout
+from ipywidgets import widgets
 from nata.containers import DatasetCollection
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
 from nata.plots import DefaultGridPlotTypes
 from nata.plots import DefaultParticlePlotType
+from nata.plots import PlotTypes
 from nata.plots.axes import Axes
 from nata.plots.data import PlotData
 from nata.plots.data import PlotDataAxis
 from nata.plots.figure import Figure
 from nata.plugins.register import register_container_plugin
 from nata.utils.attrs import filter_kwargs
+from nata.utils.env import inside_notebook
 from nata.utils.exceptions import NataInvalidPlot
 
 
@@ -23,67 +28,26 @@ def plot_grid_dataset(
     dataset: GridDataset,
     fig: Optional[Figure] = None,
     axes: Optional[Axes] = None,
+    interactive: bool = True,
     **kwargs,
-) -> Figure:
+):
 
-    # raise error if dataset has more than one data object
-    if len(dataset) != 1:
-        raise NataInvalidPlot
+    if len(dataset) > 1 and inside_notebook() and interactive:
+        build_interactive_tools(dataset, **kwargs)
 
-    # 1. build figure
-    if fig is None:
+    else:
+        plot_data = dataset.plot_data()
+        plot_type = dataset.plot_type
 
-        fig_kwargs = filter_kwargs(Figure, **kwargs)
-        fig = Figure(**fig_kwargs)
-
-        # ignore axes
-        axes = None
-
-    # 2. build axes
-    if axes is None:
-
-        axes_kwargs = filter_kwargs(Axes, **kwargs)
-        axes = fig.add_axes(**axes_kwargs)
-
-    # 3. get default plot type for grids
-    # TODO: make this an argument?
-    plot_type = DefaultGridPlotTypes[dataset.grid_dim]
-
-    # TODO: make this a method of the dataset?
-    # build plot axes object
-    plot_axes = []
-
-    for ds_axes in dataset.axes:
-        new_axes = PlotDataAxis(
-            name=ds_axes.name,
-            label=ds_axes.label,
-            units=ds_axes.unit,
-            type=ds_axes.axis_type,
-            data=np.array(ds_axes),
+        # build figure
+        fig = build_figure(
+            plot_data=plot_data,
+            plot_type=plot_type,
+            fig=fig,
+            axes=axes,
+            **kwargs,
         )
-
-        plot_axes.append(new_axes)
-
-    # build data object
-    data = PlotData(
-        name=dataset.name,
-        label=dataset.label,
-        units=dataset.unit,
-        data=np.array(dataset),
-        time=np.array(dataset.time),
-        time_units=dataset.time.unit,
-        axes=plot_axes,
-    )
-
-    # 4. build plot
-    plot_kwargs = filter_kwargs(plot_type, **kwargs)
-    axes.add_plot(plot_type=plot_type, data=data, **plot_kwargs)
-
-    axes.update()
-
-    fig.close()
-
-    return fig
+        return fig
 
 
 @register_container_plugin(ParticleDataset, name="plot")
@@ -100,60 +64,23 @@ def plot_particle_dataset(
     if len(dataset) != 1:
         raise NataInvalidPlot
 
-    # 1. build figure
-    if fig is None:
-
-        fig_kwargs = filter_kwargs(Figure, **kwargs)
-        fig = Figure(**fig_kwargs)
-
-        # ignore axes
-        axes = None
-
-    # 2. build axes
-    if axes is None:
-
-        axes_kwargs = filter_kwargs(Axes, **kwargs)
-        axes = fig.add_axes(**axes_kwargs)
-
-    # 3. get default plot type for grids
+    # get default plot type for grids
     # TODO: make this an argument?
     plot_type = DefaultParticlePlotType
 
-    # TODO: make this a method of the dataset?
     # build plot axes object
-
-    plot_axes = []
-    plot_data = []
+    # TODO: make this a method of the dataset?
 
     if c_quant:
         quants.append(c_quant)
 
-    for quant in quants:
-        q = getattr(dataset, quant)
+    plot_data = dataset.plot_data(quants=quants)
+    plot_type = dataset.plot_type
 
-        new_axes = PlotDataAxis(name=q.name, label=q.label, units=q.unit)
-
-        plot_axes.append(new_axes)
-        plot_data.append(np.array(q))
-
-    # build data object
-    data = PlotData(
-        name=dataset.name,
-        label=dataset.name,
-        units="",
-        data=plot_data,
-        time=np.array(dataset.time),
-        time_units=dataset.time.unit,
-        axes=plot_axes,
+    # build figure
+    fig = build_figure(
+        plot_data=plot_data, plot_type=plot_type, fig=fig, axes=axes, **kwargs
     )
-
-    # 4. build plot
-    plot_kwargs = filter_kwargs(plot_type, **kwargs)
-    axes.add_plot(plot_type=plot_type, data=data, **plot_kwargs)
-
-    axes.update()
-
-    fig.close()
 
     return fig
 
@@ -250,3 +177,102 @@ def plot_collection(
     fig.close()
 
     return fig
+
+
+def build_figure(
+    plot_data: PlotData,
+    plot_type: PlotTypes,
+    fig: Optional[Figure] = None,
+    axes: Optional[Axes] = None,
+    **kwargs,
+) -> Figure:
+    # build figure
+    if fig is None:
+
+        fig_kwargs = filter_kwargs(Figure, **kwargs)
+        fig = Figure(**fig_kwargs)
+
+        # ignore axes
+        axes = None
+
+    # build axes
+    if axes is None:
+
+        axes_kwargs = filter_kwargs(Axes, **kwargs)
+        axes = fig.add_axes(**axes_kwargs)
+
+    # 4. build plot
+    plot_kwargs = filter_kwargs(plot_type, **kwargs)
+    axes.add_plot(plot_type=plot_type, data=plot_data, **plot_kwargs)
+
+    axes.update()
+
+    fig.close()
+
+    return fig
+
+
+def build_interactive_tools(dataset, **kwargs):
+    time = np.array(dataset.time)
+    iteration = np.array(dataset.iteration)
+
+    dropdown = widgets.Dropdown(
+        options=["File Index", "Iteration", "Time"],
+        value="File Index",
+        disabled=False,
+        layout=Layout(max_width="100px"),
+        continuous_update=False,
+    )
+
+    slider = widgets.SelectionSlider(
+        options=[f"{i}" for i in np.arange(len(dataset.iteration))],
+        value=f"{0}",
+        disabled=False,
+        continuous_update=False,
+        orientation="horizontal",
+        readout=True,
+    )
+
+    def dropdown_change(change):
+
+        if change.old in ["Time", "Iteration"]:
+            options = np.array(slider.options).astype(np.float)
+            n = np.argmax(options >= float(slider.value)).item()
+        else:
+            n = int(slider.value)
+
+        with out.hold_trait_notifications():
+            if change.new == "Time":
+                slider.options = [f"{i:.2f}" for i in time]
+                slider.value = f"{time[n]:.2f}"
+
+            elif change.new == "Iteration":
+                slider.options = [f"{i:d}" for i in iteration]
+                slider.value = f"{iteration[n]:d}"
+            else:
+                slider.options = [f"{i:n}" for i in np.arange(len(iteration))]
+                slider.value = f"{n:d}"
+
+    dropdown.observe(dropdown_change, names=["value"], type="change")
+
+    ui = widgets.HBox([dropdown, slider])
+
+    def update_figure(sel):
+        if dropdown.value == "Time":
+            n = np.argmax(time >= float(sel)).item()
+        elif dropdown.value == "Iteration":
+            n = np.argmax(iteration >= int(sel)).item()
+        else:
+            n = int(sel)
+
+        plot_data = dataset[n].plot_data()
+        plot_type = dataset[n].plot_type
+
+        # build figure
+        fig = build_figure(plot_data=plot_data, plot_type=plot_type, **kwargs)
+
+        return fig.show()
+
+    out = widgets.interactive_output(update_figure, {"sel": slider})
+
+    display(ui, out)

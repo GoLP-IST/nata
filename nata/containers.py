@@ -19,6 +19,10 @@ from nata.backends.grid import GridArray
 from nata.backends.grid import GridBackend
 from nata.backends.particles import ParticleArray
 from nata.backends.particles import ParticleBackend
+from nata.plots import DefaultGridPlotTypes
+from nata.plots import DefaultParticlePlotType
+from nata.plots.data import PlotData
+from nata.plots.data import PlotDataAxis
 from nata.utils.attrs import attrib_equality
 from nata.utils.attrs import location_exists
 from nata.utils.attrs import subdtype_of
@@ -379,6 +383,36 @@ class GridDataset(BaseDataset):
     def grid_dim(self):
         return len(self.axes)
 
+    def plot_data(self):
+        a = []
+
+        for ds_a in self.axes:
+            new_a = PlotDataAxis(
+                name=ds_a.name,
+                label=ds_a.label,
+                units=ds_a.unit,
+                type=ds_a.axis_type,
+                data=np.array(ds_a),
+            )
+
+            a.append(new_a)
+
+        d = PlotData(
+            name=self.name,
+            label=self.label,
+            units=self.unit,
+            data=np.array(self),
+            time=np.array(self.time),
+            time_units=self.time.unit,
+            axes=a,
+        )
+
+        return d
+
+    @property
+    def plot_type(self):
+        return DefaultGridPlotTypes[self.grid_dim]
+
     @classmethod
     def from_array(
         cls,
@@ -609,6 +643,33 @@ class ParticleDataset(BaseDataset):
                 unit=unit,
             )
             setattr(self, quantity, q)
+
+    def plot_data(self, quants):
+        a = []
+        d = []
+
+        for quant in quants:
+            q = getattr(self, quant)
+            new_a = PlotDataAxis(name=q.name, label=q.label, units=q.unit)
+
+            a.append(new_a)
+            d.append(np.array(q))
+
+        p_d = PlotData(
+            name=self.name,
+            label=self.name,
+            units="",
+            data=d,
+            time=np.array(self.time),
+            time_units=self.time.unit,
+            axes=a,
+        )
+
+        return p_d
+
+    @property
+    def plot_type(self):
+        return DefaultParticlePlotType
 
     def _check_dataset_equality(self, other: Union["ParticleDataset", Any]):
         if not isinstance(other, self.__class__):
