@@ -7,7 +7,6 @@ from .plots.scatter import ScatterPlot
 from .data import PlotDataAxis, PlotData
 
 PlotTypes = Union[LinePlot]
-LabelablePlotTypes = Union[LinePlot, ScatterPlot]
 
 # default plots for data types
 DefaultGridPlotTypes = {1: LinePlot, 2: ColorPlot}
