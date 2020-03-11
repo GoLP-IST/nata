@@ -162,6 +162,33 @@ def plot_collection(
     if not collection.store:
         raise ValueError("Collection is empty.")
 
+    if any(len(dataset) > 1 for dataset in collection.store.values()):
+        raise NotImplementedError(
+            f"Collection plots are not yet implemented "
+            + "for multi-iteration datasets."
+        )
+
+    if any(
+        not isinstance(dataset, GridDataset)
+        for dataset in collection.store.values()
+    ):
+        raise NotImplementedError(
+            f"Collection plots are not yet implemented "
+            + "for particle datasets."
+        )
+
+    # check if time and iteration arrays are equal
+    for check in ["iteration", "time"]:
+        arr = [
+            np.array(getattr(dataset, check))
+            for dataset in collection.store.values()
+        ]
+        if not all(np.array_equal(arr[0], i) for i in arr):
+            raise ValueError(
+                f"Attribute `{check}` is not the same for all datasets "
+                + "in the collection."
+            )
+
     # check if order elements exist in collection
     for key in order:
         if key not in collection.store.keys():
