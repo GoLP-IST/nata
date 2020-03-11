@@ -131,7 +131,11 @@ def plot_particle_dataset(
         quants.append(c_quant)
 
     if len(dataset) > 1 and inside_notebook() and interactive:
-        build_interactive_tools(dataset, **kwargs)
+        raise NotImplementedError(
+            f"Interactive plots are not yet implemented "
+            + "for particle datasets."
+        )
+        # build_interactive_tools(dataset, **kwargs)
 
     else:
         plot_data = dataset.plot_data(quants=quants)
@@ -164,7 +168,7 @@ def plot_collection(
 
     if any(len(dataset) > 1 for dataset in collection.store.values()):
         raise NotImplementedError(
-            f"Collection plots are not yet implemented "
+            f"Interactive plots are not yet implemented "
             + "for multi-iteration datasets."
         )
 
@@ -173,7 +177,7 @@ def plot_collection(
         for dataset in collection.store.values()
     ):
         raise NotImplementedError(
-            f"Collection plots are not yet implemented "
+            f"Interactive plots are not yet implemented "
             + "for particle datasets."
         )
 
