@@ -43,7 +43,7 @@ class Osiris_zdf_GridFile(GridBackend):
         label = z_info.grid.label
         return z_info.grid.name or self.clean(label)
 
-    def get_data(self, indexing):
+    def get_data(self=None, indexing=None):
         # TODO: apply indexing here
         (z_data, z_info) = read(str(self.location))
         return z_data.transpose()

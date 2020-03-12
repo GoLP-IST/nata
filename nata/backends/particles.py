@@ -52,7 +52,7 @@ class ParticleBackend(ABC):
         pass
 
     @abstractmethod
-    def get_data(self, indexing, fields):
+    def get_data(self, indexing=None, fields=None):
         pass
 
     @property
@@ -258,7 +258,7 @@ class ParticleArray(ParticleBackend):
     def tags(self):
         return self._tags
 
-    def get_data(self, indexing, fields):
+    def get_data(self, indexing=None, fields=None):
         return self._array[fields][indexing]
 
     @property

@@ -37,7 +37,7 @@ class GridBackend(ABC):
         pass
 
     @abstractmethod
-    def get_data(self, indexing):
+    def get_data(self, indexing=None):
         pass
 
     @property
@@ -232,9 +232,8 @@ class GridArray(GridBackend):
             return True
         return False
 
-    @property
-    def get_data(self, indexing):
-        return self._array[indexing]
+    def get_data(self, indexing=None):
+        return self.array[indexing]
 
     @property
     def dataset_name(self):
