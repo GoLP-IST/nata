@@ -91,8 +91,20 @@ def attrib_equality(
             if attrib.eq:
                 if not hasattr(other, attrib.name):
                     return False
-                if getattr(some, attrib.name) != getattr(other, attrib.name):
-                    return False
+
+                some_attrib = getattr(some, attrib.name)
+                other_attrib = getattr(other, attrib.name)
+                # check if attributes have attrs themselves and use
+                # attrib_equality recursively else use equality
+                if all(
+                    attr.has(a)
+                    for a in (some_attrib.__class__, other_attrib.__class__)
+                ):
+                    if not attrib_equality(some_attrib, other_attrib):
+                        return False
+                else:
+                    if some_attrib != other_attrib:
+                        return False
 
         return True
     else:
