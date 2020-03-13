@@ -269,6 +269,10 @@ class GridDataset(BaseDataset):
         )
 
         for axis in self.axes:
+            if axis.name == "time":
+                raise NotImplementedError(
+                    "Grid axes named `time` are not yet supported"
+                )
             setattr(self, axis.name, axis)
 
         # cross validate - just for the ake for safety - we can remove later on
