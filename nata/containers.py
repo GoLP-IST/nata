@@ -678,6 +678,52 @@ class ParticleDataset(BaseDataset):
 
         attr.validate(self)
 
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            new_data = self._data[key]
+
+            new_iteration = IterationAxis(
+                data=self.iteration.data[key],
+                name=self.iteration.name,
+                label=self.iteration.label,
+                unit=self.iteration.unit,
+            )
+
+            new_time = TimeAxis(
+                data=self.time.data[key],
+                name=self.time.name,
+                label=self.time.label,
+                unit=self.time.unit,
+            )
+
+            new_num_particles = UnnamedAxis(data=self.num_particles.data[key])
+
+            new_quants = []
+
+            for quant in self.quantities:
+                new_quants.append(
+                    ParticleQuantity(
+                        data=[quant.data[key]],
+                        dtype=quant.dtype,
+                        len=[quant._len[key]],
+                        name=quant.name,
+                        label=quant.label,
+                        unit=quant.unit,
+                    )
+                )
+
+            return self.__class__(
+                data=[new_data],
+                backend=self.backend,
+                name=self.name,
+                iteration=new_iteration,
+                time=new_time,
+                num_particles=new_num_particles,
+                quantities=new_quants,
+            )
+        else:
+            raise NotImplementedError("not yet fully implemented")
+
     def _check_dataset_equality(self, other: Union["ParticleDataset", Any]):
         if not isinstance(other, self.__class__):
             return False
@@ -694,6 +740,7 @@ class ParticleDataset(BaseDataset):
             [d for d in self._data] + [d for d in other._data]
         )
 
+        self.num_particles.append(other.num_particles)
         self.iteration.append(other.iteration)
         self.time.append(other.time)
         for self_quant, other_quant in zip(self.quantities, other.quantities):
