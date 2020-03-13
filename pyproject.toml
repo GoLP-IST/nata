@@ -52,7 +52,7 @@ isort = "^4.3.21"
 atomic=true
 force_single_line=true
 known_first_party="nata"
-known_third_party=["attr", "h5py", "matplotlib", "numpy", "pytest"]
+known_third_party=["attr", "h5py", "matplotlib", "numpy", "pytest", "hypothesis"]
 
 [tool.black]
 line-length = 80
