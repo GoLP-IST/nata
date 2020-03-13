@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import attr
-
 from hypothesis import assume
 from hypothesis import given
 from hypothesis.strategies import floats
 from hypothesis.strategies import integers
 from hypothesis.strategies import one_of
 from hypothesis.strategies import text
+
 from nata.utils.attrs import attrib_equality
 
 
