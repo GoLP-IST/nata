@@ -64,7 +64,7 @@ class Osiris_Dev_Hdf5_GridFile(GridBackend):
             if name_ in fp:
                 return name_
 
-    def get_data(self, indexing):
+    def get_data(self, indexing=None):
         # TODO: apply indexing here
         with h5.File(self.location, mode="r") as fp:
             dset = fp[self._dset_name]

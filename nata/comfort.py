@@ -49,7 +49,7 @@ class _FileList:
         else:
             list_generator = self._entrypoint.glob(self._search_pattern)
 
-        for p in list_generator:
+        for p in sorted(list_generator):
             if p.is_file():
                 yield p
 

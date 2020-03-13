@@ -230,8 +230,11 @@ class Axes:
             ax.set_xscale(self.xscale)
             ax.set_yscale(self.yscale)
 
-            ax.set_xlim(self.xlim)
-            ax.set_ylim(self.ylim)
+            if self.xlim[0] != self.xlim[1]:
+                ax.set_xlim(self.xlim)
+
+            if self.ylim[0] != self.ylim[1]:
+                ax.set_ylim(self.ylim)
 
             # set axes labels
             ax.set_xlabel(self.xlabel)
