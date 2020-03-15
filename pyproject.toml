@@ -42,11 +42,8 @@ attrs = "^19.3.0"
 [tool.poetry.dev-dependencies]
 pytest = "^5.3.5"
 pytest-cov = "^2.8.1"
-black = "^19.10b0"
-flake8 = "^3.7.9"
 pre-commit = "^2.0.1"
 tox = "^3.14.3"
-isort = "^4.3.21"
 
 [tool.isort]
 atomic=true
