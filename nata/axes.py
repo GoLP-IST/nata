@@ -80,6 +80,8 @@ class Axis(UnnamedAxis):
     label: str = attr.ib(validator=subdtype_of(np.str_))
     unit: str = attr.ib(validator=subdtype_of(np.str_))
 
+    # TODO: remove eq -> should be replaced with proper check after
+    #       new implementation of attrib_equality
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
