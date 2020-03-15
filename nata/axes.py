@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial
 from typing import Any
-from typing import Tuple
 from typing import Union
 
 import attr
@@ -13,24 +12,14 @@ from attr.validators import instance_of
 from nata.utils.attrs import array_validator
 from nata.utils.attrs import attrib_equality
 from nata.utils.attrs import subdtype_of
+from nata.utils.formatting import array_format
 
 axis_attrs = partial(attr.s, slots=True, eq=False, repr=False)
 
-# TODO: redo equality - should return an array like object -> might need ufunc
-#       support
+
 @axis_attrs
 class UnnamedAxis:
-    _data: np.ndarray = attr.ib(
-        converter=converters.optional(np.array), repr=False, eq=False
-    )
-
-    _data_ndim: Tuple[int] = attr.ib(init=False, repr=False)
-
-    def __attrs_post_init__(self):
-        if self._data is not None:
-            self._data_ndim = self._data.ndim
-        else:
-            self._data_ndim = 0
+    _data: np.ndarray = attr.ib(converter=np.array, repr=False, eq=False)
 
     def __array__(self, dtype=None):
         if dtype:
@@ -38,33 +27,24 @@ class UnnamedAxis:
         else:
             return self._data
 
-    # TODO: requires rewriting -> we should not depend
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return False
-        return attrib_equality(self, other, "_data_ndim")
-
     def __getitem__(self, key):
-        return self.__array__()[key]
+        return self.data[key]
 
     def __setitem__(self, key, value):
-        self.__array__()[key] = value
+        self.data[key] = value
 
     def __len__(self):
-        if self._data_ndim == self.ndim:
-            return 1
-        else:
-            return len(self.data)
+        return len(self.data)
 
-    def __iter__(self):
-        if len(self) == 0:
-            yield self.__class__(self._data, self.name, self.label, self.unit)
+    def __iter__(self) -> "UnnamedAxis":
+        if self.ndim == 0:
+            yield self
         else:
             for d in self._data:
-                yield self.__class__(d, self.name, self.label, self.unit)
+                yield self.__class__(d)
 
-    def __repr__(self):
-        return str(self._data)
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({array_format(self.data)})"
 
     @property
     def shape(self):
