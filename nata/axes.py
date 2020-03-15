@@ -19,7 +19,7 @@ axis_attrs = partial(attr.s, slots=True, eq=False, repr=False)
 
 @axis_attrs
 class UnnamedAxis:
-    _data: np.ndarray = attr.ib(converter=np.array, repr=False, eq=False)
+    _data: np.ndarray = attr.ib(converter=np.asanyarray, repr=False, eq=False)
 
     def __array__(self, dtype=None):
         if dtype:
