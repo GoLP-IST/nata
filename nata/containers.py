@@ -678,6 +678,9 @@ class ParticleDataset(BaseDataset):
 
         attr.validate(self)
 
+    def __len__(self):
+        return len(self.iteration)
+
     def __getitem__(self, key):
         if isinstance(key, int):
             new_data = self._data[key]
