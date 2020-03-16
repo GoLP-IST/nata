@@ -87,6 +87,15 @@ class Axis(UnnamedAxis):
             return False
         return attrib_equality(self, other, "name, label, unit, _data_ndim")
 
+    def __iter__(self) -> "Axis":
+        if self.ndim == 0:
+            yield self
+        else:
+            for d in self._data:
+                yield self.__class__(
+                    data=d, name=self.name, label=self.label, unit=self.unit
+                )
+
 
 @axis_attrs
 class IterationAxis(Axis):

@@ -104,10 +104,16 @@ def test_UnnamedAxis_append_1d_arrays(arr1, arr2):
 @given(one_of(number_or_none(), anyarray(max_dims=1)), text(), text(), text())
 def test_Axis_init(data, name, label, unit):
     axis = Axis(data, name, label, unit)
+    data = np.asanyarray(data)
+    if data.ndim == 0:
+        data = data.reshape((1,))
 
     assert axis.name == name
     assert axis.label == label
     assert axis.unit == unit
+
+    for actual, expected in zip(axis, data):
+        assert np.array_equiv(actual, expected)
 
 
 @given(one_of(number_or_none(), anyarray(max_dims=1)), text(), text(), text())
