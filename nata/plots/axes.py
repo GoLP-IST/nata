@@ -12,7 +12,6 @@ from attr.validators import optional
 # from nata.plots import Figure
 from nata.plots import PlotData
 from nata.plots import PlotTypes
-from nata.utils.attrs import filter_kwargs
 
 
 @attr.s
@@ -144,12 +143,11 @@ class Axes:
         plot_type: Optional[PlotTypes] = None,
         plot: Optional[PlotTypes] = None,
         data: Optional[PlotData] = None,
-        **kwargs,
+        style: Optional[dict] = dict(),
     ):
 
         if plot is None:
-            plot_kwargs = filter_kwargs(plot_type, **kwargs)
-            plot = plot_type(axes=self, data=data, **plot_kwargs)
+            plot = plot_type(axes=self, data=data, **style)
         else:
             plot._axes = self
 
