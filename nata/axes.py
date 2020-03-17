@@ -41,7 +41,7 @@ class UnnamedAxis:
             yield self
         else:
             for d in self._data:
-                yield self.__class__(d)
+                yield self.__class__(data=d)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({array_format(self.data)})"
