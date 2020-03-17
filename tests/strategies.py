@@ -77,3 +77,17 @@ def array_and_basic_indices(draw, array_min_dims=0, array_max_dims=2):
     arr = draw(anyarray(min_dims=array_min_dims, max_dims=array_max_dims))
     ind = draw(basic_indices(arr.shape))
     return arr, ind
+
+
+@composite
+def array_with_two_entries(draw, array_length=10_000):
+    length = draw(integers(1, max_value=array_length))
+    arr = draw(
+        arrays(
+            dtype=one_of(integer_dtypes(), floating_dtypes()),
+            shape=(length, 2),
+        )
+    )
+    assume(not np.any(np.isnan(arr)))
+    assume(np.all(np.isfinite(arr)))
+    return arr

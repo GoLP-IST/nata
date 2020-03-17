@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
+from functools import partial
+
 import numpy as np
 import pytest
+from hypothesis import assume
 from hypothesis import given
+from hypothesis import settings
+from hypothesis.strategies import integers
 from hypothesis.strategies import one_of
 from hypothesis.strategies import text
 
 from nata.axes import Axis
+from nata.axes import GridAxis
 from nata.axes import IterationAxis
 from nata.axes import TimeAxis
 from nata.axes import UnnamedAxis
@@ -13,6 +19,7 @@ from nata.utils.formatting import array_format
 
 from .strategies import anyarray
 from .strategies import array_and_basic_indices
+from .strategies import array_with_two_entries
 from .strategies import number
 from .strategies import number_or_none
 
@@ -150,3 +157,281 @@ def test_TimeAxis_default(data):
     assert axis.name == "time"
     assert axis.label == "time"
     assert axis.unit == ""
+
+
+strategies_for_number_tests = (
+    number(include_complex_numbers=False),
+    number(include_complex_numbers=False),
+    integers(min_value=1, max_value=1_000),
+    text(),
+    text(),
+    text(),
+)
+
+
+@given(*strategies_for_number_tests)
+def test_GridAxis_init_numbers(num1, num2, length, name, label, unit):
+    assume(num1 <= num2)
+
+    gridaxis = GridAxis(
+        lower_boundary=num1,
+        upper_boundary=num2,
+        axis_length=length,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    assert gridaxis.name == name
+    assert gridaxis.label == label
+    assert gridaxis.unit == unit
+
+    assert len(gridaxis) == length
+    assert gridaxis.shape == (length,)
+    assert gridaxis.ndim == 1
+
+    for a in gridaxis:
+        assert a is gridaxis
+
+
+@given(*strategies_for_number_tests)
+def test_GridAxis_array_interface_with_singleValue_default(
+    num1, num2, length, name, label, unit
+):
+    assume(num1 < num2)
+
+    gridaxis = GridAxis(
+        lower_boundary=num1,
+        upper_boundary=num2,
+        axis_length=length,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    np.testing.assert_array_almost_equal(
+        gridaxis, np.linspace(num1, num2, length)
+    )
+
+
+@given(*strategies_for_number_tests)
+def test_GridAxis_array_interface_with_singleValue_linear(
+    num1, num2, length, name, label, unit
+):
+    assume(num1 < num2)
+
+    gridaxis = GridAxis(
+        lower_boundary=num1,
+        upper_boundary=num2,
+        axis_length=length,
+        axis_type="linear",
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    np.testing.assert_array_almost_equal(
+        gridaxis, np.linspace(num1, num2, length)
+    )
+
+
+@given(*strategies_for_number_tests)
+def test_GridAxis_array_interface_with_singleValue_lin(
+    num1, num2, length, name, label, unit
+):
+    assume(num1 < num2)
+
+    gridaxis = GridAxis(
+        lower_boundary=num1,
+        upper_boundary=num2,
+        axis_length=length,
+        axis_type="lin",
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    np.testing.assert_array_almost_equal(
+        gridaxis, np.linspace(num1, num2, length)
+    )
+
+
+# RuntimeWarnings can appear from numpy - as using logspace
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+@given(*strategies_for_number_tests)
+def test_GridAxis_array_interface_with_singleValue_logarithmic(
+    num1, num2, length, name, label, unit
+):
+    assume(num1 < num2)
+
+    gridaxis = GridAxis(
+        lower_boundary=num1,
+        upper_boundary=num2,
+        axis_length=length,
+        axis_type="logarithmic",
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    np.testing.assert_array_almost_equal(
+        gridaxis, np.logspace(np.log10(num1), np.log10(num2), length)
+    )
+
+
+# RuntimeWarnings can appear from numpy - as using logspace
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+@given(*strategies_for_number_tests)
+def test_GridAxis_array_interface_with_singleValue_log(
+    num1, num2, length, name, label, unit
+):
+    assume(num1 < num2)
+
+    gridaxis = GridAxis(
+        lower_boundary=num1,
+        upper_boundary=num2,
+        axis_length=length,
+        axis_type="log",
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    np.testing.assert_array_almost_equal(
+        gridaxis, np.logspace(np.log10(num1), np.log10(num2), length)
+    )
+
+
+sort_along_second_axis = partial(np.sort, axis=1)
+strategies_for_array_tests = (
+    array_with_two_entries(array_length=1_000).map(sort_along_second_axis),
+    integers(min_value=1, max_value=1_000),
+    text(),
+    text(),
+    text(),
+)
+
+
+@given(*strategies_for_array_tests)
+@settings(deadline=None)
+def test_GridAxis_init_array(data, length, name, label, unit):
+    lower = data[:, 0]
+    upper = data[:, 1]
+
+    gridaxis = GridAxis(
+        lower_boundary=lower,
+        upper_boundary=upper,
+        axis_length=length,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    assert gridaxis.name == name
+    assert gridaxis.label == label
+    assert gridaxis.unit == unit
+
+    assert len(gridaxis) == len(data)
+    assert gridaxis.shape == (len(data), length)
+
+    for actual, expected in zip(gridaxis, data):
+        assert np.array_equal(actual.data, expected)
+
+
+@given(*strategies_for_array_tests)
+@settings(deadline=None)
+def test_GridAxis_array_interface_with_array_default(
+    data, length, name, label, unit
+):
+    lower = data[:, 0]
+    upper = data[:, 1]
+
+    gridaxis = GridAxis(
+        lower_boundary=lower,
+        upper_boundary=upper,
+        axis_length=length,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    expected = []
+    for l, u in zip(lower, upper):
+        expected.append(np.linspace(l, u, length))
+    expected = np.array(expected)
+
+    np.testing.assert_array_almost_equal(gridaxis, expected)
+
+    # test for individual to ensure correct passing through
+    for axis, expected_axis in zip(gridaxis, expected):
+        np.testing.assert_array_almost_equal(axis, expected_axis)
+
+
+@given(*strategies_for_number_tests)
+def test_GridAxis_append_with_numbers(num1, num2, length, name, label, unit):
+    assume(num1 < num2)
+    gridaxis = GridAxis(
+        lower_boundary=num1,
+        upper_boundary=num2,
+        axis_length=length,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+    gridaxis.append(gridaxis)
+
+    assert gridaxis.name == name
+    assert gridaxis.label == label
+    assert gridaxis.unit == unit
+
+    assert len(gridaxis) == 2
+    assert gridaxis.shape == (2, length)
+    assert gridaxis.ndim == 2
+
+    expected = []
+    for _ in range(2):
+        expected.append(np.linspace(num1, num2, length))
+    expected = np.array(expected)
+    np.testing.assert_array_almost_equal(gridaxis, expected)
+
+    for axis, expected_axis in zip(gridaxis, expected):
+        np.testing.assert_array_almost_equal(axis, expected_axis)
+
+
+@given(*strategies_for_array_tests)
+@settings(deadline=None)
+def test_GridAxis_append_with_arrays(data, length, name, label, unit):
+    lower = data[:, 0]
+    upper = data[:, 1]
+
+    gridaxis = GridAxis(
+        lower_boundary=lower,
+        upper_boundary=upper,
+        axis_length=length,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+    gridaxis.append(gridaxis)
+    number_of_entries = data.shape[0] * 2
+
+    assert gridaxis.name == name
+    assert gridaxis.label == label
+    assert gridaxis.unit == unit
+
+    assert len(gridaxis) == number_of_entries
+    assert gridaxis.shape == (number_of_entries, length)
+    assert gridaxis.ndim == 2
+
+    expected = []
+    # initial grid axis
+    for l, u in zip(lower, upper):
+        expected.append(np.linspace(l, u, length))
+    # after append
+    for l, u in zip(lower, upper):
+        expected.append(np.linspace(l, u, length))
+    expected = np.array(expected)
+
+    np.testing.assert_array_almost_equal(gridaxis, expected)
+    for axis, expected_axis in zip(gridaxis, expected):
+        np.testing.assert_array_almost_equal(axis, expected_axis)

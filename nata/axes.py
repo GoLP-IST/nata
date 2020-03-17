@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 from functools import partial
 from typing import Any
+from typing import Optional
 from typing import Union
 
 import attr
 import numpy as np
-from attr import converters
 from attr.validators import in_
 from attr.validators import instance_of
 
@@ -113,72 +113,87 @@ class TimeAxis(Axis):
 
 @axis_attrs
 class GridAxis(Axis):
-    axis_length: int = attr.ib(validator=instance_of(int))
+    _lower_boundary: Optional[np.ndarray] = attr.ib(converter=np.asanyarray)
+    _upper_boundary: Optional[np.ndarray] = attr.ib(converter=np.asanyarray)
+    axis_length: int = attr.ib(validator=subdtype_of(np.integer))
+
     axis_type: str = attr.ib(
         default="linear",
-        validator=[subdtype_of(np.str_), in_(("linear", "log"))],
+        validator=[
+            subdtype_of(np.str_),
+            in_(("linear", "lin", "log", "logarithmic")),
+        ],
     )
-    min_: float = attr.ib(default=None, converter=converters.optional(float))
-    max_: float = attr.ib(default=None, converter=converters.optional(float))
-    _data: np.ndarray = attr.ib(default=None, repr=False, eq=False)
+    _data: np.ndarray = attr.ib(init=False, eq=False)
+
+    @_lower_boundary.validator
+    @_upper_boundary.validator
+    def _validate_dimension_for_limits(
+        self, attribute: attr.Attribute, value: np.ndarray
+    ):
+        if value.ndim not in (0, 1):
+            raise ValueError(
+                f"Wrong dimensions for '{attribute.name.replace('_', '')}'. "
+                + f"Only 0d and 1d boundaries are supported."
+            )
 
     def __attrs_post_init__(self):
-        if self._data is None and (
-            (self.min_ is not None) and (self.max_ is not None)
-        ):
-            self._data = np.array([self.min_, self.max_])
-        self._data_ndim = self._data.ndim
+        if self._upper_boundary.shape != self._lower_boundary.shape:
+            raise ValueError("Mismatch between lower and upper limtis!")
 
-    # we might be able to remove this and just use the 'Axis' definition
-    # -> has to be tried but I think we can just use attrs to pass the arguments
+        self._data = np.stack(
+            (self._lower_boundary, self._upper_boundary), axis=-1
+        )
+
+        self._lower_boundary = None
+        self._upper_boundary = None
+
     def __iter__(self):
-        if len(self) == 1:
-            yield self.__class__(
-                min_=self._data[0],
-                max_=self._data[1],
-                name=self.name,
-                label=self.label,
-                unit=self.unit,
-                axis_length=self.axis_length,
-                axis_type=self.axis_type,
-            )
+        if self.data.ndim == 1:
+            yield self
         else:
-            for d in self._data:
+            for d in self.data:
                 yield self.__class__(
-                    min_=d[0],
-                    max_=d[1],
+                    lower_boundary=d[0],
+                    upper_boundary=d[1],
+                    axis_length=self.axis_length,
+                    axis_type=self.axis_type,
                     name=self.name,
                     label=self.label,
                     unit=self.unit,
-                    axis_length=self.axis_length,
-                    axis_type=self.axis_type,
                 )
+
+    def __len__(self):
+        if self.data.ndim == 1:
+            return self.axis_length
+        else:
+            return len(self.data)
 
     @property
     def shape(self):
-        if self._data.ndim == 1:
+        if self.data.ndim == 1:
             return (self.axis_length,)
         else:
             return (len(self), self.axis_length)
 
     def _get_axis_values(self, min_, max_, N):
-        if self.axis_type == "log":
+        if self.axis_type in ("log", "logarithmic"):
             min_, max_ = np.log10((min_, max_))
             return np.logspace(min_, max_, N)
         else:
             return np.linspace(min_, max_, N)
 
     def __array__(self, dtype=None):
-        if len(self) == 1:
-            return self._get_axis_values(
+        if self.data.ndim == 1:
+            arr = self._get_axis_values(
                 self._data[0], self._data[1], self.axis_length
             )
         else:
-            values = np.empty((len(self), self.axis_length))
+            arr = np.empty((len(self), self.axis_length))
             for i, (min_, max_) in enumerate(self._data):
-                values[i] = self._get_axis_values(min_, max_, self.axis_length)
+                arr[i] = self._get_axis_values(min_, max_, self.axis_length)
 
-            return values
+        return arr
 
     def append(self, other):
         self._check_appendability(other)
