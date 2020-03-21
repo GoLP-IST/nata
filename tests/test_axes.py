@@ -7,12 +7,14 @@ from hypothesis import assume
 from hypothesis import given
 from hypothesis import settings
 from hypothesis.strategies import integers
+from hypothesis.strategies import lists
 from hypothesis.strategies import one_of
 from hypothesis.strategies import text
 
 from nata.axes import Axis
 from nata.axes import GridAxis
 from nata.axes import IterationAxis
+from nata.axes import ParticleQuantity
 from nata.axes import TimeAxis
 from nata.axes import UnnamedAxis
 from nata.utils.formatting import array_format
@@ -22,6 +24,24 @@ from .strategies import array_and_basic_indices
 from .strategies import array_with_two_entries
 from .strategies import number
 from .strategies import number_or_none
+
+_int_limit = np.iinfo(np.intc)
+strategies_for_number_tests = (
+    number(include_complex_numbers=False),
+    number(include_complex_numbers=False),
+    integers(min_value=1, max_value=1_000),
+    text(),
+    text(),
+    text(),
+)
+sort_along_second_axis = partial(np.sort, axis=1)
+strategies_for_array_tests = (
+    array_with_two_entries(array_length=1_000).map(sort_along_second_axis),
+    integers(min_value=1, max_value=1_000),
+    text(),
+    text(),
+    text(),
+)
 
 
 @given(one_of(number_or_none(), anyarray(min_dims=0, max_dims=0)))
@@ -159,16 +179,6 @@ def test_TimeAxis_default(data):
     assert axis.unit == ""
 
 
-strategies_for_number_tests = (
-    number(include_complex_numbers=False),
-    number(include_complex_numbers=False),
-    integers(min_value=1, max_value=1_000),
-    text(),
-    text(),
-    text(),
-)
-
-
 @given(*strategies_for_number_tests)
 def test_GridAxis_init_numbers(num1, num2, length, name, label, unit):
     assume(num1 <= num2)
@@ -296,16 +306,6 @@ def test_GridAxis_array_interface_with_singleValue_log(
     )
 
 
-sort_along_second_axis = partial(np.sort, axis=1)
-strategies_for_array_tests = (
-    array_with_two_entries(array_length=1_000).map(sort_along_second_axis),
-    integers(min_value=1, max_value=1_000),
-    text(),
-    text(),
-    text(),
-)
-
-
 @given(*strategies_for_array_tests)
 @settings(deadline=None)
 def test_GridAxis_init_array(data, length, name, label, unit):
@@ -429,3 +429,221 @@ def test_GridAxis_append_with_arrays(data, length, name, label, unit):
     np.testing.assert_array_equal(gridaxis, expected)
     for axis, expected_axis in zip(gridaxis, expected):
         np.testing.assert_array_equal(axis, expected_axis)
+
+
+@given(array_and_basic_indices(array_min_dims=1, array_max_dims=2),)
+def test_ParticleQuantity_init_using_arrays(data):
+    arr, ind = data
+
+    if arr.ndim == 1:
+        length = [len(arr)]
+    else:
+        length = [arr.shape[1]] * len(arr)
+
+    quant = ParticleQuantity(
+        data=arr, dtype=arr.dtype, prt_num=length, name="", label="", unit="",
+    )
+
+    if arr.ndim == 2 and len(arr) == 1:
+        expected_shape = arr.shape[1:]
+        expected_ndim = arr.ndim - 1
+    else:
+        expected_shape = arr.shape
+        expected_ndim = arr.ndim
+
+    assert quant.shape == expected_shape
+    assert quant.ndim == expected_ndim
+    assert quant.dtype == arr.dtype
+    assert quant.data.ndim == 2
+
+    if arr.ndim == 2 and len(arr) == 1:
+        ind = ind[-1]
+        np.testing.assert_array_equal(quant, np.squeeze(arr, axis=0))
+        np.testing.assert_array_equal(quant[ind], np.squeeze(arr, axis=0)[ind])
+    else:
+        np.testing.assert_array_equal(quant, arr)
+        np.testing.assert_array_equal(quant[ind], arr[ind])
+
+
+@pytest.mark.parametrize(
+    ["data", "prt_num", "shape", "ndim", "expected"],
+    [
+        (42, 1, (1,), 1, np.array([42])),
+        ([42], 1, (1,), 1, np.array([42])),
+        (42, [1], (1,), 1, np.array([42])),
+        ([42], [1], (1,), 1, np.array([42])),
+        (np.arange(10), 10, (10,), 1, np.arange(10)),
+        (
+            [[i] for i in range(10)],
+            [1] * 10,
+            (10, 1),
+            2,
+            np.arange(10).reshape((10, 1)),
+        ),
+        (np.arange(10).reshape((1, 10)), [10], (10,), 1, np.arange(10),),
+        (np.arange(10).reshape((1, 10)), 10, (10,), 1, np.arange(10),),
+        (
+            [np.arange(3), np.arange(2)],
+            [3, 2],
+            (2, 3),
+            2,
+            np.ma.array(
+                [np.arange(3), np.arange(3)], mask=[[0, 0, 0], [0, 0, 1]]
+            ),
+        ),
+    ],
+    ids=(
+        "data::shape=(), prt_num::shape=()",
+        "data::shape=(1,), prt_num::shape=()",
+        "data::shape=(), prt_num::shape=(1,)",
+        "data::shape=(1,), prt_num::shape=(1,)",
+        "data::shape=(10,), prt_num::shape=()",
+        "data::shape=(10,1), prt_num::shape=(10,)",
+        "data::shape=(1,10), prt_num::shape=(1,)",
+        "data::shape=(1,10), prt_num::shape=()",
+        "data::dtype=object, prt_num::shape=(2,)",
+    ),
+)
+def test_ParticleQuantity_init_using_various_simple_example(
+    data, prt_num, shape, ndim, expected
+):
+    data = np.array(data)
+    prt_num = np.array(prt_num)
+
+    quant = ParticleQuantity(
+        data=data,
+        dtype=int,
+        prt_num=prt_num,
+        name="some name",
+        label="some label",
+        unit="some unit",
+    )
+
+    assert quant.shape == shape
+    assert quant.dtype == np.dtype(int)
+    assert quant.ndim == ndim
+    if quant.data.dtype == object:
+        assert quant.data.ndim == 1
+    else:
+        assert quant.data.ndim == 2
+
+    np.testing.assert_array_equal(quant, expected)
+
+
+@given(anyarray(min_dims=2, max_dims=2))
+def test_ParticleQuantity_iteration(arr):
+    particle_array = [arr.shape[1] for _ in range(arr.shape[0])]
+
+    prt_quant = ParticleQuantity(
+        data=arr,
+        prt_num=particle_array,
+        dtype=arr.dtype,
+        name="",
+        label="",
+        unit="",
+    )
+
+    for quant, subarray in zip(prt_quant, arr):
+        assert quant is not prt_quant
+        np.testing.assert_array_equal(quant, subarray)
+
+
+@pytest.fixture(name="ParticleBackend")
+def _dummy_ParticleBackend():
+    class ParticleBackend:
+        def __init__(self, field_name, data):
+            self.field_name = field_name
+            self.data = data
+
+        def get_data(self, fields):
+            if fields == self.field_name:
+                return self.data
+            else:
+                raise ValueError("Wrong field name requested")
+
+    return ParticleBackend
+
+
+@given(data=anyarray(min_dims=2, max_dims=2), quantity_name=text())
+def test_ParticleQuantity_data_reading(ParticleBackend, data, quantity_name):
+    backends = [ParticleBackend(quantity_name, d) for d in data]
+    particle_numbers = [data.shape[1]] * len(data)
+    quantity = ParticleQuantity(
+        data=backends,
+        prt_num=particle_numbers,
+        dtype=data.dtype,
+        name=quantity_name,
+        label="",
+        unit="",
+    )
+
+    if len(data) == 1:
+        data = np.squeeze(data, axis=0)
+
+    np.testing.assert_array_equal(quantity, data)
+    # mask can be accessed after first array
+    assert isinstance(quantity.data, np.ma.MaskedArray)
+    assert not np.any(quantity.data.mask)
+
+
+@given(number(), number())
+def test_ParticleQuantity_appending_two_numbers(num1, num2):
+    assume(type(num1) == type(num2))
+
+    quant = ParticleQuantity(
+        data=num1, prt_num=1, dtype=type(num1), name="", label="", unit=""
+    )
+    quant.append(
+        ParticleQuantity(
+            data=num2, prt_num=1, dtype=type(num2), name="", label="", unit=""
+        )
+    )
+
+    assert quant.shape == (2, 1)
+    assert quant.ndim == 2
+    assert len(quant) == 2
+    np.testing.assert_array_equal(quant, np.array([num1, num2]).reshape((2, 1)))
+
+
+@given(
+    lists(
+        integers(min_value=_int_limit.min, max_value=_int_limit.max),
+        min_size=1,
+    ),
+    lists(
+        integers(min_value=_int_limit.min, max_value=_int_limit.max),
+        min_size=1,
+    ),
+)
+def test_ParticleQuantity_appending_two_lists(l1, l2):
+    quant = ParticleQuantity(
+        data=l1[0], prt_num=1, dtype=int, name="", label="", unit=""
+    )
+
+    for v in l1[1:]:
+        quant.append(
+            ParticleQuantity(
+                data=v, prt_num=1, dtype=int, name="", label="", unit=""
+            )
+        )
+
+    other = ParticleQuantity(
+        data=l2[0], prt_num=1, dtype=int, name="", label="", unit=""
+    )
+
+    for v in l2[1:]:
+        other.append(
+            ParticleQuantity(
+                data=v, prt_num=1, dtype=int, name="", label="", unit=""
+            )
+        )
+
+    quant.append(other)
+
+    total_length = len(l1) + len(l2)
+    assert quant.shape == (total_length, 1)
+    assert quant.ndim == 2
+    assert len(quant) == total_length
+    np.testing.assert_array_equal(
+        quant, np.array(l1 + l2).reshape((total_length, 1))
+    )

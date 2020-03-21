@@ -7,7 +7,6 @@ from typing import Union
 import attr
 import numpy as np
 from attr.validators import in_
-from attr.validators import instance_of
 
 from nata.utils.attrs import array_validator
 from nata.utils.attrs import attrib_equality
@@ -202,23 +201,57 @@ class GridAxis(Axis):
 
 @axis_attrs
 class ParticleQuantity(Axis):
-    # _data in this case can be an array directly or can be a something to get
-    # the data later
     _data: np.ndarray = attr.ib(converter=np.array, eq=False)
-    _dtype: np.dtype = attr.ib(validator=instance_of(np.dtype))
-    _len: np.ndarray = attr.ib(
+    _dtype: np.dtype = attr.ib(converter=np.dtype)
+    _prt_num: np.ndarray = attr.ib(
         converter=np.array,
         validator=array_validator(dtype=np.integer),
         eq=False,
     )
 
+    @_prt_num.validator
+    def _ensure_dimensions_for_particle_array(self, attribute, value):
+        if value.ndim not in (0, 1):
+            raise ValueError(f"Wrong dimensions for 'particle' array")
+
+    @_data.validator
+    def _ensure_dimensions_for_data_array(self, attribute, value):
+        if value.dtype == object and value.ndim not in (0, 1):
+            raise ValueError(
+                f"Wrong dimensions for 'data' array. "
+                + "Only 0d and 1d allowed for 'data' of dtype object"
+            )
+        else:
+            if value.ndim not in (0, 1, 2):
+                raise ValueError(f"Wrong dimensions for 'data' array")
+
+    def __attrs_post_init__(self):
+        if self._prt_num.ndim == 0:
+            self._prt_num = self._prt_num.reshape((1,))
+
+        if self._data.dtype == object:
+            if self._data.ndim == 0:
+                self._data = self._data.reshape((1,))
+
+        else:
+            if self._data.ndim == 0:
+                self._data = self._data.reshape((1, 1))
+
+            elif self._data.ndim == 1:
+                self._data = self._data.reshape((1, len(self._data)))
+
+        if len(self._data) != len(self._prt_num):
+            ValueError(
+                "Length mismatch between data-array and particle numbers"
+            )
+
     def __array__(self, dtype=None):
         if self._data.dtype == object:
-            max_ = np.max(self._len)
+            max_ = np.max(self._prt_num)
             data = np.ma.empty((len(self._data), max_), dtype=self._dtype)
             data.mask = np.ones((len(self._data), max_), dtype=np.bool)
 
-            for i, (d, entries) in enumerate(zip(self._data, self._len)):
+            for i, (d, entries) in enumerate(zip(self._data, self._prt_num)):
                 if isinstance(d, np.ndarray):
                     data[i, :entries] = d[:entries]
                 else:
@@ -227,14 +260,18 @@ class ParticleQuantity(Axis):
                 data.mask[i, entries:] = np.zeros(max_ - entries, dtype=np.bool)
 
             self._data = data
-        return np.squeeze(self._data)
+
+        if len(self._data) == 1:
+            return np.squeeze(self._data, axis=0)
+
+        return self._data
 
     def __iter__(self):
         if len(self._data) != 1:
-            for d, l in zip(self._data, self._len):
+            for d, l in zip(self._data, self._prt_num):
                 yield self.__class__(
                     data=[d],
-                    len=[l],
+                    prt_num=[l],
                     dtype=self._dtype,
                     name=self.name,
                     label=self.label,
@@ -243,7 +280,7 @@ class ParticleQuantity(Axis):
         else:
             yield self.__class__(
                 data=self._data,
-                len=self._len,
+                prt_num=self._prt_num,
                 dtype=self._dtype,
                 name=self.name,
                 label=self.label,
@@ -251,16 +288,19 @@ class ParticleQuantity(Axis):
             )
 
     def __getitem__(self, key):
-        raise self.__array__()[key]
+        return self.__array__()[key]
 
     @property
     def shape(self):
         if self._data.dtype == object:
             if len(self._data) == 1:
-                return (np.max(self._len),)
+                return (np.max(self._prt_num),)
             else:
-                return (len(self._data), np.max(self._len))
+                return (len(self._data), np.max(self._prt_num))
         else:
+            if len(self._data) == 1:
+                return (self._data.shape[1],)
+
             return self._data.shape
 
     @property
@@ -277,4 +317,4 @@ class ParticleQuantity(Axis):
         self._data = np.array(
             [d for d in self._data] + [d for d in other._data]
         )
-        self._len = np.concatenate((self._len, other._len))
+        self._prt_num = np.concatenate((self._prt_num, other._prt_num))
