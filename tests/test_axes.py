@@ -209,9 +209,7 @@ def test_GridAxis_array_interface_with_singleValue_default(
         unit=unit,
     )
 
-    np.testing.assert_array_almost_equal(
-        gridaxis, np.linspace(num1, num2, length)
-    )
+    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
 
 
 @given(*strategies_for_number_tests)
@@ -230,9 +228,7 @@ def test_GridAxis_array_interface_with_singleValue_linear(
         unit=unit,
     )
 
-    np.testing.assert_array_almost_equal(
-        gridaxis, np.linspace(num1, num2, length)
-    )
+    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
 
 
 @given(*strategies_for_number_tests)
@@ -251,9 +247,7 @@ def test_GridAxis_array_interface_with_singleValue_lin(
         unit=unit,
     )
 
-    np.testing.assert_array_almost_equal(
-        gridaxis, np.linspace(num1, num2, length)
-    )
+    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
 
 
 # RuntimeWarnings can appear from numpy - as using logspace
@@ -274,7 +268,7 @@ def test_GridAxis_array_interface_with_singleValue_logarithmic(
         unit=unit,
     )
 
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_array_equal(
         gridaxis, np.logspace(np.log10(num1), np.log10(num2), length)
     )
 
@@ -297,7 +291,7 @@ def test_GridAxis_array_interface_with_singleValue_log(
         unit=unit,
     )
 
-    np.testing.assert_array_almost_equal(
+    np.testing.assert_array_equal(
         gridaxis, np.logspace(np.log10(num1), np.log10(num2), length)
     )
 
@@ -360,11 +354,11 @@ def test_GridAxis_array_interface_with_array_default(
         expected.append(np.linspace(l, u, length))
     expected = np.array(expected)
 
-    np.testing.assert_array_almost_equal(gridaxis, expected)
+    np.testing.assert_array_equal(gridaxis, expected)
 
     # test for individual to ensure correct passing through
     for axis, expected_axis in zip(gridaxis, expected):
-        np.testing.assert_array_almost_equal(axis, expected_axis)
+        np.testing.assert_array_equal(axis, expected_axis)
 
 
 @given(*strategies_for_number_tests)
@@ -392,10 +386,10 @@ def test_GridAxis_append_with_numbers(num1, num2, length, name, label, unit):
     for _ in range(2):
         expected.append(np.linspace(num1, num2, length))
     expected = np.array(expected)
-    np.testing.assert_array_almost_equal(gridaxis, expected)
+    np.testing.assert_array_equal(gridaxis, expected)
 
     for axis, expected_axis in zip(gridaxis, expected):
-        np.testing.assert_array_almost_equal(axis, expected_axis)
+        np.testing.assert_array_equal(axis, expected_axis)
 
 
 @given(*strategies_for_array_tests)
@@ -432,6 +426,6 @@ def test_GridAxis_append_with_arrays(data, length, name, label, unit):
         expected.append(np.linspace(l, u, length))
     expected = np.array(expected)
 
-    np.testing.assert_array_almost_equal(gridaxis, expected)
+    np.testing.assert_array_equal(gridaxis, expected)
     for axis, expected_axis in zip(gridaxis, expected):
-        np.testing.assert_array_almost_equal(axis, expected_axis)
+        np.testing.assert_array_equal(axis, expected_axis)
