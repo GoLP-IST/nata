@@ -8,6 +8,7 @@ from hypothesis.strategies import one_of
 from hypothesis.strategies import text
 
 from nata.utils.attrs import attrib_equality
+from nata.utils.attrs import have_attr
 
 
 @given(
@@ -90,3 +91,32 @@ def test_attrib_equality_attrs_test(x, y):
 
     assert attrib_equality(Foo(Baz(x)), Foo(Baz(y)))
     assert not attrib_equality(Foo(Bar(x)), Foo(Bar(y)))
+
+
+def test_have_attr_no_args():
+    assert have_attr() is False
+
+
+def test_have_attr_single_arg():
+    @attr.s
+    class Has:
+        pass
+
+    class Does_not_Have:
+        pass
+
+    assert have_attr(Has()) is True
+    assert have_attr(Does_not_Have()) is False
+
+
+def test_have_attr_multiple_args():
+    @attr.s
+    class Has:
+        pass
+
+    class Does_not_Have:
+        pass
+
+    assert have_attr(Has(), Has()) is True
+    assert have_attr(Has(), Does_not_Have()) is False
+    assert have_attr(Does_not_Have(), Does_not_Have()) is False
