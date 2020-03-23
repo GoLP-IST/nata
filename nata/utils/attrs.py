@@ -58,26 +58,26 @@ def array_validator(dtype=None, subclass=None):
     return _ArrayValidator(dtype, subclass)
 
 
-def filter_kwargs(cls, **kwargs):
-    # get selectable kwargs from class definition
-    kwargs_sel = []
+def filter_style(cls, style):
+    # get selectable style attributes from class definition
+    style_sel = []
     for attrs_attr in cls.__dict__["__attrs_attrs__"]:
         if attrs_attr.init:
-            kwargs_sel.append(attrs_attr.name)
+            style_sel.append(attrs_attr.name)
 
-    # build filtered kwargs
-    kwargs_flt = {}
-    for attrib in kwargs_sel:
+    # build filtered style attributes
+    style_flt = dict()
+    for attrib in style_sel:
         try:
             # TODO: make this use defaults - most likely it can be None @fabio
             #       - if so, try and except can be removed
             #       - else KeyError should be excepted
-            prop = kwargs.pop(attrib)
-            kwargs_flt[attrib] = prop
+            prop = style.pop(attrib)
+            style_flt[attrib] = prop
         except:  # noqa: E722
             continue
 
-    return kwargs_flt
+    return style_flt
 
 
 def have_attr(*args):
