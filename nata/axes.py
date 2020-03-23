@@ -66,7 +66,7 @@ class UnnamedAxis:
             raise TypeError("Can only append Axis objects to Axis")
 
         if not attrib_equality(self, other):
-            raise ValueError(f"{other} can not be append to {self}")
+            raise ValueError(f"{other} can not append to {self}")
 
     def append(self, other):
         self._check_appendability(other)
@@ -84,7 +84,7 @@ class Axis(UnnamedAxis):
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return attrib_equality(self, other, "name, label, unit, _data_ndim")
+        return attrib_equality(self, other, "name, label, unit")
 
     def __iter__(self) -> "Axis":
         if self.ndim == 0:
@@ -112,8 +112,8 @@ class TimeAxis(Axis):
 
 @axis_attrs
 class GridAxis(Axis):
-    _lower_boundary: Optional[np.ndarray] = attr.ib(converter=np.asanyarray)
-    _upper_boundary: Optional[np.ndarray] = attr.ib(converter=np.asanyarray)
+    _min: Optional[np.ndarray] = attr.ib(converter=np.asanyarray, eq=False)
+    _max: Optional[np.ndarray] = attr.ib(converter=np.asanyarray, eq=False)
     axis_length: int = attr.ib(validator=subdtype_of(np.integer))
 
     axis_type: str = attr.ib(
@@ -125,8 +125,8 @@ class GridAxis(Axis):
     )
     _data: np.ndarray = attr.ib(init=False, eq=False)
 
-    @_lower_boundary.validator
-    @_upper_boundary.validator
+    @_min.validator
+    @_max.validator
     def _validate_dimension_for_limits(
         self, attribute: attr.Attribute, value: np.ndarray
     ):
@@ -137,15 +137,15 @@ class GridAxis(Axis):
             )
 
     def __attrs_post_init__(self):
-        if self._upper_boundary.shape != self._lower_boundary.shape:
+        if self._max.shape != self._min.shape:
             raise ValueError("Mismatch between lower and upper limtis!")
 
-        self._data = np.stack(
-            (self._lower_boundary, self._upper_boundary), axis=-1
-        )
+        self._data = np.stack((self._min, self._max), axis=-1)
+        if self._data.ndim == 2 and self._data.shape[0] == 1:
+            self._data = np.squeeze(self._data, axis=0)
 
-        self._lower_boundary = None
-        self._upper_boundary = None
+        self._min = None
+        self._max = None
 
     def __iter__(self):
         if self.data.ndim == 1:
@@ -153,8 +153,8 @@ class GridAxis(Axis):
         else:
             for d in self.data:
                 yield self.__class__(
-                    lower_boundary=d[0],
-                    upper_boundary=d[1],
+                    min=d[0],
+                    max=d[1],
                     axis_length=self.axis_length,
                     axis_type=self.axis_type,
                     name=self.name,
@@ -167,6 +167,9 @@ class GridAxis(Axis):
             return self.axis_length
         else:
             return len(self.data)
+
+    def __getitem__(self, key):
+        return self.__array__()[key]
 
     @property
     def shape(self):
@@ -183,10 +186,12 @@ class GridAxis(Axis):
             return np.linspace(min_, max_, N)
 
     def __array__(self, dtype=None):
+
         if self.data.ndim == 1:
             arr = self._get_axis_values(
                 self._data[0], self._data[1], self.axis_length
             )
+
         else:
             arr = np.empty((len(self), self.axis_length))
             for i, (min_, max_) in enumerate(self._data):
@@ -310,6 +315,10 @@ class ParticleQuantity(Axis):
     @property
     def ndim(self):
         return len(self.shape)
+
+    @property
+    def prt_num(self):
+        return self._prt_num
 
     def append(self, other: Union["ParticleQuantity", Any]):
         self._check_appendability(other)

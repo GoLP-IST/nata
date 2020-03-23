@@ -6,6 +6,10 @@ import pytest
 from hypothesis import assume
 from hypothesis import given
 from hypothesis import settings
+from hypothesis.extra.numpy import arrays
+from hypothesis.extra.numpy import basic_indices
+from hypothesis.extra.numpy import floating_dtypes
+from hypothesis.strategies import composite
 from hypothesis.strategies import integers
 from hypothesis.strategies import lists
 from hypothesis.strategies import one_of
@@ -143,6 +147,16 @@ def test_Axis_init(data, name, label, unit):
         assert np.array_equiv(actual, expected)
 
 
+@given(one_of(number_or_none(), anyarray(max_dims=1)))
+def test_Axis_append(data):
+    axis = Axis(data, "", "", "")
+    axis.append(Axis(data, "", "", ""))
+    np.testing.assert_array_equal(axis, np.array([data, data]))
+
+    with pytest.raises(ValueError, match="can not append"):
+        axis.append(Axis(data, "some name", "", ""))
+
+
 @given(one_of(number_or_none(), anyarray(max_dims=1)), text(), text(), text())
 def test_IterationAxis_init(data, name, label, unit):
     axis = IterationAxis(data, name, label, unit)
@@ -184,8 +198,8 @@ def test_GridAxis_init_numbers(num1, num2, length, name, label, unit):
     assume(num1 <= num2)
 
     gridaxis = GridAxis(
-        lower_boundary=num1,
-        upper_boundary=num2,
+        min=num1,
+        max=num2,
         axis_length=length,
         name=name,
         label=label,
@@ -204,6 +218,30 @@ def test_GridAxis_init_numbers(num1, num2, length, name, label, unit):
         assert a is gridaxis
 
 
+@given(
+    number(include_complex_numbers=False),
+    number(include_complex_numbers=False),
+    integers(min_value=1, max_value=1_000),
+)
+def test_GridAxis_init_numbers_as_list(num1, num2, length):
+    assume(num1 <= num2)
+
+    gridaxis = GridAxis(
+        min=[num1],
+        max=[num2],
+        axis_length=length,
+        name="name",
+        label="label",
+        unit="unit",
+    )
+
+    assert gridaxis.ndim == 1
+    assert len(gridaxis) == length
+    assert gridaxis.shape == (length,)
+
+    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
+
+
 @given(*strategies_for_number_tests)
 def test_GridAxis_array_interface_with_singleValue_default(
     num1, num2, length, name, label, unit
@@ -211,8 +249,8 @@ def test_GridAxis_array_interface_with_singleValue_default(
     assume(num1 < num2)
 
     gridaxis = GridAxis(
-        lower_boundary=num1,
-        upper_boundary=num2,
+        min=num1,
+        max=num2,
         axis_length=length,
         name=name,
         label=label,
@@ -229,8 +267,8 @@ def test_GridAxis_array_interface_with_singleValue_linear(
     assume(num1 < num2)
 
     gridaxis = GridAxis(
-        lower_boundary=num1,
-        upper_boundary=num2,
+        min=num1,
+        max=num2,
         axis_length=length,
         axis_type="linear",
         name=name,
@@ -248,8 +286,8 @@ def test_GridAxis_array_interface_with_singleValue_lin(
     assume(num1 < num2)
 
     gridaxis = GridAxis(
-        lower_boundary=num1,
-        upper_boundary=num2,
+        min=num1,
+        max=num2,
         axis_length=length,
         axis_type="lin",
         name=name,
@@ -269,8 +307,8 @@ def test_GridAxis_array_interface_with_singleValue_logarithmic(
     assume(num1 < num2)
 
     gridaxis = GridAxis(
-        lower_boundary=num1,
-        upper_boundary=num2,
+        min=num1,
+        max=num2,
         axis_length=length,
         axis_type="logarithmic",
         name=name,
@@ -292,8 +330,8 @@ def test_GridAxis_array_interface_with_singleValue_log(
     assume(num1 < num2)
 
     gridaxis = GridAxis(
-        lower_boundary=num1,
-        upper_boundary=num2,
+        min=num1,
+        max=num2,
         axis_length=length,
         axis_type="log",
         name=name,
@@ -313,8 +351,8 @@ def test_GridAxis_init_array(data, length, name, label, unit):
     upper = data[:, 1]
 
     gridaxis = GridAxis(
-        lower_boundary=lower,
-        upper_boundary=upper,
+        min=lower,
+        max=upper,
         axis_length=length,
         name=name,
         label=label,
@@ -326,7 +364,10 @@ def test_GridAxis_init_array(data, length, name, label, unit):
     assert gridaxis.unit == unit
 
     assert len(gridaxis) == len(data)
-    assert gridaxis.shape == (len(data), length)
+    if len(data) == 1:
+        assert gridaxis.shape == (length,)
+    else:
+        assert gridaxis.shape == (len(data), length)
 
     for actual, expected in zip(gridaxis, data):
         assert np.array_equal(actual.data, expected)
@@ -341,8 +382,8 @@ def test_GridAxis_array_interface_with_array_default(
     upper = data[:, 1]
 
     gridaxis = GridAxis(
-        lower_boundary=lower,
-        upper_boundary=upper,
+        min=lower,
+        max=upper,
         axis_length=length,
         name=name,
         label=label,
@@ -353,6 +394,8 @@ def test_GridAxis_array_interface_with_array_default(
     for l, u in zip(lower, upper):
         expected.append(np.linspace(l, u, length))
     expected = np.array(expected)
+    if expected.shape[0] == 1:
+        expected = np.squeeze(expected, axis=0)
 
     np.testing.assert_array_equal(gridaxis, expected)
 
@@ -365,8 +408,8 @@ def test_GridAxis_array_interface_with_array_default(
 def test_GridAxis_append_with_numbers(num1, num2, length, name, label, unit):
     assume(num1 < num2)
     gridaxis = GridAxis(
-        lower_boundary=num1,
-        upper_boundary=num2,
+        min=num1,
+        max=num2,
         axis_length=length,
         name=name,
         label=label,
@@ -399,8 +442,8 @@ def test_GridAxis_append_with_arrays(data, length, name, label, unit):
     upper = data[:, 1]
 
     gridaxis = GridAxis(
-        lower_boundary=lower,
-        upper_boundary=upper,
+        min=lower,
+        max=upper,
         axis_length=length,
         name=name,
         label=label,
@@ -429,6 +472,84 @@ def test_GridAxis_append_with_arrays(data, length, name, label, unit):
     np.testing.assert_array_equal(gridaxis, expected)
     for axis, expected_axis in zip(gridaxis, expected):
         np.testing.assert_array_equal(axis, expected_axis)
+
+
+@composite
+def strategy_for_gridaxes_access(
+    draw, max_axis_length=1_000, number_of_iterations=1_000
+):
+    """
+    Grid axis iterated over time is a 2d array but only min/max are stored.
+        * shape of the 2d matrix: (number of iterations) x (axis length)
+        * if 'number of iterations == 1' then iteration axes is squeezed
+    """
+    axis_length = draw(integers(min_value=1, max_value=max_axis_length))
+    iterations = draw(integers(min_value=1, max_value=number_of_iterations))
+
+    arr = draw(arrays(dtype=floating_dtypes(), shape=(iterations, 2)))
+
+    assume(not np.any(np.isnan(arr)))
+    assume(np.all(np.isfinite(arr)))
+
+    if iterations == 1:
+        ind = draw(basic_indices(shape=(axis_length,)))
+    else:
+        ind = draw(basic_indices(shape=(iterations, axis_length)))
+
+    return arr, ind, axis_length
+
+
+@given(strategy_for_gridaxes_access())
+def test_GridAxis_getitem(data):
+    arr, ind, length = data
+
+    gridaxis = GridAxis(
+        min=arr[:, 0],
+        max=arr[:, 1],
+        axis_length=length,
+        name="",
+        label="",
+        unit="",
+    )
+
+    full_expected_array = []
+    for min_, max_ in arr:
+        full_expected_array.append(np.linspace(min_, max_, length))
+    full_expected_array = np.array(full_expected_array)
+
+    np.testing.assert_array_equal(gridaxis[ind], full_expected_array[ind])
+
+
+@given(
+    lists(
+        number(include_complex_numbers=False),
+        min_size=4,
+        max_size=4,
+        unique=True,
+    ),
+    integers(min_value=1, max_value=100),
+)
+def test_GridAxis_append_moving_axis(l, length):
+    axis_values = sorted(l)
+
+    axis = GridAxis(
+        min=axis_values[0],
+        max=axis_values[2],
+        axis_length=length,
+        name="",
+        label="",
+        unit="",
+    )
+    axis.append(
+        GridAxis(
+            min=axis_values[1],
+            max=axis_values[3],
+            axis_length=length,
+            name="",
+            label="",
+            unit="",
+        )
+    )
 
 
 @given(array_and_basic_indices(array_min_dims=1, array_max_dims=2),)

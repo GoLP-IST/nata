@@ -155,8 +155,8 @@ def _generate_axes_list(data):
     ):
         axes.append(
             GridAxis(
-                min_=min_,
-                max_=max_,
+                min=min_,
+                max=max_,
                 axis_length=l,
                 name=name,
                 label=label,
@@ -309,7 +309,7 @@ class GridDataset(BaseDataset):
         return np.squeeze(self._data)
 
     def __len__(self):
-        return len(self.iteration)
+        return len(self._data)
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -335,7 +335,8 @@ class GridDataset(BaseDataset):
             for axis in self.axes:
                 new_grid_axes.append(
                     GridAxis(
-                        data=axis.data[key],
+                        min=axis.data[key, 0],
+                        max=axis.data[key, 1],
                         axis_length=axis.axis_length,
                         axis_type=axis.axis_type,
                         name=axis.name,
@@ -579,7 +580,7 @@ def _generate_quantities_list(data: List[Union[ParticleBackend, np.ndarray]]):
                 label=label,
                 unit=unit,
                 data=data,
-                len=number_particles,
+                prt_num=number_particles,
                 dtype=quantity_dtype[name],
             )
         )
@@ -705,7 +706,7 @@ class ParticleDataset(BaseDataset):
                     ParticleQuantity(
                         data=[quant.data[key]],
                         dtype=quant.dtype,
-                        len=[quant._len[key]],
+                        prt_num=[quant.prt_num[key]],
                         name=quant.name,
                         label=quant.label,
                         unit=quant.unit,
