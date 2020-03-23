@@ -33,6 +33,8 @@ class UnnamedAxis:
         self.data[key] = value
 
     def __len__(self):
+        if self.data.ndim == 0:
+            return 0
         return len(self.data)
 
     def __iter__(self) -> "UnnamedAxis":

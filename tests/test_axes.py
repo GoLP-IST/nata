@@ -64,9 +64,7 @@ def test_UnnamedAxis_single_value_init(x):
     for a in axis:
         assert a is axis
 
-    # 0-dim -> don't have a size
-    with pytest.raises(TypeError, match="unsized object"):
-        len(axis)
+    assert len(axis) == 0
 
     with pytest.raises(IndexError, match="too many indices"):
         axis[:]
