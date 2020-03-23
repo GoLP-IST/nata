@@ -80,6 +80,17 @@ def filter_style(cls, style):
     return style_flt
 
 
+def have_attr(*args):
+    if len(args) == 0:
+        return False
+
+    for a in args:
+        if not attr.has(a.__class__):
+            return False
+
+    return True
+
+
 def attrib_equality(
     some: T, other: Union[T, Any], props_to_check: Union[str, tuple] = None
 ):
@@ -96,10 +107,7 @@ def attrib_equality(
                 other_attrib = getattr(other, attrib.name)
                 # check if attributes have attrs themselves and use
                 # attrib_equality recursively else use equality
-                if all(
-                    attr.has(a)
-                    for a in (some_attrib.__class__, other_attrib.__class__)
-                ):
+                if have_attr(some_attrib, other_attrib):
                     if not attrib_equality(some_attrib, other_attrib):
                         return False
                 else:
