@@ -15,7 +15,6 @@ from pkg_resources import resource_filename
 from nata.plots import PlotTypes
 from nata.plots.axes import Axes
 from nata.plots.data import PlotData
-from nata.utils.attrs import filter_kwargs
 
 
 @attr.s
@@ -122,7 +121,7 @@ class Figure:
 
         return new
 
-    def add_axes(self, **kwargs):
+    def add_axes(self, style=dict()):
 
         new_index = len(self.axes) + 1
 
@@ -134,8 +133,7 @@ class Figure:
             for axes in self.axes.values():
                 axes.redo_plots()
 
-        axes_kwargs = filter_kwargs(Axes, **kwargs)
-        axes = Axes(fig=self, index=new_index, **axes_kwargs)
+        axes = Axes(fig=self, index=new_index, **style)
         self._axes.append(axes)
 
         return axes

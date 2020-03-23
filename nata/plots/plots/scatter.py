@@ -89,7 +89,10 @@ class ScatterPlot(BasePlot):
             self.cb_norm = clr.LogNorm(vmin=self.vmin, vmax=self.vmax)
         elif self.cb_scale == "symlog":
             self.cb_norm = clr.SymLogNorm(
-                vmin=self.vmin, vmax=self.vmax, linthresh=self.cb_linthresh
+                vmin=self.vmin,
+                vmax=self.vmax,
+                linthresh=self.cb_linthresh,
+                base=10,
             )
         else:
             self.cb_norm = clr.Normalize(vmin=self.vmin, vmax=self.vmax)
