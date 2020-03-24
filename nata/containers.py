@@ -241,6 +241,8 @@ class GridDataset(BaseDataset):
             if self.name is not None
             else _deduct_prop_from_data(self._data, "dataset_name")
         )
+        self.name = make_as_identifier(self.name)
+
         self.label = (
             self.label
             if self.label is not None
@@ -653,6 +655,7 @@ class ParticleDataset(BaseDataset):
             if self.name is not None
             else _deduct_prop_from_data(self._data, "dataset_name")
         )
+        self.name = make_as_identifier(self.name)
 
         self.iteration = (
             self.iteration
