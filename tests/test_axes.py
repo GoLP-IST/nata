@@ -9,6 +9,7 @@ from hypothesis import settings
 from hypothesis.extra.numpy import arrays
 from hypothesis.extra.numpy import basic_indices
 from hypothesis.extra.numpy import floating_dtypes
+from hypothesis.strategies import characters
 from hypothesis.strategies import composite
 from hypothesis.strategies import integers
 from hypothesis.strategies import lists
@@ -22,6 +23,7 @@ from nata.axes import ParticleQuantity
 from nata.axes import TimeAxis
 from nata.axes import UnnamedAxis
 from nata.utils.formatting import array_format
+from nata.utils.formatting import make_as_identifier
 
 from .strategies import anyarray
 from .strategies import array_and_basic_indices
@@ -29,12 +31,21 @@ from .strategies import array_with_two_entries
 from .strategies import number
 from .strategies import number_or_none
 
+
+@composite
+def valid_name(draw):
+    chars = characters(min_codepoint=33, max_codepoint=126)
+    t = make_as_identifier(draw(text(alphabet=chars, min_size=1)))
+    assume(len(t) > 0)
+    return t
+
+
 _int_limit = np.iinfo(np.intc)
 strategies_for_number_tests = (
     number(include_complex_numbers=False),
     number(include_complex_numbers=False),
     integers(min_value=1, max_value=1_000),
-    text(),
+    valid_name(),
     text(),
     text(),
 )
@@ -42,7 +53,7 @@ sort_along_second_axis = partial(np.sort, axis=1)
 strategies_for_array_tests = (
     array_with_two_entries(array_length=1_000).map(sort_along_second_axis),
     integers(min_value=1, max_value=1_000),
-    text(),
+    valid_name(),
     text(),
     text(),
 )
@@ -130,7 +141,12 @@ def test_UnnamedAxis_append_1d_arrays(arr1, arr2):
     assert len(axis) == len(arr)
 
 
-@given(one_of(number_or_none(), anyarray(max_dims=1)), text(), text(), text())
+@given(
+    one_of(number_or_none(), anyarray(max_dims=1)),
+    valid_name(),
+    text(),
+    text(),
+)
 def test_Axis_init(data, name, label, unit):
     axis = Axis(data, name, label, unit)
     data = np.asanyarray(data)
@@ -155,7 +171,12 @@ def test_Axis_append(data):
         axis.append(Axis(data, "some name", "", ""))
 
 
-@given(one_of(number_or_none(), anyarray(max_dims=1)), text(), text(), text())
+@given(
+    one_of(number_or_none(), anyarray(max_dims=1)),
+    valid_name(),
+    text(),
+    text(),
+)
 def test_IterationAxis_init(data, name, label, unit):
     axis = IterationAxis(data, name, label, unit)
 
@@ -173,7 +194,12 @@ def test_IterationAxis_default(data):
     assert axis.unit == ""
 
 
-@given(one_of(number_or_none(), anyarray(max_dims=1)), text(), text(), text())
+@given(
+    one_of(number_or_none(), anyarray(max_dims=1)),
+    valid_name(),
+    text(),
+    text(),
+)
 def test_TimeAxis_init(data, name, label, unit):
     axis = TimeAxis(data, name, label, unit)
 
@@ -683,7 +709,7 @@ def _dummy_ParticleBackend():
     return ParticleBackend
 
 
-@given(data=anyarray(min_dims=2, max_dims=2), quantity_name=text())
+@given(data=anyarray(min_dims=2, max_dims=2), quantity_name=valid_name())
 def test_ParticleQuantity_data_reading(ParticleBackend, data, quantity_name):
     backends = [ParticleBackend(quantity_name, d) for d in data]
     particle_numbers = [data.shape[1]] * len(data)

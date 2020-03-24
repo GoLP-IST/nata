@@ -6,12 +6,14 @@ from typing import Union
 
 import attr
 import numpy as np
+from attr import converters
 from attr.validators import in_
 
 from nata.utils.attrs import array_validator
 from nata.utils.attrs import attrib_equality
 from nata.utils.attrs import subdtype_of
 from nata.utils.formatting import array_format
+from nata.utils.formatting import make_as_identifier
 
 axis_attrs = partial(attr.s, slots=True, eq=False, repr=False)
 
@@ -77,7 +79,10 @@ class UnnamedAxis:
 
 @axis_attrs
 class Axis(UnnamedAxis):
-    name: str = attr.ib(validator=subdtype_of(np.str_))
+    name: str = attr.ib(
+        converter=converters.optional(make_as_identifier),
+        validator=subdtype_of(np.str_),
+    )
     label: str = attr.ib(validator=subdtype_of(np.str_))
     unit: str = attr.ib(validator=subdtype_of(np.str_))
 
@@ -100,14 +105,22 @@ class Axis(UnnamedAxis):
 
 @axis_attrs
 class IterationAxis(Axis):
-    name: str = attr.ib(default="iteration", validator=subdtype_of(np.str_))
+    name: str = attr.ib(
+        default="iteration",
+        converter=make_as_identifier,
+        validator=subdtype_of(np.str_),
+    )
     label: str = attr.ib(default="iteration", validator=subdtype_of(np.str_))
     unit: str = attr.ib(default="", validator=subdtype_of(np.str_))
 
 
 @axis_attrs
 class TimeAxis(Axis):
-    name: str = attr.ib(default="time", validator=subdtype_of(np.str_))
+    name: str = attr.ib(
+        default="time",
+        converter=make_as_identifier,
+        validator=subdtype_of(np.str_),
+    )
     label: str = attr.ib(default="time", validator=subdtype_of(np.str_))
     unit: str = attr.ib(default="", validator=subdtype_of(np.str_))
 
