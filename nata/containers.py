@@ -11,6 +11,7 @@ from typing import Union
 
 import attr
 import numpy as np
+from attr import converters
 from attr.validators import deep_iterable
 from attr.validators import instance_of
 from attr.validators import optional
@@ -29,6 +30,7 @@ from .axes import ParticleQuantity
 from .axes import TimeAxis
 from .axes import UnnamedAxis
 from .utils.exceptions import NataInvalidContainer
+from .utils.formatting import make_as_identifier
 
 
 def register_backend(container):
@@ -191,7 +193,11 @@ class GridDataset(BaseDataset):
         default=None, validator=optional(subdtype_of(np.str_))
     )
 
-    name: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
+    name: str = attr.ib(
+        default=None,
+        converter=converters.optional(make_as_identifier),
+        validator=optional(subdtype_of(np.str_)),
+    )
     label: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
     unit: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
 
@@ -602,7 +608,11 @@ class ParticleDataset(BaseDataset):
         default=None, validator=optional(subdtype_of(np.str_))
     )
 
-    name: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
+    name: str = attr.ib(
+        default=None,
+        converter=converters.optional(make_as_identifier),
+        validator=optional(subdtype_of(np.str_)),
+    )
 
     iteration: IterationAxis = attr.ib(
         default=None, validator=optional(instance_of(IterationAxis))

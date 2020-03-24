@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from nata.utils.formatting import array_format
+from nata.utils.formatting import make_as_identifier
 
 
 @pytest.mark.parametrize(
@@ -26,3 +27,17 @@ from nata.utils.formatting import array_format
 )
 def test_array_format(input_, expected):
     assert array_format(input_) == expected
+
+
+@pytest.mark.parametrize(
+    "actual, expected",
+    [
+        (" abc", "abc"),
+        ("_abc", "abc"),
+        ("ab c", "ab_c"),
+        ("ab c d", "ab_c_d"),
+        ("$abc", "abc"),
+    ],
+)
+def test_make_as_identifier(actual, expected):
+    assert make_as_identifier(actual) == expected
