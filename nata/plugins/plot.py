@@ -146,7 +146,7 @@ def plot_grid_dataset(
         fig=fig, axes=[a_plan], style=filter_style(Figure, style)
     )
 
-    if len(dataset) > 1 and inside_notebook() and interactive:
+    if len(dataset.iteration) > 1 and inside_notebook() and interactive:
         build_interactive_tools(f_plan, n)
 
     else:
@@ -180,7 +180,7 @@ def plot_particle_dataset(
         fig=fig, axes=[a_plan], style=filter_style(Figure, style)
     )
 
-    if len(dataset) > 1 and inside_notebook() and interactive:
+    if len(dataset.iteration) > 1 and inside_notebook() and interactive:
         build_interactive_tools(f_plan, n)
 
     else:
@@ -249,7 +249,7 @@ def plot_collection(
         ),
     )
 
-    if len(dataset) > 1 and inside_notebook() and interactive:
+    if len(dataset.iteration) > 1 and inside_notebook() and interactive:
         build_interactive_tools(f_plan, n)
 
     else:
