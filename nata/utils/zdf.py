@@ -313,17 +313,14 @@ class ZDFfile:
 
         info = ZDF_Grid_Info()
 
+        info.name = rec.name
+
         info.ndims = self.__read_uint32()
         info.nx = self.__read_uint64_arr(info.ndims)
 
         info.label = self.__read_string()
         info.units = self.__read_string()
         info.has_axis = self.__read_int32()
-
-        if version < 0x00210001:
-            info.name = clean(info.label)
-        else:
-            info.name = rec.name
 
         if info.has_axis:
             for i in range(info.ndims):
@@ -877,15 +874,3 @@ def list(file_name):
     zdf = ZDFfile(file_name)
     zdf.list(True)
     zdf.close()
-
-
-def clean(name):
-    return (
-        name.lower()
-        .replace("_", "")
-        .replace("^", "")
-        .replace("{", "")
-        .replace("}", "")
-        .replace("\\", "")
-        .replace(" ", "_")
-    )
