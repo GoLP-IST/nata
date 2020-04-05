@@ -30,7 +30,8 @@ _FieldIndex = Union[
 ]
 
 
-class Backend(Protocol):
+@runtime_checkable
+class BackendType(Protocol):
     name: str
     location: Optional[Path]
 
@@ -43,7 +44,7 @@ class Backend(Protocol):
 
 
 @runtime_checkable
-class GridBackendType(Backend, Protocol):
+class GridBackendType(BackendType, Protocol):
     dataset_name: str
     dataset_label: str
     dataset_unit: str
@@ -64,7 +65,7 @@ class GridBackendType(Backend, Protocol):
 
 
 @runtime_checkable
-class ParticleBackendType(Backend, Protocol):
+class ParticleBackendType(BackendType, Protocol):
     dataset_name: str
     num_particles: int
 
