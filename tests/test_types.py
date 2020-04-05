@@ -4,8 +4,33 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from nata.types import BackendType
 from nata.types import GridBackendType
 from nata.types import ParticleBackendType
+
+
+@pytest.fixture(name="InvalidBackend")
+def _InvalidBackend():
+    class InvalidBackend:
+        pass
+
+    return InvalidBackend
+
+
+@pytest.fixture(name="ValidBackend")
+def _ValidBackend():
+    class ValidBackend:
+        name = ""
+        location = Path(".")
+
+        @staticmethod
+        def is_valid_backend(path: Path) -> bool:
+            ...
+
+        def get_data(self, indexing=None) -> np.ndarray:
+            ...
+
+    return ValidBackend
 
 
 @pytest.fixture(name="InvalidGridBackend")
@@ -14,6 +39,16 @@ def _InvalidGridBackend():
         pass
 
     return InvalidGridBackend
+
+
+def test_BackendType_runtime_check_class(InvalidBackend, ValidBackend):
+    assert isinstance(InvalidBackend, BackendType) is False
+    assert isinstance(ValidBackend, BackendType) is True
+
+
+def test_BackendType_runtime_check_instance(InvalidBackend, ValidBackend):
+    assert isinstance(InvalidBackend(), BackendType) is False
+    assert isinstance(ValidBackend(), BackendType) is True
 
 
 @pytest.fixture(name="ValidGridBackend")
