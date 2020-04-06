@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 
 from nata.containers import GridDataset
-from nata.containers import register_backend
+from nata.utils.container_tools import register_backend
 from nata.utils.zdf import info
 from nata.utils.zdf import read
 

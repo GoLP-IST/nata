@@ -6,7 +6,7 @@ import h5py as h5
 import numpy as np
 
 from nata.containers import ParticleDataset
-from nata.containers import register_backend
+from nata.utils.container_tools import register_backend
 
 from ..particles import ParticleBackend
 

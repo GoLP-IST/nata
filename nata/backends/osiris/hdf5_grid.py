@@ -6,7 +6,7 @@ import h5py as h5
 import numpy as np
 
 from nata.containers import GridDataset
-from nata.containers import register_backend
+from nata.utils.container_tools import register_backend
 
 from ..grid import GridBackend
 
