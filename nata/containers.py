@@ -33,17 +33,6 @@ from .utils.exceptions import NataInvalidContainer
 from .utils.formatting import make_as_identifier
 
 
-def register_backend(container):
-    if not issubclass(container, BaseDataset):
-        raise ValueError("Invalid container passed for backend registration!")
-
-    def add_to_backend(backend):
-        container.add_backend(backend)
-        return backend
-
-    return add_to_backend
-
-
 class BaseDataset:
     _backends: Set[Any] = set()
     appendable = False
