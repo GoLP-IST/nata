@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Collection
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 from typing import Union
 
@@ -83,4 +84,18 @@ class ParticleBackendType(BackendType, Protocol):
     def get_data(
         self, indexing=Optional[_BasicIndexing], fields=Optional[_FieldIndex]
     ) -> np.ndarray:
+        ...
+
+
+@runtime_checkable
+class DatasetType(Protocol):
+    _backends: Set[BackendType]
+    _allowed_backend_type: BackendType
+
+    @classmethod
+    def add_backend(cls, backend: BackendType) -> None:
+        ...
+
+    @classmethod
+    def is_valid_backend(cls, backend: BackendType) -> bool:
         ...

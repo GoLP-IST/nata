@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from nata.types import BackendType
+from nata.types import DatasetType
 from nata.types import GridBackendType
 from nata.types import ParticleBackendType
 
@@ -147,3 +148,33 @@ def test_ParticleBackendType_runtime_check_instance(
 ):
     assert isinstance(InvalidParticleBackend(), ParticleBackendType) is False
     assert isinstance(ValidParticleBackend(), ParticleBackendType) is True
+
+
+@pytest.fixture(name="InvalidDataset")
+def _InvalidDatasetType():
+    class InvalidDataset:
+        pass
+
+    return InvalidDataset
+
+
+@pytest.fixture(name="ValidDataset")
+def _ValidDatasetType():
+    class ValidDatasetType:
+        _backends = set()
+        _allowed_backend_type = BackendType
+
+        @classmethod
+        def add_backend(cls, backend: BackendType) -> None:
+            ...
+
+        @classmethod
+        def is_valid_backend(cls, backend: BackendType) -> bool:
+            ...
+
+    return ValidDatasetType
+
+
+def test_DatasetType_check_add_backend(InvalidDataset, ValidDataset):
+    assert isinstance(InvalidDataset, DatasetType) is False
+    assert isinstance(ValidDataset, DatasetType) is True
