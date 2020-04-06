@@ -99,3 +99,23 @@ class DatasetType(Protocol):
     @classmethod
     def is_valid_backend(cls, backend: BackendType) -> bool:
         ...
+
+
+@runtime_checkable
+class ArrayInterface(Protocol):
+    data: np.ndarray
+
+    dtype: np.dtype
+    shape: Tuple[int]
+    ndim: int
+
+    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        ...
+
+    def __array_ufunc__(self, method, *inputs, **kwargs) -> "ArrayInterface":
+        ...
+
+    def __array_function__(
+        self, func, types, *args, **kwargs
+    ) -> "ArrayInterface":
+        ...

@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from nata.types import ArrayInterface
 from nata.types import BackendType
 from nata.types import DatasetType
 from nata.types import GridBackendType
@@ -178,3 +179,16 @@ def _ValidDatasetType():
 def test_DatasetType_check_add_backend(InvalidDataset, ValidDataset):
     assert isinstance(InvalidDataset, DatasetType) is False
     assert isinstance(ValidDataset, DatasetType) is True
+
+
+@pytest.fixture(name="InvalidArrayInterface")
+def _InvalidArrayInterface():
+    class InvalidArrayInterface:
+        pass
+
+    return InvalidArrayInterface
+
+
+def test_ArrayInterface_runtime_check_class(InvalidArrayInterface):
+    assert isinstance(np.ndarray, ArrayInterface) is True
+    assert isinstance(InvalidArrayInterface, ArrayInterface) is False
