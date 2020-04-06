@@ -34,14 +34,6 @@ def _ValidBackend():
     return ValidBackend
 
 
-@pytest.fixture(name="InvalidGridBackend")
-def _InvalidGridBackend():
-    class InvalidGridBackend:
-        pass
-
-    return InvalidGridBackend
-
-
 def test_BackendType_runtime_check_class(InvalidBackend, ValidBackend):
     assert isinstance(InvalidBackend, BackendType) is False
     assert isinstance(ValidBackend, BackendType) is True
@@ -50,6 +42,14 @@ def test_BackendType_runtime_check_class(InvalidBackend, ValidBackend):
 def test_BackendType_runtime_check_instance(InvalidBackend, ValidBackend):
     assert isinstance(InvalidBackend(), BackendType) is False
     assert isinstance(ValidBackend(), BackendType) is True
+
+
+@pytest.fixture(name="InvalidGridBackend")
+def _InvalidGridBackend():
+    class InvalidGridBackend:
+        pass
+
+    return InvalidGridBackend
 
 
 @pytest.fixture(name="ValidGridBackend")
