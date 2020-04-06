@@ -90,7 +90,7 @@ class ParticleBackendType(BackendType, Protocol):
 @runtime_checkable
 class DatasetType(Protocol):
     _backends: Set[BackendType]
-    _allowed_backend_type: BackendType
+    _allowed_backend_type: Optional[BackendType]
 
     @classmethod
     def add_backend(cls, backend: BackendType) -> None:
