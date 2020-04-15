@@ -30,3 +30,16 @@ def make_as_identifier(s: str):
     s = re.sub("[^0-9a-zA-Z_]", "", s)
 
     return s
+
+
+def make_identifiable(s: str) -> str:
+    # Remove leading characters until we find a letter or underscore
+    s = re.sub("^[^a-zA-Z]+", "", s)
+
+    # replace spaces by underscore
+    s = s.replace(" ", "_")
+
+    # Remove invalid characters
+    s = re.sub("[^0-9a-zA-Z_]", "", s)
+
+    return s
