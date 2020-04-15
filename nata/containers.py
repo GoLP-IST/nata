@@ -383,6 +383,10 @@ class GridDataset:
         self._data = np.append(self._data, other._data, axis=0)
 
 
+class DatasetCollection:
+    pass
+
+
 # > PREVIOUS VERSION OF CONTAINERS
 # from pathlib import Path
 # from typing import Any
