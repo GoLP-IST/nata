@@ -16,7 +16,7 @@ from hypothesis.extra.numpy import integer_dtypes
 from hypothesis.strategies import composite
 from hypothesis.strategies import one_of
 
-from nata._containers import GridDataset
+from nata.containers import GridDataset
 from nata.types import AxisType
 from nata.types import GridBackendType
 from nata.types import GridDatasetType
