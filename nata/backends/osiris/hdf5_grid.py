@@ -1,47 +1,53 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import h5py as h5
 import numpy as np
 
 from nata.containers import GridDataset
-from nata.containers import register_backend
-
-from ..grid import GridBackend
+from nata.utils.container_tools import register_backend
 
 
 @register_backend(GridDataset)
-class Osiris_Hdf5_GridFile(GridBackend):
+class Osiris_Hdf5_GridFile:
     name = "osiris_hdf5_grid"
+    location: Optional[Path] = None
+
+    def __init__(self, location: Union[str, Path]) -> None:
+        self.location = (
+            location if isinstance(location, Path) else Path(location)
+        )
 
     @staticmethod
-    def is_valid_backend(file_path: Union[Path, str]) -> bool:
-        if isinstance(file_path, str):
-            file_path = Path(file_path)
+    def is_valid_backend(path: Union[Path, str]) -> bool:
+        if isinstance(path, str):
+            path = Path(path)
 
-        if not isinstance(file_path, Path):
+        if not isinstance(path, Path):
             return False
 
-        if not file_path.is_file():
+        if not path.is_file():
             return False
 
-        if not file_path.suffix == ".h5":
+        if not path.suffix == ".h5":
             return False
 
-        if not h5.is_hdf5(file_path):
+        if not h5.is_hdf5(path):
             return False
 
-        with h5.File(file_path, mode="r") as f:
+        with h5.File(path, mode="r") as f:
             if (
                 ("NAME" in f.attrs)
                 and ("TYPE" in f.attrs)
                 and ("LABEL" not in f.attrs)
             ):
-                type_ = f.attrs["TYPE"].astype(str)[0]
+                type_: str = f.attrs["TYPE"].astype(str)[0]
                 # general naming
-                name_ = f.attrs["NAME"].astype(str)[0]
-                names = (name_,)
+                name_: str = f.attrs["NAME"].astype(str)[0]
+                names: Tuple[str, ...] = (name_,)
                 # special case naming
                 name_ = name_.split()[-1]
                 name_ = name_.replace("_", "")
@@ -83,7 +89,7 @@ class Osiris_Hdf5_GridFile(GridBackend):
             return fp[self._dset_name].attrs["LONG_NAME"].astype(str)[0]
 
     @property
-    def dim(self):
+    def ndim(self):
         with h5.File(self.location, mode="r") as fp:
             ndim = fp[self._dset_name].ndim
         return ndim

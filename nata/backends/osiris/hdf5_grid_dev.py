@@ -1,19 +1,24 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Optional
 from typing import Union
 
 import h5py as h5
 import numpy as np
 
 from nata.containers import GridDataset
-from nata.containers import register_backend
-
-from ..grid import GridBackend
+from nata.utils.container_tools import register_backend
 
 
 @register_backend(GridDataset)
-class Osiris_Dev_Hdf5_GridFile(GridBackend):
+class Osiris_Dev_Hdf5_GridFile:
     name = "osiris_dev_hdf5_grid"
+    location: Optional[Path] = None
+
+    def __init__(self, location: Union[str, Path]) -> None:
+        self.location = (
+            location if isinstance(location, Path) else Path(location)
+        )
 
     @staticmethod
     def is_valid_backend(file_path: Union[Path, str]) -> bool:
@@ -83,7 +88,7 @@ class Osiris_Dev_Hdf5_GridFile(GridBackend):
             return fp.attrs["LABEL"].astype(str)[0]
 
     @property
-    def dim(self):
+    def ndim(self):
         with h5.File(self.location, mode="r") as fp:
             ndim = fp[self._dset_name].ndim
         return ndim

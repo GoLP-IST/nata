@@ -1,794 +1,477 @@
 # -*- coding: utf-8 -*-
-from functools import partial
-
 import numpy as np
 import pytest
-from hypothesis import assume
-from hypothesis import given
-from hypothesis import settings
-from hypothesis.extra.numpy import arrays
-from hypothesis.extra.numpy import basic_indices
-from hypothesis.extra.numpy import floating_dtypes
-from hypothesis.strategies import characters
-from hypothesis.strategies import composite
-from hypothesis.strategies import integers
-from hypothesis.strategies import lists
-from hypothesis.strategies import one_of
-from hypothesis.strategies import text
 
 from nata.axes import Axis
 from nata.axes import GridAxis
-from nata.axes import IterationAxis
-from nata.axes import ParticleQuantity
-from nata.axes import TimeAxis
-from nata.axes import UnnamedAxis
-from nata.utils.formatting import array_format
-from nata.utils.formatting import make_as_identifier
-
-from .strategies import anyarray
-from .strategies import array_and_basic_indices
-from .strategies import array_with_two_entries
-from .strategies import number
-from .strategies import number_or_none
+from nata.types import AxisType
 
 
-@composite
-def valid_name(draw):
-    chars = characters(min_codepoint=33, max_codepoint=126)
-    t = make_as_identifier(draw(text(alphabet=chars, min_size=1)))
-    assume(len(t) > 0)
-    return t
+def test_Axis_type_check():
+    assert isinstance(Axis, AxisType)
 
 
-_int_limit = np.iinfo(np.intc)
-strategies_for_number_tests = (
-    number(include_complex_numbers=False),
-    number(include_complex_numbers=False),
-    integers(min_value=1, max_value=1_000),
-    valid_name(),
-    text(),
-    text(),
-)
-sort_along_second_axis = partial(np.sort, axis=1)
-strategies_for_array_tests = (
-    array_with_two_entries(array_length=1_000).map(sort_along_second_axis),
-    integers(min_value=1, max_value=1_000),
-    valid_name(),
-    text(),
-    text(),
-)
+def test_Axis_default_init():
+    axis = Axis(np.arange(10))
 
-
-@given(one_of(number_or_none(), anyarray(min_dims=0, max_dims=0)))
-def test_UnnamedAxis_single_value_init(x):
-    axis = UnnamedAxis(x)
-    asarray = np.array(x)
-
-    assert np.array_equiv(np.array(axis), asarray)
-    assert np.array_equiv(axis.data, asarray)
-    assert axis.shape == tuple()
-    assert axis.ndim == 0
-    assert axis.dtype == asarray.dtype
-    # should trigger `__repr()__`
-    assert str(axis) == f"UnnamedAxis({array_format(asarray)})"
-
-    for a in axis:
-        assert a is axis
-
-    assert len(axis) == 0
-
-    with pytest.raises(IndexError, match="too many indices"):
-        axis[:]
-
-    with pytest.raises(IndexError, match="too many indices"):
-        axis[:] = 42
-
-
-@given(
-    array_and_basic_indices(array_min_dims=1),
-    number(include_complex_numbers=False),
-)
-def test_UnnamedAxis_1d_init(test_case, random_value):
-    arr, ind = test_case
-
-    axis = UnnamedAxis(arr)
-
-    assert np.array_equiv(axis, arr)
-    assert np.array_equiv(axis.data, arr)
-    assert axis.shape == arr.shape
-    assert axis.ndim == arr.ndim
-    assert axis.dtype == arr.dtype
-    # should trigger `__repr()__`
-    assert str(axis) == f"UnnamedAxis({array_format(arr)})"
-
-    for actual, expected in zip(axis, arr):
-        assert np.array_equiv(actual, expected)
-
-    assert len(axis) == len(arr)
-    assert np.array_equiv(axis[ind], arr[ind])
-    axis[ind] = random_value
-    arr[ind] = random_value
-    assert np.array_equiv(axis, arr)
-
-
-@given(
-    one_of(number_or_none(), anyarray(min_dims=0, max_dims=0)),
-    one_of(number_or_none(), anyarray(min_dims=0, max_dims=0)),
-)
-def test_UnnamedAxis_append_single_value_and_single_value(value1, value2):
-    axis = UnnamedAxis(value1)
-    axis.append(UnnamedAxis(value2))
-    arr = np.array([value1, value2])
-
-    assert np.array_equiv(axis, arr)
-    assert np.array_equiv(axis.data, arr)
-    assert axis.shape == arr.shape
-    assert axis.ndim == arr.ndim
-    assert axis.dtype == arr.dtype
-
-
-@given(anyarray(min_dims=1, max_dims=1), anyarray(min_dims=1, max_dims=1))
-def test_UnnamedAxis_append_1d_arrays(arr1, arr2):
-    axis = UnnamedAxis(arr1)
-    axis.append(UnnamedAxis(arr2))
-    arr = np.array([d for d in arr1] + [d for d in arr2])
-
-    assert np.array_equiv(axis, arr)
-    assert np.array_equiv(axis.data, arr)
-    assert axis.shape == arr.shape
-    assert axis.ndim == arr.ndim
-    assert axis.dtype == arr.dtype
-    assert len(axis) == len(arr)
-
-
-@given(
-    one_of(number_or_none(), anyarray(max_dims=1)),
-    valid_name(),
-    text(),
-    text(),
-)
-def test_Axis_init(data, name, label, unit):
-    axis = Axis(data, name, label, unit)
-    data = np.asanyarray(data)
-    if data.ndim == 0:
-        data = data.reshape((1,))
-
-    assert axis.name == name
-    assert axis.label == label
-    assert axis.unit == unit
-
-    for actual, expected in zip(axis, data):
-        assert np.array_equiv(actual, expected)
-
-
-@given(one_of(number_or_none(), anyarray(max_dims=1)))
-def test_Axis_append(data):
-    axis = Axis(data, "", "", "")
-    axis.append(Axis(data, "", "", ""))
-    np.testing.assert_array_equal(axis, np.array([data, data]))
-
-    with pytest.raises(ValueError, match="can not append"):
-        axis.append(Axis(data, "some name", "", ""))
-
-
-@given(
-    one_of(number_or_none(), anyarray(max_dims=1)),
-    valid_name(),
-    text(),
-    text(),
-)
-def test_IterationAxis_init(data, name, label, unit):
-    axis = IterationAxis(data, name, label, unit)
-
-    assert axis.name == name
-    assert axis.label == label
-    assert axis.unit == unit
-
-
-@given(one_of(number_or_none(), anyarray(max_dims=1)))
-def test_IterationAxis_default(data):
-    axis = IterationAxis(data)
-
-    assert axis.name == "iteration"
-    assert axis.label == "iteration"
+    assert axis.name == "unnamed"
+    assert axis.label == ""
     assert axis.unit == ""
+    assert axis.shape == (10,)
+    np.testing.assert_array_equal(axis, np.arange(10))
 
 
-@given(
-    one_of(number_or_none(), anyarray(max_dims=1)),
-    valid_name(),
-    text(),
-    text(),
-)
-def test_TimeAxis_init(data, name, label, unit):
-    axis = TimeAxis(data, name, label, unit)
+def test_Axis_data_change():
+    arr = np.arange(10)
+    axis = Axis(arr)
+    np.testing.assert_array_equal(axis, arr)
 
-    assert axis.name == name
-    assert axis.label == label
-    assert axis.unit == unit
+    new = np.random.random_sample(axis.shape)
+    axis.data = new
+    np.testing.assert_array_equal(axis, new)
 
 
-@given(one_of(number_or_none(), anyarray(max_dims=1)))
-def test_TimeAxis_default(data):
-    axis = TimeAxis(data)
+def test_Axis_data_shapeMismatch():
+    length = 10
+    arr = np.arange(length)
+    axis = Axis(arr)
 
-    assert axis.name == "time"
-    assert axis.label == "time"
-    assert axis.unit == ""
+    new = np.arange(length + 1)
+    with pytest.raises(ValueError, match="Shapes inconsistent"):
+        axis.data = new
 
 
-@given(*strategies_for_number_tests)
-def test_GridAxis_init_numbers(num1, num2, length, name, label, unit):
-    assume(num1 <= num2)
+def test_Axis_name_init():
+    axis = Axis(np.empty(10), name="test")
+    assert axis.name == "test"
 
-    gridaxis = GridAxis(
-        min=num1,
-        max=num2,
-        axis_length=length,
-        name=name,
-        label=label,
-        unit=unit,
+
+def test_Axis_name_parsing():
+    assert Axis(0, name="").name == "unnamed"
+
+
+def test_Axis_label_init():
+    axis = Axis(np.empty(10), label="test")
+    assert axis.label == "test"
+
+
+def test_Axis_unit_init():
+    axis = Axis(np.empty(10), unit="test")
+    assert axis.unit == "test"
+
+
+def test_Axis_repr():
+    axis = Axis(1, name="some_name", label="some_label", unit="some_unit")
+    assert (
+        repr(axis)
+        == "Axis("
+        + "name='some_name', "
+        + "label='some_label', "
+        + "unit='some_unit', "
+        + "data=1"
+        + ")"
     )
 
-    assert gridaxis.name == name
-    assert gridaxis.label == label
-    assert gridaxis.unit == unit
-
-    assert len(gridaxis) == length
-    assert gridaxis.shape == (length,)
-    assert gridaxis.ndim == 1
-
-    for a in gridaxis:
-        assert a is gridaxis
-
-
-@given(
-    number(include_complex_numbers=False),
-    number(include_complex_numbers=False),
-    integers(min_value=1, max_value=1_000),
-)
-def test_GridAxis_init_numbers_as_list(num1, num2, length):
-    assume(num1 <= num2)
-
-    gridaxis = GridAxis(
-        min=[num1],
-        max=[num2],
-        axis_length=length,
-        name="name",
-        label="label",
-        unit="unit",
-    )
-
-    assert gridaxis.ndim == 1
-    assert len(gridaxis) == length
-    assert gridaxis.shape == (length,)
-
-    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
-
-
-@given(*strategies_for_number_tests)
-def test_GridAxis_array_interface_with_singleValue_default(
-    num1, num2, length, name, label, unit
-):
-    assume(num1 < num2)
-
-    gridaxis = GridAxis(
-        min=num1,
-        max=num2,
-        axis_length=length,
-        name=name,
-        label=label,
-        unit=unit,
-    )
-
-    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
-
-
-@given(*strategies_for_number_tests)
-def test_GridAxis_array_interface_with_singleValue_linear(
-    num1, num2, length, name, label, unit
-):
-    assume(num1 < num2)
-
-    gridaxis = GridAxis(
-        min=num1,
-        max=num2,
-        axis_length=length,
-        axis_type="linear",
-        name=name,
-        label=label,
-        unit=unit,
-    )
-
-    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
-
-
-@given(*strategies_for_number_tests)
-def test_GridAxis_array_interface_with_singleValue_lin(
-    num1, num2, length, name, label, unit
-):
-    assume(num1 < num2)
-
-    gridaxis = GridAxis(
-        min=num1,
-        max=num2,
-        axis_length=length,
-        axis_type="lin",
-        name=name,
-        label=label,
-        unit=unit,
-    )
-
-    np.testing.assert_array_equal(gridaxis, np.linspace(num1, num2, length))
-
-
-# RuntimeWarnings can appear from numpy - as using logspace
-@pytest.mark.filterwarnings("ignore::RuntimeWarning")
-@given(*strategies_for_number_tests)
-def test_GridAxis_array_interface_with_singleValue_logarithmic(
-    num1, num2, length, name, label, unit
-):
-    assume(num1 < num2)
-
-    gridaxis = GridAxis(
-        min=num1,
-        max=num2,
-        axis_length=length,
-        axis_type="logarithmic",
-        name=name,
-        label=label,
-        unit=unit,
-    )
-
-    np.testing.assert_array_equal(
-        gridaxis, np.logspace(np.log10(num1), np.log10(num2), length)
+    axis = Axis([0, 1], name="some_name", label="some_label", unit="some_unit")
+    assert (
+        repr(axis)
+        == "Axis("
+        + "name='some_name', "
+        + "label='some_label', "
+        + "unit='some_unit', "
+        + "data=[0, 1]"
+        + ")"
     )
 
 
-# RuntimeWarnings can appear from numpy - as using logspace
-@pytest.mark.filterwarnings("ignore::RuntimeWarning")
-@given(*strategies_for_number_tests)
-def test_GridAxis_array_interface_with_singleValue_log(
-    num1, num2, length, name, label, unit
-):
-    assume(num1 < num2)
+def test_Axis_dimensionality_mismatch():
+    with pytest.raises(ValueError, match="dimensionality mismatch"):
+        Axis(np.empty([]), axis_dim=1)
 
-    gridaxis = GridAxis(
-        min=num1,
-        max=num2,
-        axis_length=length,
-        axis_type="log",
-        name=name,
-        label=label,
-        unit=unit,
-    )
-
-    np.testing.assert_array_equal(
-        gridaxis, np.logspace(np.log10(num1), np.log10(num2), length)
-    )
+    with pytest.raises(ValueError, match="dimensionality mismatch"):
+        Axis(np.empty((1, 1)), axis_dim=0)
 
 
-@given(*strategies_for_array_tests)
-@settings(deadline=None)
-def test_GridAxis_init_array(data, length, name, label, unit):
-    lower = data[:, 0]
-    upper = data[:, 1]
+def test_Axis_underlaying_data_dimensionality():
+    axis = Axis(np.array(1))
+    assert axis._data.shape == (1,)
 
-    gridaxis = GridAxis(
-        min=lower,
-        max=upper,
-        axis_length=length,
-        name=name,
-        label=label,
-        unit=unit,
-    )
+    axis = Axis(np.array([1]))
+    assert axis._data.shape == (1,)
 
-    assert gridaxis.name == name
-    assert gridaxis.label == label
-    assert gridaxis.unit == unit
-
-    assert len(gridaxis) == len(data)
-    if len(data) == 1:
-        assert gridaxis.shape == (length,)
-    else:
-        assert gridaxis.shape == (len(data), length)
-
-    for actual, expected in zip(gridaxis, data):
-        assert np.array_equal(actual.data, expected)
+    axis = Axis(np.array([1]), axis_dim=1)
+    assert axis._data.shape == (1, 1)
 
 
-@given(*strategies_for_array_tests)
-@settings(deadline=None)
-def test_GridAxis_array_interface_with_array_default(
-    data, length, name, label, unit
-):
-    lower = data[:, 0]
-    upper = data[:, 1]
+def test_Axis_dimensionality_consist():
+    axis = Axis(np.empty(10))
+    assert axis.shape == (10,)
+    assert axis.ndim == 1
 
-    gridaxis = GridAxis(
-        min=lower,
-        max=upper,
-        axis_length=length,
-        name=name,
-        label=label,
-        unit=unit,
-    )
+    axis = Axis(np.empty(10), axis_dim=1)
+    assert axis.shape == (10,)
+    assert axis.ndim == 1
 
-    expected = []
-    for l, u in zip(lower, upper):
-        expected.append(np.linspace(l, u, length))
-    expected = np.array(expected)
-    if expected.shape[0] == 1:
-        expected = np.squeeze(expected, axis=0)
-
-    np.testing.assert_array_equal(gridaxis, expected)
-
-    # test for individual to ensure correct passing through
-    for axis, expected_axis in zip(gridaxis, expected):
-        np.testing.assert_array_equal(axis, expected_axis)
+    axis = Axis(np.empty((2, 10)), axis_dim=1)
+    assert axis.shape == (2, 10)
+    assert axis.ndim == 2
 
 
-@given(*strategies_for_number_tests)
-def test_GridAxis_append_with_numbers(num1, num2, length, name, label, unit):
-    assume(num1 < num2)
-    gridaxis = GridAxis(
-        min=num1,
-        max=num2,
-        axis_length=length,
-        name=name,
-        label=label,
-        unit=unit,
-    )
-    gridaxis.append(gridaxis)
+def test_Axis_equivalent():
+    axis = Axis(np.array(1))
 
-    assert gridaxis.name == name
-    assert gridaxis.label == label
-    assert gridaxis.unit == unit
-
-    assert len(gridaxis) == 2
-    assert gridaxis.shape == (2, length)
-    assert gridaxis.ndim == 2
-
-    expected = []
-    for _ in range(2):
-        expected.append(np.linspace(num1, num2, length))
-    expected = np.array(expected)
-    np.testing.assert_array_equal(gridaxis, expected)
-
-    for axis, expected_axis in zip(gridaxis, expected):
-        np.testing.assert_array_equal(axis, expected_axis)
+    assert axis.equivalent(Axis(np.array(1))) is True
+    assert axis.equivalent(object()) is False
+    assert axis.equivalent(Axis(np.array(1), name="other")) is False
+    assert axis.equivalent(Axis(np.array(1), label="other")) is False
+    assert axis.equivalent(Axis(np.array(1), unit="other")) is False
+    assert axis.equivalent(Axis(np.array([1]), axis_dim=1)) is False
 
 
-@given(*strategies_for_array_tests)
-@settings(deadline=None)
-def test_GridAxis_append_with_arrays(data, length, name, label, unit):
-    lower = data[:, 0]
-    upper = data[:, 1]
+def test_Axis_append():
+    axis = Axis(np.array(1))
+    axis.append(Axis(np.array(2)))
 
-    gridaxis = GridAxis(
-        min=lower,
-        max=upper,
-        axis_length=length,
-        name=name,
-        label=label,
-        unit=unit,
-    )
-    gridaxis.append(gridaxis)
-    number_of_entries = data.shape[0] * 2
+    np.testing.assert_array_equal(axis, [1, 2])
 
-    assert gridaxis.name == name
-    assert gridaxis.label == label
-    assert gridaxis.unit == unit
-
-    assert len(gridaxis) == number_of_entries
-    assert gridaxis.shape == (number_of_entries, length)
-    assert gridaxis.ndim == 2
-
-    expected = []
-    # initial grid axis
-    for l, u in zip(lower, upper):
-        expected.append(np.linspace(l, u, length))
-    # after append
-    for l, u in zip(lower, upper):
-        expected.append(np.linspace(l, u, length))
-    expected = np.array(expected)
-
-    np.testing.assert_array_equal(gridaxis, expected)
-    for axis, expected_axis in zip(gridaxis, expected):
-        np.testing.assert_array_equal(axis, expected_axis)
+    axis.append(Axis(np.array([3, 4])))
+    np.testing.assert_array_equal(axis, [1, 2, 3, 4])
 
 
-@composite
-def strategy_for_gridaxes_access(
-    draw, max_axis_length=1_000, number_of_iterations=1_000
-):
-    """
-    Grid axis iterated over time is a 2d array but only min/max are stored.
-        * shape of the 2d matrix: (number of iterations) x (axis length)
-        * if 'number of iterations == 1' then iteration axes is squeezed
-    """
-    axis_length = draw(integers(min_value=1, max_value=max_axis_length))
-    iterations = draw(integers(min_value=1, max_value=number_of_iterations))
-
-    arr = draw(arrays(dtype=floating_dtypes(), shape=(iterations, 2)))
-
-    assume(not np.any(np.isnan(arr)))
-    assume(np.all(np.isfinite(arr)))
-
-    if iterations == 1:
-        ind = draw(basic_indices(shape=(axis_length,)))
-    else:
-        ind = draw(basic_indices(shape=(iterations, axis_length)))
-
-    return arr, ind, axis_length
+def test_Axis_append_wrong_type():
+    with pytest.raises(TypeError, match="Can not append"):
+        Axis(np.array(1)).append(1)
 
 
-@given(strategy_for_gridaxes_access())
-def test_GridAxis_getitem(data):
-    arr, ind, length = data
-
-    gridaxis = GridAxis(
-        min=arr[:, 0],
-        max=arr[:, 1],
-        axis_length=length,
-        name="",
-        label="",
-        unit="",
-    )
-
-    full_expected_array = []
-    for min_, max_ in arr:
-        full_expected_array.append(np.linspace(min_, max_, length))
-    full_expected_array = np.array(full_expected_array)
-
-    np.testing.assert_array_equal(gridaxis[ind], full_expected_array[ind])
+def test_Axis_append_different_axis():
+    with pytest.raises(ValueError, match="Mismatch in attributes"):
+        Axis(np.array(1), name="some_name").append(
+            Axis(np.array(1), name="different_name")
+        )
 
 
-@given(
-    lists(
-        number(include_complex_numbers=False),
-        min_size=4,
-        max_size=4,
-        unique=True,
-    ),
-    integers(min_value=1, max_value=100),
-)
-def test_GridAxis_append_moving_axis(l, length):
-    axis_values = sorted(l)
+def test_Axis_len():
+    axis = Axis(np.array(1))
+    assert len(axis) == 1
 
-    axis = GridAxis(
-        min=axis_values[0],
-        max=axis_values[2],
-        axis_length=length,
-        name="",
-        label="",
-        unit="",
+    axis.append(Axis(np.array(2)))
+    assert len(axis) == 2
+
+    axis.append(Axis(np.array([3, 4])))
+    assert len(axis) == 4
+
+
+def test_Axis_iterator_single_item():
+    axis = Axis(np.array(1))
+
+    for ax in axis:
+        assert ax is axis
+
+
+def test_Axis_iterator_multiple_items():
+    arrays = [np.array(1), np.array(2), np.array(3)]
+    axis = Axis(
+        arrays[0], name="some_name", label="some_label", unit="some_unit"
     )
     axis.append(
-        GridAxis(
-            min=axis_values[1],
-            max=axis_values[3],
-            axis_length=length,
-            name="",
-            label="",
-            unit="",
-        )
+        Axis(arrays[1], name="some_name", label="some_label", unit="some_unit")
+    )
+    axis.append(
+        Axis(arrays[2], name="some_name", label="some_label", unit="some_unit")
     )
 
-
-@given(array_and_basic_indices(array_min_dims=1, array_max_dims=2),)
-def test_ParticleQuantity_init_using_arrays(data):
-    arr, ind = data
-
-    if arr.ndim == 1:
-        length = [len(arr)]
-    else:
-        length = [arr.shape[1]] * len(arr)
-
-    quant = ParticleQuantity(
-        data=arr, dtype=arr.dtype, prt_num=length, name="", label="", unit="",
-    )
-
-    if arr.ndim == 2 and len(arr) == 1:
-        expected_shape = arr.shape[1:]
-        expected_ndim = arr.ndim - 1
-    else:
-        expected_shape = arr.shape
-        expected_ndim = arr.ndim
-
-    assert quant.shape == expected_shape
-    assert quant.ndim == expected_ndim
-    assert quant.dtype == arr.dtype
-    assert quant.data.ndim == 2
-
-    if arr.ndim == 2 and len(arr) == 1:
-        ind = ind[-1]
-        np.testing.assert_array_equal(quant, np.squeeze(arr, axis=0))
-        np.testing.assert_array_equal(quant[ind], np.squeeze(arr, axis=0)[ind])
-    else:
-        np.testing.assert_array_equal(quant, arr)
-        np.testing.assert_array_equal(quant[ind], arr[ind])
+    for ax, arr in zip(axis, arrays):
+        assert ax is not axis
+        assert ax.name == axis.name
+        assert ax.label == axis.label
+        assert ax.unit == axis.unit
+        np.testing.assert_array_equal(ax, [arr])
 
 
 @pytest.mark.parametrize(
-    ["data", "prt_num", "shape", "ndim", "expected"],
+    "init_array, indexing, expected_array",
     [
-        (42, 1, (1,), 1, np.array([42])),
-        ([42], 1, (1,), 1, np.array([42])),
-        (42, [1], (1,), 1, np.array([42])),
-        ([42], [1], (1,), 1, np.array([42])),
-        (np.arange(10), 10, (10,), 1, np.arange(10)),
+        (np.arange(10), np.s_[0], np.array(0)),
+        (np.arange(10), np.s_[:], np.arange(10)),
+        (np.arange(10), np.s_[3:7], np.arange(10)[3:7]),
+        (np.arange(10), np.s_[3:7:2], np.arange(10)[3:7:2]),
+    ],
+    ids=["int", "slice", "range", "range+step"],
+)
+def test_Axis_getitem_0d(init_array, indexing, expected_array):
+    axis = Axis(
+        init_array, name="some_name", label="some_label", unit="some_unit"
+    )
+
+    subaxis = axis[indexing]
+
+    assert subaxis is not axis
+    assert subaxis.name == axis.name
+    assert subaxis.label == axis.label
+    assert subaxis.unit == axis.unit
+    assert subaxis.axis_dim == axis.axis_dim
+
+    np.testing.assert_array_equal(subaxis, expected_array)
+
+
+@pytest.mark.parametrize(
+    "init_array, indexing, expected_array, expected_axis_dim",
+    [
+        (np.arange(10), np.s_[0], 0, 0),
+        (np.arange(10), np.s_[2:2], np.array([]), 1),
+        (np.arange(10).reshape((2, 5)), np.s_[0], np.arange(5), 1),
         (
-            [[i] for i in range(10)],
-            [1] * 10,
-            (10, 1),
-            2,
-            np.arange(10).reshape((10, 1)),
+            np.arange(100).reshape((10, 10)),
+            np.s_[2:7],
+            np.arange(100).reshape((10, 10))[2:7],
+            1,
         ),
-        (np.arange(10).reshape((1, 10)), [10], (10,), 1, np.arange(10),),
-        (np.arange(10).reshape((1, 10)), 10, (10,), 1, np.arange(10),),
+        (np.arange(10).reshape((2, 5)), np.s_[1, 0], 5, 0),
+        (np.arange(10).reshape((2, 5)), np.s_[1, 1:], np.arange(4) + 6, 1),
         (
-            [np.arange(3), np.arange(2)],
-            [3, 2],
-            (2, 3),
-            2,
-            np.ma.array(
-                [np.arange(3), np.arange(3)], mask=[[0, 0, 0], [0, 0, 1]]
-            ),
+            np.arange(25).reshape((5, 5)),
+            np.s_[1:, 1:],
+            np.arange(25).reshape((5, 5))[1:, 1:],
+            1,
         ),
     ],
-    ids=(
-        "data::shape=(), prt_num::shape=()",
-        "data::shape=(1,), prt_num::shape=()",
-        "data::shape=(), prt_num::shape=(1,)",
-        "data::shape=(1,), prt_num::shape=(1,)",
-        "data::shape=(10,), prt_num::shape=()",
-        "data::shape=(10,1), prt_num::shape=(10,)",
-        "data::shape=(1,10), prt_num::shape=(1,)",
-        "data::shape=(1,10), prt_num::shape=()",
-        "data::dtype=object, prt_num::shape=(2,)",
-    ),
+    ids=[
+        "len == 1 and (int,)",
+        "len == 1 and (slice,)",
+        "len != 1 and (int,)",
+        "len != 1 and (slice,)",
+        "len != 1 and (int, int)",
+        "len != 1 and (int, slice)",
+        "len != 1 and (slice, slice)",
+    ],
 )
-def test_ParticleQuantity_init_using_various_simple_example(
-    data, prt_num, shape, ndim, expected
+def test_Axis_getitem_1d(
+    init_array, indexing, expected_array, expected_axis_dim
 ):
-    data = np.array(data)
-    prt_num = np.array(prt_num)
-
-    quant = ParticleQuantity(
-        data=data,
-        dtype=int,
-        prt_num=prt_num,
-        name="some name",
-        label="some label",
-        unit="some unit",
+    axis = Axis(
+        init_array,
+        axis_dim=1,
+        name="some_name",
+        label="some_label",
+        unit="some_unit",
     )
 
-    assert quant.shape == shape
-    assert quant.dtype == np.dtype(int)
-    assert quant.ndim == ndim
-    if quant.data.dtype == object:
-        assert quant.data.ndim == 1
-    else:
-        assert quant.data.ndim == 2
+    subaxis = axis[indexing]
 
-    np.testing.assert_array_equal(quant, expected)
+    assert subaxis is not axis
+    assert subaxis.name == axis.name
+    assert subaxis.label == axis.label
+    assert subaxis.unit == axis.unit
+    assert subaxis.axis_dim == expected_axis_dim
+
+    np.testing.assert_array_equal(subaxis, expected_array)
 
 
-@given(anyarray(min_dims=2, max_dims=2))
-def test_ParticleQuantity_iteration(arr):
-    particle_array = [arr.shape[1] for _ in range(arr.shape[0])]
+def test_GridAxis_type_check():
+    assert isinstance(GridAxis, AxisType)
 
-    prt_quant = ParticleQuantity(
-        data=arr,
-        prt_num=particle_array,
-        dtype=arr.dtype,
-        name="",
-        label="",
-        unit="",
+
+def test_GridAxis_default_init():
+    grid = GridAxis(0.0, 1.0, 10)
+
+    assert grid.name == "unnamed"
+    assert grid.label == ""
+    assert grid.unit == ""
+
+    assert grid.axis_type == "linear"
+    assert grid.shape == (10,)
+    assert grid.ndim == 1
+
+    np.testing.assert_array_equal(grid, np.linspace(0, 1, 10))
+
+
+def test_GridAxis_multidim_init():
+    min_values = (0.0, 1.0, 3.0)
+    max_values = (10.0, 2.0, 15.0)
+    grid = GridAxis(min_values, max_values, 10)
+
+    expected = []
+    for min_, max_ in zip(min_values, max_values):
+        expected.append(np.linspace(min_, max_, 10))
+    expected = np.array(expected)
+
+    np.testing.assert_array_equal(grid, expected)
+
+
+def test_GridAxis_init_with_data():
+    data_arr = np.arange(10)
+    gridaxis = GridAxis(
+        data=data_arr,
+        name="custom_name",
+        label="custom_label",
+        unit="custom_unit",
     )
 
-    for quant, subarray in zip(prt_quant, arr):
-        assert quant is not prt_quant
-        np.testing.assert_array_equal(quant, subarray)
+    assert gridaxis.name == "custom_name"
+    assert gridaxis.label == "custom_label"
+    assert gridaxis.unit == "custom_unit"
+    assert gridaxis.axis_type == "custom"
+    assert gridaxis.grid_cells == 10
+    assert len(gridaxis) == 1
+    np.testing.assert_array_equal(gridaxis, data_arr)
 
-
-@pytest.fixture(name="ParticleBackend")
-def _dummy_ParticleBackend():
-    class ParticleBackend:
-        def __init__(self, field_name, data):
-            self.field_name = field_name
-            self.data = data
-
-        def get_data(self, fields):
-            if fields == self.field_name:
-                return self.data
-            else:
-                raise ValueError("Wrong field name requested")
-
-    return ParticleBackend
-
-
-@given(data=anyarray(min_dims=2, max_dims=2), quantity_name=valid_name())
-def test_ParticleQuantity_data_reading(ParticleBackend, data, quantity_name):
-    backends = [ParticleBackend(quantity_name, d) for d in data]
-    particle_numbers = [data.shape[1]] * len(data)
-    quantity = ParticleQuantity(
-        data=backends,
-        prt_num=particle_numbers,
-        dtype=data.dtype,
-        name=quantity_name,
-        label="",
-        unit="",
+    data_arr = np.arange(10).reshape((2, 5))
+    gridaxis = GridAxis(
+        data=data_arr,
+        name="custom_name",
+        label="custom_label",
+        unit="custom_unit",
     )
 
-    if len(data) == 1:
-        data = np.squeeze(data, axis=0)
-
-    np.testing.assert_array_equal(quantity, data)
-    # mask can be accessed after first array
-    assert isinstance(quantity.data, np.ma.MaskedArray)
-    assert not np.any(quantity.data.mask)
-
-
-@given(number(), number())
-def test_ParticleQuantity_appending_two_numbers(num1, num2):
-    assume(type(num1) == type(num2))
-
-    quant = ParticleQuantity(
-        data=num1, prt_num=1, dtype=type(num1), name="", label="", unit=""
-    )
-    quant.append(
-        ParticleQuantity(
-            data=num2, prt_num=1, dtype=type(num2), name="", label="", unit=""
-        )
-    )
-
-    assert quant.shape == (2, 1)
-    assert quant.ndim == 2
-    assert len(quant) == 2
-    np.testing.assert_array_equal(quant, np.array([num1, num2]).reshape((2, 1)))
+    assert gridaxis.name == "custom_name"
+    assert gridaxis.label == "custom_label"
+    assert gridaxis.unit == "custom_unit"
+    assert gridaxis.axis_type == "custom"
+    assert len(gridaxis) == 2
+    np.testing.assert_array_equal(gridaxis, data_arr)
 
 
-@given(
-    lists(
-        integers(min_value=_int_limit.min, max_value=_int_limit.max),
-        min_size=1,
-    ),
-    lists(
-        integers(min_value=_int_limit.min, max_value=_int_limit.max),
-        min_size=1,
-    ),
+@pytest.mark.parametrize(
+    "axis_type, expected",
+    [
+        (None, "linear"),
+        ("lin", "linear"),
+        ("linear", "linear"),
+        ("log", "logarithmic"),
+        ("logarithmic", "logarithmic"),
+    ],
+    ids=[
+        "default",
+        "lin->linear",
+        "linear->linear",
+        "log->logarithmic",
+        "logarithmic->logarithmic",
+    ],
 )
-def test_ParticleQuantity_appending_two_lists(l1, l2):
-    quant = ParticleQuantity(
-        data=l1[0], prt_num=1, dtype=int, name="", label="", unit=""
-    )
+def test_GridAxis_axis_type(axis_type, expected):
+    if axis_type is not None:
+        assert GridAxis(0.0, 1.0, 10, axis_type=axis_type).axis_type == expected
+    else:
+        assert GridAxis(0.0, 1.0, 10).axis_type == expected
 
-    for v in l1[1:]:
-        quant.append(
-            ParticleQuantity(
-                data=v, prt_num=1, dtype=int, name="", label="", unit=""
-            )
-        )
 
-    other = ParticleQuantity(
-        data=l2[0], prt_num=1, dtype=int, name="", label="", unit=""
-    )
+def test_GridAxis_invalid_axis_type_raise():
+    with pytest.raises(ValueError, match="Invalid axis type"):
+        GridAxis(0.0, 1.0, 10, axis_type="invlid")
 
-    for v in l2[1:]:
-        other.append(
-            ParticleQuantity(
-                data=v, prt_num=1, dtype=int, name="", label="", unit=""
-            )
-        )
 
-    quant.append(other)
-
-    total_length = len(l1) + len(l2)
-    assert quant.shape == (total_length, 1)
-    assert quant.ndim == 2
-    assert len(quant) == total_length
+def test_GridAxis_array_interface():
     np.testing.assert_array_equal(
-        quant, np.array(l1 + l2).reshape((total_length, 1))
+        GridAxis(0.0, 1.0, 10), np.linspace(0.0, 1.0, 10)
     )
+    np.testing.assert_array_equal(
+        GridAxis(0.1, 1.0, 10, axis_type="log"), np.logspace(-1, 0, 10),
+    )
+
+
+def test_GridAxis_equivalent():
+    gridaxis = GridAxis(0.0, 1.0, 10)
+    other = GridAxis(0.0, 1.0, 10)
+    other.axis_type = "lin"
+    assert gridaxis.equivalent(other) is True
+    other.axis_type = "log"
+    assert gridaxis.equivalent(other) is False
+    other.axis_type = "logarithmic"
+    assert gridaxis.equivalent(other) is False
+
+
+def test_GridAxis_append():
+    axis = GridAxis(0.0, 1.0, 10)
+    expected_axis = np.linspace(0.0, 1.0, 10)
+    np.testing.assert_array_equal(axis, expected_axis)
+
+    axis.append(GridAxis(0.0, 1.0, 10))
+    np.testing.assert_array_equal(axis, [expected_axis] * 2)
+
+    axis.append(GridAxis([0.0, 0.0], [1.0, 1.0], 10))
+    np.testing.assert_array_equal(axis, [expected_axis] * 4)
+
+
+def test_GridAxis_append_raise_wrong_type():
+    with pytest.raises(TypeError, match="Can not append"):
+        gridaxis = GridAxis(0.0, 1.0, 10, name="gridaxis")
+        gridaxis.append(1)
+
+
+def test_GridAxis_append_raise_mismatch_attributes():
+    with pytest.raises(ValueError, match="Mismatch in attributes"):
+        gridaxis = GridAxis(0.0, 1.0, 10, name="gridaxis")
+        gridaxis.append(GridAxis(0.0, 1.0, 10, name="different"))
+
+
+@pytest.mark.parametrize(
+    "kwargs, key, expected_grid_cells, expected_shape, expected_array",
+    [
+        (dict(data=np.arange(10)), np.s_[0], 1, (1,), 0),
+        (dict(data=np.arange(10)), np.s_[2:5], 3, (3,), [2, 3, 4]),
+        (dict(data=np.arange(10)), np.s_[2:2], 0, (0,), []),
+        (
+            dict(data=np.arange(21).reshape((3, 7))),
+            np.s_[0],
+            7,
+            (7,),
+            [0, 1, 2, 3, 4, 5, 6],
+        ),
+        (
+            dict(data=np.arange(21).reshape((7, 3))),
+            np.s_[1:5],
+            3,
+            (4, 3),
+            [[3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14]],
+        ),
+        (dict(data=np.arange(30).reshape((5, 6))), np.s_[2, 4], 1, (1,), [16],),
+        (
+            dict(data=np.arange(30).reshape((5, 6))),
+            np.s_[2, 1:3],
+            2,
+            (2,),
+            [13, 14],
+        ),
+        (
+            dict(data=np.arange(30).reshape((5, 6))),
+            np.s_[2:4, 4],
+            1,
+            (2, 1),
+            [[16], [22]],
+        ),
+        (
+            dict(data=np.arange(30).reshape((5, 6))),
+            np.s_[2:4, 1:4],
+            3,
+            (2, 3),
+            [[13, 14, 15], [19, 20, 21]],
+        ),
+    ],
+    ids=[
+        "len == 1 and (int,)",
+        "len == 1 and (slice,)",
+        "len == 1 and (x:x,) -> lead to empty",
+        "len != 1 and (int,)",
+        "len != 1 and (slice,)",
+        "len != 1 and (int, int)",
+        "len != 1 and (int, slice)",
+        "len != 1 and (slice, int)",
+        "len != 1 and (slice, slice)",
+    ],
+)
+def test_GridAxis_getitem(
+    kwargs, key, expected_grid_cells, expected_shape, expected_array
+):
+    gridaxis = GridAxis(
+        **kwargs, name="some_name", label="some_label", unit="some_unit"
+    )
+    subgridaxis = gridaxis[key]
+
+    assert subgridaxis is not gridaxis
+    assert subgridaxis.name == gridaxis.name
+    assert subgridaxis.label == gridaxis.label
+    assert subgridaxis.unit == gridaxis.unit
+    assert subgridaxis.axis_type == "custom"
+    assert subgridaxis.grid_cells == expected_grid_cells
+    assert subgridaxis.shape == expected_shape
+    np.testing.assert_array_equal(subgridaxis, expected_array)
