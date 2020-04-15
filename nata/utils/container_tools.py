@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from warnings import warn
+
 from nata.types import BackendType
 from nata.types import DatasetType
 
@@ -12,7 +14,10 @@ def register_backend(container: DatasetType):
         if container.is_valid_backend(backend):
             container.add_backend(backend)
         else:
-            raise TypeError(f"Passed invalid backend for '{container}'")
+            warn(
+                f"{backend} is an invalid backend for '{container}'. "
+                + "Skipping backend registration!"
+            )
         return backend
 
     return add_backend_to_container

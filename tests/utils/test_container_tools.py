@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Dict
+
 import pytest
 
 from nata.types import BackendType
@@ -9,7 +11,6 @@ from nata.utils.container_tools import register_backend
 def test_register_backend_check_registration():
     class SimpleDataset:
         _backends = set()
-        _allowed_backend_type = None
 
         @classmethod
         def add_backend(cls, backend: BackendType) -> None:
@@ -19,12 +20,27 @@ def test_register_backend_check_registration():
         def is_valid_backend(cls, backend: BackendType) -> bool:
             return True
 
+        @classmethod
+        def remove_backend(cls, backend: BackendType) -> None:
+            ...
+
+        @classmethod
+        def get_backends(cls) -> Dict[str, BackendType]:
+            ...
+
+        def append(self, other: "SimpleDataset") -> None:
+            ...
+
+        def equivalent(self, other: "SimpleDataset") -> bool:
+            ...
+
+    # ensures a SimpleDataset being a valid DatasetType
+    assert isinstance(SimpleDataset, DatasetType) is True
+
+    # performs registration
     @register_backend(SimpleDataset)
     class DummyBackend:
         pass
-
-    # ensures a SimpleDataset being a valid DatasetType
-    assert isinstance(SimpleDataset, DatasetType)
 
     assert DummyBackend in SimpleDataset._backends
 
@@ -45,7 +61,6 @@ def test_register_backend_raise_invalid_container():
 def test_register_backend_raise_invalid_backend_for_container():
     class SimpleDataset:
         _backends = set()
-        _allowed_backend_type = None
 
         @classmethod
         def add_backend(cls, backend: BackendType) -> None:
@@ -55,10 +70,24 @@ def test_register_backend_raise_invalid_backend_for_container():
         def is_valid_backend(cls, backend: BackendType) -> bool:
             return False
 
+        @classmethod
+        def remove_backend(cls, backend: BackendType) -> None:
+            ...
+
+        @classmethod
+        def get_backends(cls) -> Dict[str, BackendType]:
+            ...
+
+        def append(self, other: "SimpleDataset") -> None:
+            ...
+
+        def equivalent(self, other: "SimpleDataset") -> bool:
+            ...
+
     # ensures a SimpleDataset being a valid DatasetType
     assert isinstance(SimpleDataset, DatasetType)
 
-    with pytest.raises(TypeError, match="Passed invalid backend for"):
+    with pytest.warns(UserWarning, match="Passed invalid backend for"):
 
         @register_backend(SimpleDataset)
         class DummyBackend:
