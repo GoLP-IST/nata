@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from nata._axes import Axis
-from nata._axes import GridAxis
+from nata.axes import Axis
+from nata.axes import GridAxis
 from nata.types import AxisType
 
 
