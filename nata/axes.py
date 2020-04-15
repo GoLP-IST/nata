@@ -1,57 +1,134 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 from typing import Any
 from typing import Optional
+from typing import Sequence
+from typing import Tuple
 from typing import Union
 
-import attr
 import numpy as np
-from attr import converters
-from attr.validators import in_
 
-from nata.utils.attrs import array_validator
-from nata.utils.attrs import attrib_equality
-from nata.utils.attrs import subdtype_of
 from nata.utils.formatting import array_format
-from nata.utils.formatting import make_as_identifier
+from nata.utils.formatting import make_identifiable
 
-axis_attrs = partial(attr.s, slots=True, eq=False, repr=False)
+from .types import AxisType
 
 
-@axis_attrs
-class UnnamedAxis:
-    _data: np.ndarray = attr.ib(converter=np.asanyarray, repr=False, eq=False)
+def _log_axis(min_, max_, points, dtype):
+    return np.logspace(np.log10(min_), np.log10(max_), points, dtype=dtype)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return self._data.astype(dtype)
-        else:
-            return self._data
 
-    def __getitem__(self, key):
-        return self.data[key]
+def _lin_axis(min_, max_, points, dtype):
+    return np.linspace(min_, max_, points, dtype=dtype)
 
-    def __setitem__(self, key, value):
-        self.data[key] = value
 
-    def __len__(self):
-        if self.data.ndim == 0:
-            return 0
-        return len(self.data)
+class Axis:
+    def __init__(
+        self,
+        data: np.ndarray,
+        *,
+        axis_dim: int = 0,
+        name: str = "unnamed",
+        label: str = "",
+        unit: str = "",
+    ):
+        data = np.asanyarray(data)
 
-    def __iter__(self) -> "UnnamedAxis":
-        if self.ndim == 0:
+        # data dim and dim for iteration/time -> axis_dim + 1
+        if data.ndim > axis_dim + 1 or data.ndim < axis_dim:
+            raise ValueError("Data dimensionality mismatch")
+
+        # makes sure it is always in the shape of (time_steps,) + axis_dim
+        if data.ndim == axis_dim:
+            data = data[np.newaxis]
+
+        self._data = data
+        self._axis_dim = axis_dim
+
+        name = make_identifiable(name)
+        self._name: str = name if name else "unnamed"
+
+        self._label: str = label
+        self._unit: str = unit
+
+    def __repr__(self) -> str:
+        repr_ = f"{self.__class__.__name__}("
+        repr_ += f"name='{self.name}', "
+        repr_ += f"label='{self.label}', "
+        repr_ += f"unit='{self.unit}', "
+        repr_ += f"data={array_format(self.data)}"
+        repr_ += ")"
+
+        return repr_
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __iter__(self) -> "Axis":
+        if len(self) == 1:
             yield self
         else:
             for d in self._data:
-                yield self.__class__(data=d)
+                yield self.__class__(
+                    d,
+                    axis_dim=self.axis_dim,
+                    name=self.name,
+                    label=self.label,
+                    unit=self.unit,
+                )
 
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({array_format(self.data)})"
+    def __getitem__(
+        self, key: Union[int, slice, Tuple[Union[int, slice]]]
+    ) -> "Axis":
+        # ensures key is tuple
+        key = np.index_exp[key]
+        data = self.data[key]
+        other_axis = key if len(self) == 1 else key[1:]
+        new_dim = self.axis_dim - sum(isinstance(s, int) for s in other_axis)
+
+        return self.__class__(
+            data,
+            axis_dim=new_dim,
+            name=self.name,
+            label=self.label,
+            unit=self.unit,
+        )
+
+    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        if dtype:
+            data = self._data.astype(dtype)
+        else:
+            data = self._data
+
+        if len(self) == 1:
+            return np.squeeze(data, axis=0)
+        else:
+            return data
+
+    @property
+    def data(self):
+        return self.__array__()
+
+    @data.setter
+    def data(self, value: Union[np.ndarray, Any]) -> None:
+        value = np.asanyarray(value)
+
+        if value.shape != self.shape:
+            raise ValueError(
+                f"Shapes inconsistent {self.shape} -> {value.shape}"
+            )
+
+        if len(self) == 1:
+            self._data = value[np.newaxis]
+        else:
+            self._data = value
+
+    @property
+    def axis_dim(self):
+        return self._axis_dim
 
     @property
     def shape(self):
-        return self._data.shape
+        return np.squeeze(self._data).shape
 
     @property
     def dtype(self):
@@ -59,286 +136,250 @@ class UnnamedAxis:
 
     @property
     def ndim(self):
-        return self._data.ndim
+        return np.squeeze(self._data).ndim
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def label(self):
+        return self._label
+
+    @property
+    def unit(self):
+        return self._unit
+
+    def equivalent(self, other: Union[Any, AxisType]) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        if self.name != other.name:
+            return False
+
+        if self.label != other.label:
+            return False
+
+        if self.unit != other.unit:
+            return False
+
+        if self.axis_dim != other.axis_dim:
+            return False
+
+        return True
+
+    def append(self, other: "Axis"):
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Can not append '{other}' to '{self}'")
+
+        if not self.equivalent(other):
+            raise ValueError(
+                f"Mismatch in attributes between '{self}' and '{other}'"
+            )
+
+        self._data = np.append(self._data, other._data, axis=0)
+
+
+_ignored_if_data = object()
+
+
+class GridAxis(Axis):
+    # allowed and supported axis types are ("linear", "logarithmic", "custom")
+    _axis_type_mapping = {
+        "lin": "linear",
+        "linear": "linear",
+        "log": "logarithmic",
+        "logarithmic": "logarithmic",
+        "custom": "custom",
+    }
+
+    def __init__(
+        self,
+        min_value: Union[float, np.ndarray] = _ignored_if_data,
+        max_value: Union[float, np.ndarray] = _ignored_if_data,
+        grid_cells: int = _ignored_if_data,
+        *,
+        data: Optional[np.ndarray] = None,
+        name: str = "",
+        label: str = "",
+        unit: str = "",
+        axis_type="linear",
+    ):
+        if data is None:
+            if any(
+                arg == _ignored_if_data
+                for arg in (min_value, max_value, grid_cells)
+            ):
+                raise ValueError(
+                    "Requires 'min_value', 'max_value' and 'grid_cells' "
+                    + "if 'data' is not provided!"
+                )
+
+            valid_axis_types = ("lin", "linear", "log", "logarithmic")
+            if axis_type not in valid_axis_types:
+                raise ValueError(
+                    f"Invalid axis type. Allowed are {valid_axis_types}'."
+                )
+
+            min_value = np.asanyarray(min_value)
+            max_value = np.asanyarray(max_value)
+
+            if (
+                min_value.shape != max_value.shape
+                or min_value.ndim > 1
+                or max_value.ndim > 1
+            ):
+                raise ValueError(
+                    "Passed wrong parameters for min and max values!"
+                )
+
+            data = np.transpose(np.vstack((min_value, max_value)))
+
+            super().__init__(
+                data, axis_dim=1, name=name, label=label, unit=unit
+            )
+            self._grid_cells = grid_cells
+            self._axis_type = self._axis_type_mapping[axis_type]
+        else:
+            data = np.asanyarray(data)
+
+            super().__init__(
+                data, axis_dim=1, name=name, label=label, unit=unit
+            )
+
+            if data.ndim == 1:
+                self._grid_cells = data.shape[0]
+            else:
+                self._grid_cells = data.shape[1]
+            self._axis_type = "custom"
+
+    def __repr__(self) -> str:
+        repr_ = f"{self.__class__.__name__}("
+        repr_ += f"name='{self.name}', "
+        repr_ += f"label='{self.label}', "
+        repr_ += f"unit='{self.unit}', "
+        repr_ += f"axis_type='{self.axis_type}', "
+        repr_ += f"data={array_format(self.data)}"
+        repr_ += ")"
+
+        return repr_
+
+    def __getitem__(self, key) -> "GridAxis":
+        key = np.index_exp[key]
+        if len(key) not in (1, 2):
+            raise IndexError("Wrong number of indices")
+
+        data = self.data[key]
+
+        require_newaxis = [False, False]
+
+        if len(key) == 1:
+            if len(self) == 1:
+                require_newaxis[1] = True if isinstance(key[0], int) else False
+            else:
+                require_newaxis[0] = True if isinstance(key[0], int) else False
+        else:
+            require_newaxis[0] = True if isinstance(key[0], int) else False
+            require_newaxis[1] = True if isinstance(key[1], int) else False
+
+        if any(require_newaxis):
+            key_with_extension = tuple(
+                np.newaxis if require else Ellipsis
+                for require in require_newaxis
+            )
+
+            data = data[key_with_extension]
+
+        return self.__class__(
+            data=data, name=self.name, label=self.label, unit=self.unit,
+        )
+
+    def __array__(self, dtype=None):
+        # if custom
+        if self.axis_type == "custom":
+            arr = self._data
+        else:
+            arr_dtype = dtype if dtype else self.dtype
+            arr = np.zeros((len(self._data), self._grid_cells), dtype=arr_dtype)
+
+            if self.axis_type == "linear":
+                for i, (min_, max_) in enumerate(self._data):
+                    arr[i, :] = _lin_axis(
+                        min_, max_, self._grid_cells, arr_dtype
+                    )
+
+            if self.axis_type == "logarithmic":
+                for i, (min_, max_) in enumerate(self._data):
+                    arr[i, :] = _log_axis(
+                        min_, max_, self._grid_cells, arr_dtype
+                    )
+        if len(self) == 1:
+            return np.squeeze(arr, axis=0)
+        else:
+            return arr
 
     @property
     def data(self):
-        return self._data
+        return self.__array__()
 
-    def _check_appendability(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError("Can only append Axis objects to Axis")
+    @data.setter
+    def data(
+        self, value: Union[np.ndarray, Sequence[Union[int, float]]]
+    ) -> None:
+        raise NotImplementedError  # TODO: consider the best way to store data
 
-        if not attrib_equality(self, other):
-            raise ValueError(f"{other} can not append to {self}")
+    @property
+    def grid_cells(self):
+        return self._grid_cells
 
-    def append(self, other):
-        self._check_appendability(other)
-        self._data = np.hstack([self.data, other.data])
+    @property
+    def axis_type(self):
+        return self._axis_type
 
+    @axis_type.setter
+    def axis_type(self, value: str) -> None:
+        if not isinstance(value, str):
+            value = str(value)
 
-@axis_attrs
-class Axis(UnnamedAxis):
-    name: str = attr.ib(
-        converter=converters.optional(make_as_identifier),
-        validator=subdtype_of(np.str_),
-    )
-    label: str = attr.ib(validator=subdtype_of(np.str_))
-    unit: str = attr.ib(validator=subdtype_of(np.str_))
-
-    # TODO: remove eq -> should be replaced with proper check after
-    #       new implementation of attrib_equality
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return False
-        return attrib_equality(self, other, "name, label, unit")
-
-    def __iter__(self) -> "Axis":
-        if self.ndim == 0:
-            yield self
+        if value in self._axis_type_mapping:
+            self._axis_type = self._axis_type_mapping[value]
         else:
-            for d in self._data:
-                yield self.__class__(
-                    data=d, name=self.name, label=self.label, unit=self.unit
-                )
-
-
-@axis_attrs
-class IterationAxis(Axis):
-    name: str = attr.ib(
-        default="iteration",
-        converter=make_as_identifier,
-        validator=subdtype_of(np.str_),
-    )
-    label: str = attr.ib(default="iteration", validator=subdtype_of(np.str_))
-    unit: str = attr.ib(default="", validator=subdtype_of(np.str_))
-
-
-@axis_attrs
-class TimeAxis(Axis):
-    name: str = attr.ib(
-        default="time",
-        converter=make_as_identifier,
-        validator=subdtype_of(np.str_),
-    )
-    label: str = attr.ib(default="time", validator=subdtype_of(np.str_))
-    unit: str = attr.ib(default="", validator=subdtype_of(np.str_))
-
-
-@axis_attrs
-class GridAxis(Axis):
-    _min: Optional[np.ndarray] = attr.ib(converter=np.asanyarray, eq=False)
-    _max: Optional[np.ndarray] = attr.ib(converter=np.asanyarray, eq=False)
-    axis_length: int = attr.ib(validator=subdtype_of(np.integer))
-
-    axis_type: str = attr.ib(
-        default="linear",
-        validator=[
-            subdtype_of(np.str_),
-            in_(("linear", "lin", "log", "logarithmic")),
-        ],
-    )
-    _data: np.ndarray = attr.ib(init=False, eq=False)
-
-    @_min.validator
-    @_max.validator
-    def _validate_dimension_for_limits(
-        self, attribute: attr.Attribute, value: np.ndarray
-    ):
-        if value.ndim not in (0, 1):
+            allowed = tuple(t for t in self._axis_type_mapping if t != "custom")
             raise ValueError(
-                f"Wrong dimensions for '{attribute.name.replace('_', '')}'. "
-                + f"Only 0d and 1d boundaries are supported."
+                "Invalid axis type provided. Following axis types are "
+                + f"{allowed}."
             )
-
-    def __attrs_post_init__(self):
-        if self._max.shape != self._min.shape:
-            raise ValueError("Mismatch between lower and upper limtis!")
-
-        self._data = np.stack((self._min, self._max), axis=-1)
-        if self._data.ndim == 2 and self._data.shape[0] == 1:
-            self._data = np.squeeze(self._data, axis=0)
-
-        self._min = None
-        self._max = None
-
-    def __iter__(self):
-        if self.data.ndim == 1:
-            yield self
-        else:
-            for d in self.data:
-                yield self.__class__(
-                    min=d[0],
-                    max=d[1],
-                    axis_length=self.axis_length,
-                    axis_type=self.axis_type,
-                    name=self.name,
-                    label=self.label,
-                    unit=self.unit,
-                )
-
-    def __len__(self):
-        if self.data.ndim == 1:
-            return self.axis_length
-        else:
-            return len(self.data)
-
-    def __getitem__(self, key):
-        return self.__array__()[key]
 
     @property
     def shape(self):
-        if self.data.ndim == 1:
-            return (self.axis_length,)
-        else:
-            return (len(self), self.axis_length)
-
-    def _get_axis_values(self, min_, max_, N):
-        if self.axis_type in ("log", "logarithmic"):
-            min_, max_ = np.log10((min_, max_))
-            return np.logspace(min_, max_, N)
-        else:
-            return np.linspace(min_, max_, N)
-
-    def __array__(self, dtype=None):
-
-        if self.data.ndim == 1:
-            arr = self._get_axis_values(
-                self._data[0], self._data[1], self.axis_length
-            )
-
-        else:
-            arr = np.empty((len(self), self.axis_length))
-            for i, (min_, max_) in enumerate(self._data):
-                arr[i] = self._get_axis_values(min_, max_, self.axis_length)
-
-        return arr
-
-    def append(self, other):
-        self._check_appendability(other)
-        self._data = np.vstack([self.data, other.data])
-
-
-@axis_attrs
-class ParticleQuantity(Axis):
-    _data: np.ndarray = attr.ib(converter=np.array, eq=False)
-    _dtype: np.dtype = attr.ib(converter=np.dtype)
-    _prt_num: np.ndarray = attr.ib(
-        converter=np.array,
-        validator=array_validator(dtype=np.integer),
-        eq=False,
-    )
-
-    @_prt_num.validator
-    def _ensure_dimensions_for_particle_array(self, attribute, value):
-        if value.ndim not in (0, 1):
-            raise ValueError(f"Wrong dimensions for 'particle' array")
-
-    @_data.validator
-    def _ensure_dimensions_for_data_array(self, attribute, value):
-        if value.dtype == object and value.ndim not in (0, 1):
-            raise ValueError(
-                f"Wrong dimensions for 'data' array. "
-                + "Only 0d and 1d allowed for 'data' of dtype object"
-            )
-        else:
-            if value.ndim not in (0, 1, 2):
-                raise ValueError(f"Wrong dimensions for 'data' array")
-
-    def __attrs_post_init__(self):
-        if self._prt_num.ndim == 0:
-            self._prt_num = self._prt_num.reshape((1,))
-
-        if self._data.dtype == object:
-            if self._data.ndim == 0:
-                self._data = self._data.reshape((1,))
-
-        else:
-            if self._data.ndim == 0:
-                self._data = self._data.reshape((1, 1))
-
-            elif self._data.ndim == 1:
-                self._data = self._data.reshape((1, len(self._data)))
-
-        if len(self._data) != len(self._prt_num):
-            ValueError(
-                "Length mismatch between data-array and particle numbers"
-            )
-
-    def __array__(self, dtype=None):
-        if self._data.dtype == object:
-            max_ = np.max(self._prt_num)
-            data = np.ma.empty((len(self._data), max_), dtype=self._dtype)
-            data.mask = np.ones((len(self._data), max_), dtype=np.bool)
-
-            for i, (d, entries) in enumerate(zip(self._data, self._prt_num)):
-                if isinstance(d, np.ndarray):
-                    data[i, :entries] = d[:entries]
-                else:
-                    data[i, :entries] = d.get_data(fields=self.name)
-
-                data.mask[i, entries:] = np.zeros(max_ - entries, dtype=np.bool)
-
-            self._data = data
-
         if len(self._data) == 1:
-            return np.squeeze(self._data, axis=0)
-
-        return self._data
-
-    def __iter__(self):
-        if len(self._data) != 1:
-            for d, l in zip(self._data, self._prt_num):
-                yield self.__class__(
-                    data=[d],
-                    prt_num=[l],
-                    dtype=self._dtype,
-                    name=self.name,
-                    label=self.label,
-                    unit=self.unit,
-                )
+            return (self._grid_cells,)
         else:
-            yield self.__class__(
-                data=self._data,
-                prt_num=self._prt_num,
-                dtype=self._dtype,
-                name=self.name,
-                label=self.label,
-                unit=self.unit,
-            )
-
-    def __getitem__(self, key):
-        return self.__array__()[key]
-
-    @property
-    def shape(self):
-        if self._data.dtype == object:
-            if len(self._data) == 1:
-                return (np.max(self._prt_num),)
-            else:
-                return (len(self._data), np.max(self._prt_num))
-        else:
-            if len(self._data) == 1:
-                return (self._data.shape[1],)
-
-            return self._data.shape
-
-    @property
-    def dtype(self):
-        return self._dtype
+            return (len(self._data), self._grid_cells)
 
     @property
     def ndim(self):
-        return len(self.shape)
+        if len(self._data) == 1:
+            return 1
+        else:
+            return 2
 
-    @property
-    def prt_num(self):
-        return self._prt_num
+    def equivalent(self, other: Union[Any, "GridAxis"]) -> bool:
+        if not super().equivalent(other):
+            return False
 
-    def append(self, other: Union["ParticleQuantity", Any]):
-        self._check_appendability(other)
+        if self.axis_type[:3] != other.axis_type[:3]:
+            return False
 
-        self._data = np.array(
-            [d for d in self._data] + [d for d in other._data]
-        )
-        self._prt_num = np.concatenate((self._prt_num, other._prt_num))
+        return True
+
+    def append(self, other: "GridAxis"):
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Can not append '{other}' to '{self}'")
+
+        if not self.equivalent(other):
+            raise ValueError(
+                f"Mismatch in attributes between '{self}' and '{other}'"
+            )
+
+        self._data = np.append(self._data, other._data, axis=0)
