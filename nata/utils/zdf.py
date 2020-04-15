@@ -314,6 +314,7 @@ class ZDFfile:
         info = ZDF_Grid_Info()
 
         info.name = rec.name
+
         info.ndims = self.__read_uint32()
         info.nx = self.__read_uint64_arr(info.ndims)
 
