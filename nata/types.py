@@ -5,10 +5,13 @@ This file contain all the different types available with nata. It is meant to
 be used for typechecking and type annotation. It supports type checking at
 runtime.
 """
+import sys
 from pathlib import Path
-from typing import Collection
+from typing import Any
+from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 from typing import Union
@@ -17,18 +20,28 @@ import numpy as np
 
 # "Protocol" and "runtime_checkable" are builtin for 3.8+
 # otherwise use "typing_extension" package
-try:
+if sys.version_info >= (3, 8):
     from typing import Protocol
     from typing import runtime_checkable
-except ImportError:
-    from typing_extensions import Protocol  # noqa: F401
-    from typing_extensions import runtime_checkable  # noqa: F401
+    from typing import TypedDict
+else:
+    from typing_extensions import Protocol
+    from typing_extensions import runtime_checkable
+    from typing_extensions import TypedDict
 
 
-_BasicIndexing = Union[int, slice, Tuple[slice, int]]
-_FieldIndex = Union[
-    List[str], str,
-]
+def is_basic_indexing(key: Any):
+    indexing = np.index_exp[key]
+    passes = []
+    for ind in indexing:
+        if isinstance(ind, (int, slice)):
+            passes.append(True)
+        else:
+            passes.append(False)
+
+    if all(passes):
+        return True
+    return False
 
 
 @runtime_checkable
@@ -40,9 +53,6 @@ class BackendType(Protocol):
     def is_valid_backend(path: Union[Path, str]) -> bool:
         ...
 
-    def get_data(self, indexing=Optional[_BasicIndexing]) -> np.ndarray:
-        ...
-
 
 @runtime_checkable
 class GridBackendType(BackendType, Protocol):
@@ -50,9 +60,9 @@ class GridBackendType(BackendType, Protocol):
     dataset_label: str
     dataset_unit: str
 
-    axes_names: Collection[str]
-    axes_labels: Collection[str]
-    axes_units: Collection[str]
+    axes_names: List[str]
+    axes_labels: Sequence[str]
+    axes_units: Sequence[str]
     axes_min: np.ndarray
     axes_max: np.ndarray
 
@@ -60,9 +70,14 @@ class GridBackendType(BackendType, Protocol):
     time_step: float
     time_unit: str
 
-    shape: Collection[int]
+    shape: Tuple[int]
     dtype: np.dtype
     ndim: int
+
+    def get_data(
+        self, indexing=Optional[Union[int, slice, Tuple[slice, int]]]
+    ) -> np.ndarray:
+        ...
 
 
 @runtime_checkable
@@ -70,9 +85,9 @@ class ParticleBackendType(BackendType, Protocol):
     dataset_name: str
     num_particles: int
 
-    quantity_names: Collection[str]
-    quantity_labels: Collection[str]
-    quantity_units: Collection[str]
+    quantity_names: Sequence[str]
+    quantity_labels: Sequence[str]
+    quantity_units: Sequence[str]
 
     iteration: int
     time_step: float
@@ -80,29 +95,46 @@ class ParticleBackendType(BackendType, Protocol):
 
     dtype: np.dtype
 
-    # Particle backend has a custom get_data method for accessing fields
     def get_data(
-        self, indexing=Optional[_BasicIndexing], fields=Optional[_FieldIndex]
+        self,
+        indexing=Optional[Union[int, slice, Tuple[slice, int]]],
+        fields=Optional[Union[str, Sequence[str]]],
     ) -> np.ndarray:
         ...
 
 
 @runtime_checkable
-class DatasetType(Protocol):
+class HasAppend(Protocol):
+    def append(self, other: Any) -> None:
+        ...
+
+    def equivalent(self, other: Any) -> bool:
+        ...
+
+
+@runtime_checkable
+class DatasetType(HasAppend, Protocol):
     _backends: Set[BackendType]
-    _allowed_backend_type: Optional[BackendType]
 
     @classmethod
     def add_backend(cls, backend: BackendType) -> None:
         ...
 
     @classmethod
+    def remove_backend(cls, backend: BackendType) -> None:
+        ...
+
+    @classmethod
     def is_valid_backend(cls, backend: BackendType) -> bool:
+        ...
+
+    @classmethod
+    def get_backends(cls) -> Dict[str, BackendType]:
         ...
 
 
 @runtime_checkable
-class ArrayInterface(Protocol):
+class HasArrayInterface(Protocol):
     data: np.ndarray
 
     dtype: np.dtype
@@ -112,10 +144,48 @@ class ArrayInterface(Protocol):
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
         ...
 
-    def __array_ufunc__(self, method, *inputs, **kwargs) -> "ArrayInterface":
-        ...
 
-    def __array_function__(
-        self, func, types, *args, **kwargs
-    ) -> "ArrayInterface":
-        ...
+@runtime_checkable
+class AxisType(HasArrayInterface, HasAppend, Protocol):
+    name: str
+    label: str
+    unit: str
+    axis_dim: int
+
+
+@runtime_checkable
+class QuantityType(HasArrayInterface, HasAppend, Protocol):
+    name: str
+    label: str
+    unit: str
+
+
+class GridDatasetAxes(TypedDict):
+    iteration: Optional[AxisType]
+    time: Optional[AxisType]
+    grid_axes: Sequence[AxisType]
+
+
+@runtime_checkable
+class GridDatasetType(HasArrayInterface, DatasetType, Protocol):
+    name: str
+    label: str
+    unit: str
+
+    axes: GridDatasetAxes
+    grid_shape: Tuple[int]
+
+
+class ParticleDatasetAxes(TypedDict):
+    iteration: Optional[AxisType]
+    time: Optional[AxisType]
+
+
+@runtime_checkable
+class ParticleDatasetType(DatasetType, Protocol):
+    name: str
+    label: str
+
+    quantities: Sequence[QuantityType]
+    axes: ParticleDatasetAxes
+    num_particles: AxisType
