@@ -63,7 +63,6 @@ def anyarray(draw, min_dims=0, max_dims=2):
                 integer_dtypes(), floating_dtypes(), complex_number_dtypes()
             ),
             shape=array_shapes(min_dims=min_dims, max_dims=max_dims),
-            unique=True,
         )
     )
     assume(not np.any(np.isnan(arr)))
