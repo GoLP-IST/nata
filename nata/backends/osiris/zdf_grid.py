@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Optional
 from typing import Union
 
 import numpy as np
@@ -9,12 +10,16 @@ from nata.utils.container_tools import register_backend
 from nata.utils.zdf import info
 from nata.utils.zdf import read
 
-from ..grid import GridBackend
-
 
 @register_backend(GridDataset)
-class Osiris_zdf_GridFile(GridBackend):
+class Osiris_zdf_GridFile:
     name = "osiris_zdf_grid"
+    location: Optional[Path] = None
+
+    def __init__(self, location: Union[str, Path]) -> None:
+        self.location = (
+            location if isinstance(location, Path) else Path(location)
+        )
 
     @staticmethod
     def is_valid_backend(file_path: Union[Path, str]) -> bool:
@@ -60,7 +65,7 @@ class Osiris_zdf_GridFile(GridBackend):
         return z_info.grid.label
 
     @property
-    def dim(self):
+    def ndim(self):
         z_info = info(str(self.location))
         return z_info.grid.ndims
 
