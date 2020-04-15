@@ -264,6 +264,15 @@ class GridAxis(Axis):
 
         return repr_
 
+    def __iter__(self) -> "GridAxis":
+        if len(self) == 1:
+            yield self
+        else:
+            for d in self._data:
+                yield self.__class__(
+                    data=d, name=self.name, label=self.label, unit=self.unit,
+                )
+
     def __getitem__(self, key) -> "GridAxis":
         key = np.index_exp[key]
         if len(key) not in (1, 2):

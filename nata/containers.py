@@ -10,8 +10,8 @@ from typing import Union
 
 import numpy as np
 
-from ._axes import Axis
-from ._axes import GridAxis
+from .axes import Axis
+from .axes import GridAxis
 from .types import GridBackendType
 from .types import GridDatasetAxes
 from .types import GridDatasetType
