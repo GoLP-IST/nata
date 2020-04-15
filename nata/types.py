@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import AbstractSet
 from typing import Any
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -47,7 +46,10 @@ def is_basic_indexing(key: Any):
 @runtime_checkable
 class BackendType(Protocol):
     name: str
-    location: Optional[Path]
+    location: Optional[Union[str, Path]]
+
+    def __init__(self, location: Optional[Union[str, Path]] = None) -> None:
+        ...
 
     @staticmethod
     def is_valid_backend(path: Union[Path, str]) -> bool:
@@ -60,7 +62,7 @@ class GridBackendType(BackendType, Protocol):
     dataset_label: str
     dataset_unit: str
 
-    axes_names: List[str]
+    axes_names: Sequence[str]
     axes_labels: Sequence[str]
     axes_units: Sequence[str]
     axes_min: np.ndarray
@@ -70,7 +72,7 @@ class GridBackendType(BackendType, Protocol):
     time_step: float
     time_unit: str
 
-    shape: Tuple[int]
+    shape: Tuple[int, ...]
     dtype: np.dtype
     ndim: int
 
