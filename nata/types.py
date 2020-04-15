@@ -7,12 +7,12 @@ runtime.
 """
 import sys
 from pathlib import Path
+from typing import AbstractSet
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Sequence
-from typing import Set
 from typing import Tuple
 from typing import Union
 
@@ -104,17 +104,8 @@ class ParticleBackendType(BackendType, Protocol):
 
 
 @runtime_checkable
-class HasAppend(Protocol):
-    def append(self, other: Any) -> None:
-        ...
-
-    def equivalent(self, other: Any) -> bool:
-        ...
-
-
-@runtime_checkable
-class DatasetType(HasAppend, Protocol):
-    _backends: Set[BackendType]
+class DatasetType(Protocol):
+    _backends: AbstractSet[BackendType]
 
     @classmethod
     def add_backend(cls, backend: BackendType) -> None:
@@ -132,6 +123,12 @@ class DatasetType(HasAppend, Protocol):
     def get_backends(cls) -> Dict[str, BackendType]:
         ...
 
+    def append(self, other: "DatasetType") -> None:
+        ...
+
+    def equivalent(self, other: "DatasetType") -> bool:
+        ...
+
 
 @runtime_checkable
 class HasArrayInterface(Protocol):
@@ -146,18 +143,30 @@ class HasArrayInterface(Protocol):
 
 
 @runtime_checkable
-class AxisType(HasArrayInterface, HasAppend, Protocol):
+class AxisType(HasArrayInterface, Protocol):
     name: str
     label: str
     unit: str
     axis_dim: int
 
+    def append(self, other: "AxisType") -> None:
+        ...
+
+    def equivalent(self, other: "AxisType") -> bool:
+        ...
+
 
 @runtime_checkable
-class QuantityType(HasArrayInterface, HasAppend, Protocol):
+class QuantityType(HasArrayInterface, Protocol):
     name: str
     label: str
     unit: str
+
+    def append(self, other: "QuantityType") -> None:
+        ...
+
+    def equivalent(self, other: "QuantityType") -> bool:
+        ...
 
 
 class GridDatasetAxes(TypedDict):
