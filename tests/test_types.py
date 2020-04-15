@@ -1,14 +1,56 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Any
+from typing import Dict
+from typing import Set
 
 import numpy as np
 import pytest
 
-from nata.types import ArrayInterface
 from nata.types import BackendType
 from nata.types import DatasetType
 from nata.types import GridBackendType
+from nata.types import HasArrayInterface
 from nata.types import ParticleBackendType
+from nata.types import is_basic_indexing
+
+
+@pytest.mark.parametrize(
+    "key, true_or_false",
+    [
+        (1, True),
+        (np.s_[:], True),
+        (np.s_[0, 1], True),
+        (np.s_[0, :], True),
+        (np.s_[:, :], True),
+        (np.s_[:, :, :, :], True),
+        (1.0, False),
+        ("a", False),
+        (np.s_["s", :], False),
+        (np.s_["s", 0], False),
+        # CURRENTLY NOT SUPPORTED
+        # TODO: add support for Ellipses and np.newaxis
+        # http://docs.scipy.org/doc/numpy-1.17.0/reference/arrays.indexing.html
+        (np.s_[...], False),
+        (np.s_[np.newaxis], False),
+    ],
+    ids=[
+        "int",
+        "slice",
+        "int, int",
+        "int, slice",
+        "slice, slice",
+        "slice, slice, slice, slice",
+        "float",
+        "string",
+        "string, slice",
+        "string, int",
+        "Ellipsis",
+        "np.newaxis",
+    ],
+)
+def test_is_basic_indexing(key, true_or_false):
+    assert is_basic_indexing(key) is true_or_false
 
 
 @pytest.fixture(name="InvalidBackend")
@@ -27,10 +69,10 @@ def _ValidBackend():
 
         @staticmethod
         def is_valid_backend(path: Path) -> bool:
-            ...
+            raise NotImplementedError("Should never be called")
 
         def get_data(self, indexing=None) -> np.ndarray:
-            ...
+            raise NotImplementedError("Should never be called")
 
     return ValidBackend
 
@@ -78,10 +120,10 @@ def _ValidGridBackend():
 
         @staticmethod
         def is_valid_backend(path: Path) -> bool:
-            ...
+            raise NotImplementedError("Should never be called")
 
         def get_data(self, indexing=None) -> np.ndarray:
-            ...
+            raise NotImplementedError("Should never be called")
 
     return ValidGridBackend
 
@@ -129,10 +171,10 @@ def _ValidParticleBackend():
 
         @staticmethod
         def is_valid_backend(path: Path) -> bool:
-            ...
+            raise NotImplementedError("Should never be called")
 
         def get_data(self, indexing=None) -> np.ndarray:
-            ...
+            raise NotImplementedError("Should never be called")
 
     return ValidParticleBackend
 
@@ -162,16 +204,29 @@ def _InvalidDatasetType():
 @pytest.fixture(name="ValidDataset")
 def _ValidDatasetType():
     class ValidDatasetType:
-        _backends = set()
-        _allowed_backend_type = BackendType
+        _backends: Set[BackendType] = set()
 
         @classmethod
         def add_backend(cls, backend: BackendType) -> None:
-            ...
+            raise NotImplementedError("Should never be called")
+
+        @classmethod
+        def remove_backend(cls, backend: BackendType) -> None:
+            raise NotImplementedError("Should never be called")
+
+        @classmethod
+        def get_backends(cls) -> Dict[str, BackendType]:
+            raise NotImplementedError("Should never be called")
 
         @classmethod
         def is_valid_backend(cls, backend: BackendType) -> bool:
-            ...
+            raise NotImplementedError("Should never be called")
+
+        def append(self, other: Any) -> None:
+            raise NotImplementedError("Should never be called")
+
+        def equivalent(self, other: Any) -> bool:
+            raise NotImplementedError("Should never be called")
 
     return ValidDatasetType
 
@@ -181,14 +236,14 @@ def test_DatasetType_check_add_backend(InvalidDataset, ValidDataset):
     assert isinstance(ValidDataset, DatasetType) is True
 
 
-@pytest.fixture(name="InvalidArrayInterface")
-def _InvalidArrayInterface():
-    class InvalidArrayInterface:
+@pytest.fixture(name="InvalidHasArrayInterface")
+def _InvalidHasArrayInterface():
+    class InvalidHasArrayInterface:
         pass
 
-    return InvalidArrayInterface
+    return InvalidHasArrayInterface
 
 
-def test_ArrayInterface_runtime_check_class(InvalidArrayInterface):
-    assert isinstance(np.ndarray, ArrayInterface) is True
-    assert isinstance(InvalidArrayInterface, ArrayInterface) is False
+def test_HasArrayInterface_runtime_check_class(InvalidHasArrayInterface):
+    assert isinstance(np.ndarray, HasArrayInterface) is True
+    assert isinstance(InvalidHasArrayInterface, HasArrayInterface) is False
