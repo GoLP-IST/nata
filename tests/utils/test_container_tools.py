@@ -87,7 +87,7 @@ def test_register_backend_raise_invalid_backend_for_container():
     # ensures a SimpleDataset being a valid DatasetType
     assert isinstance(SimpleDataset, DatasetType)
 
-    with pytest.warns(UserWarning, match="Passed invalid backend for"):
+    with pytest.warns(UserWarning, match="Skipping backend registration!"):
 
         @register_backend(SimpleDataset)
         class DummyBackend:
