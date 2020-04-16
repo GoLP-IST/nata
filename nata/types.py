@@ -35,6 +35,10 @@ def is_basic_indexing(key: Any):
     for ind in indexing:
         if isinstance(ind, (int, slice)):
             passes.append(True)
+        elif ind is Ellipsis:
+            passes.append(True)
+        elif ind is np.newaxis:
+            passes.append(True)
         else:
             passes.append(False)
 

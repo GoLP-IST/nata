@@ -18,21 +18,20 @@ from nata.types import is_basic_indexing
 @pytest.mark.parametrize(
     "key, true_or_false",
     [
+        # basic slicing
         (1, True),
         (np.s_[:], True),
         (np.s_[0, 1], True),
         (np.s_[0, :], True),
         (np.s_[:, :], True),
         (np.s_[:, :, :, :], True),
+        (np.s_[...], True),
+        (np.s_[np.newaxis], True),
+        # non-basic slicing
         (1.0, False),
         ("a", False),
         (np.s_["s", :], False),
         (np.s_["s", 0], False),
-        # CURRENTLY NOT SUPPORTED
-        # TODO: add support for Ellipses and np.newaxis
-        # http://docs.scipy.org/doc/numpy-1.17.0/reference/arrays.indexing.html
-        (np.s_[...], False),
-        (np.s_[np.newaxis], False),
     ],
     ids=[
         "int",
@@ -41,12 +40,12 @@ from nata.types import is_basic_indexing
         "int, slice",
         "slice, slice",
         "slice, slice, slice, slice",
+        "Ellipsis",
+        "np.newaxis",
         "float",
         "string",
         "string, slice",
         "string, int",
-        "Ellipsis",
-        "np.newaxis",
     ],
 )
 def test_is_basic_indexing(key, true_or_false):
