@@ -163,6 +163,11 @@ class AxisType(HasArrayInterface, Protocol):
 
 
 @runtime_checkable
+class GridAxisType(AxisType, Protocol):
+    axis_type: str
+
+
+@runtime_checkable
 class QuantityType(HasArrayInterface, Protocol):
     name: str
     label: str
