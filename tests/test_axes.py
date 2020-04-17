@@ -3,13 +3,18 @@ import numpy as np
 import pytest
 from hypothesis import assume
 from hypothesis import given
+from hypothesis.strategies import sampled_from
+from hypothesis.strategies import text
 
 from nata.axes import Axis
 from nata.axes import GridAxis
 from nata.types import AxisType
+from nata.types import GridAxisType
 
 from .strategies import anyarray
 from .strategies import array_and_basic_indices
+from .strategies import bounded_intergers
+from .strategies import number
 
 
 def test_Axis_type_check():
@@ -264,211 +269,76 @@ def test_Axis_getitem(arr_and_indexing):
     np.testing.assert_array_equal(subaxis, subarr)
 
 
+@pytest.mark.wip
 def test_GridAxis_type_check():
     assert isinstance(GridAxis, AxisType)
+    assert isinstance(GridAxis, GridAxisType)
 
 
-def test_GridAxis_default_init():
-    grid = GridAxis(0.0, 1.0, 10)
-
-    assert grid.name == "unnamed"
-    assert grid.label == ""
-    assert grid.unit == ""
-
-    assert grid.axis_type == "linear"
-    assert grid.shape == (10,)
-    assert grid.ndim == 1
-
-    np.testing.assert_array_equal(grid, np.linspace(0, 1, 10))
-
-
-def test_GridAxis_multidim_init():
-    min_values = (0.0, 1.0, 3.0)
-    max_values = (10.0, 2.0, 15.0)
-    grid = GridAxis(min_values, max_values, 10)
-
-    expected = []
-    for min_, max_ in zip(min_values, max_values):
-        expected.append(np.linspace(min_, max_, 10))
-    expected = np.array(expected)
-
-    np.testing.assert_array_equal(grid, expected)
-
-
-def test_GridAxis_init_with_data():
-    data_arr = np.arange(10)
-    gridaxis = GridAxis(
-        data=data_arr,
-        name="custom_name",
-        label="custom_label",
-        unit="custom_unit",
-    )
-
-    assert gridaxis.name == "custom_name"
-    assert gridaxis.label == "custom_label"
-    assert gridaxis.unit == "custom_unit"
-    assert gridaxis.axis_type == "custom"
-    assert gridaxis.grid_cells == 10
-    assert len(gridaxis) == 1
-    np.testing.assert_array_equal(gridaxis, data_arr)
-
-    data_arr = np.arange(10).reshape((2, 5))
-    gridaxis = GridAxis(
-        data=data_arr,
-        name="custom_name",
-        label="custom_label",
-        unit="custom_unit",
-    )
-
-    assert gridaxis.name == "custom_name"
-    assert gridaxis.label == "custom_label"
-    assert gridaxis.unit == "custom_unit"
-    assert gridaxis.axis_type == "custom"
-    assert len(gridaxis) == 2
-    np.testing.assert_array_equal(gridaxis, data_arr)
-
-
-@pytest.mark.parametrize(
-    "axis_type, expected",
-    [
-        (None, "linear"),
-        ("lin", "linear"),
-        ("linear", "linear"),
-        ("log", "logarithmic"),
-        ("logarithmic", "logarithmic"),
-    ],
-    ids=[
-        "default",
-        "lin->linear",
-        "linear->linear",
-        "log->logarithmic",
-        "logarithmic->logarithmic",
-    ],
+@pytest.mark.wip
+@given(
+    num=number(include_complex_numbers=False).filter(lambda n: n > 0.0),
+    delta=number(include_complex_numbers=False).filter(lambda n: n >= 0.0),
+    cells=bounded_intergers(min_value=1, max_value=100),
+    label=text(),
+    unit=text(),
+    axis_type=sampled_from(("linear", "logarithmic", "log", "lin")),
 )
-def test_GridAxis_axis_type(axis_type, expected):
-    if axis_type is not None:
-        assert GridAxis(0.0, 1.0, 10, axis_type=axis_type).axis_type == expected
+def test_GridAxis_from_limits(num, delta, cells, label, unit, axis_type):
+    min_ = num
+    max_ = num + delta
+    gridaxis = GridAxis.from_limits(
+        min_,
+        max_,
+        cells,
+        name="some_name",
+        label=label,
+        unit=unit,
+        axis_type=axis_type,
+    )
+
+    assert gridaxis.name == "some_name"
+    assert gridaxis.label == label
+    assert gridaxis.unit == unit
+
+    assert gridaxis.axis_type == axis_type
+    assert gridaxis.axis_dim == 1
+
+    if axis_type in ("lin", "linear"):
+        np.testing.assert_array_equal(gridaxis, np.linspace(min_, max_, cells))
     else:
-        assert GridAxis(0.0, 1.0, 10).axis_type == expected
+        np.testing.assert_array_equal(
+            gridaxis, np.logspace(np.log10(min_), np.log10(max_), cells)
+        )
 
 
-def test_GridAxis_invalid_axis_type_raise():
-    with pytest.raises(ValueError, match="Invalid axis type"):
-        GridAxis(0.0, 1.0, 10, axis_type="invlid")
+@pytest.mark.wip
+def test_GridAxis_iteration():
+    gridaxis = GridAxis(np.arange(10), axis_type="custom")
+    for i, axis in enumerate(gridaxis):
+        assert axis is not gridaxis
+        assert isinstance(axis, GridAxis)
+        assert axis.axis_type == "custom"
+        np.testing.assert_array_equal(i, axis)
 
 
-def test_GridAxis_array_interface():
-    np.testing.assert_array_equal(
-        GridAxis(0.0, 1.0, 10), np.linspace(0.0, 1.0, 10)
-    )
-    np.testing.assert_array_equal(
-        GridAxis(0.1, 1.0, 10, axis_type="log"), np.logspace(-1, 0, 10),
-    )
-
-
-def test_GridAxis_equivalent():
-    gridaxis = GridAxis(0.0, 1.0, 10)
-    other = GridAxis(0.0, 1.0, 10)
-    other.axis_type = "lin"
-    assert gridaxis.equivalent(other) is True
-    other.axis_type = "log"
-    assert gridaxis.equivalent(other) is False
-    other.axis_type = "logarithmic"
-    assert gridaxis.equivalent(other) is False
-
-
-def test_GridAxis_append():
-    axis = GridAxis(0.0, 1.0, 10)
-    expected_axis = np.linspace(0.0, 1.0, 10)
-    np.testing.assert_array_equal(axis, expected_axis)
-
-    axis.append(GridAxis(0.0, 1.0, 10))
-    np.testing.assert_array_equal(axis, [expected_axis] * 2)
-
-    axis.append(GridAxis([0.0, 0.0], [1.0, 1.0], 10))
-    np.testing.assert_array_equal(axis, [expected_axis] * 4)
-
-
-def test_GridAxis_append_raise_wrong_type():
-    with pytest.raises(TypeError, match="Can not append"):
-        gridaxis = GridAxis(0.0, 1.0, 10, name="gridaxis")
-        gridaxis.append(1)
-
-
-def test_GridAxis_append_raise_mismatch_attributes():
-    with pytest.raises(ValueError, match="Mismatch in attributes"):
-        gridaxis = GridAxis(0.0, 1.0, 10, name="gridaxis")
-        gridaxis.append(GridAxis(0.0, 1.0, 10, name="different"))
-
-
-@pytest.mark.parametrize(
-    "kwargs, key, expected_grid_cells, expected_shape, expected_array",
-    [
-        (dict(data=np.arange(10)), np.s_[0], 1, (1,), 0),
-        (dict(data=np.arange(10)), np.s_[2:5], 3, (3,), [2, 3, 4]),
-        (dict(data=np.arange(10)), np.s_[2:2], 0, (0,), []),
-        (
-            dict(data=np.arange(21).reshape((3, 7))),
-            np.s_[0],
-            7,
-            (7,),
-            [0, 1, 2, 3, 4, 5, 6],
-        ),
-        (
-            dict(data=np.arange(21).reshape((7, 3))),
-            np.s_[1:5],
-            3,
-            (4, 3),
-            [[3, 4, 5], [6, 7, 8], [9, 10, 11], [12, 13, 14]],
-        ),
-        (dict(data=np.arange(30).reshape((5, 6))), np.s_[2, 4], 1, (1,), [16],),
-        (
-            dict(data=np.arange(30).reshape((5, 6))),
-            np.s_[2, 1:3],
-            2,
-            (2,),
-            [13, 14],
-        ),
-        (
-            dict(data=np.arange(30).reshape((5, 6))),
-            np.s_[2:4, 4],
-            1,
-            (2, 1),
-            [[16], [22]],
-        ),
-        (
-            dict(data=np.arange(30).reshape((5, 6))),
-            np.s_[2:4, 1:4],
-            3,
-            (2, 3),
-            [[13, 14, 15], [19, 20, 21]],
-        ),
-    ],
-    ids=[
-        "len == 1 and (int,)",
-        "len == 1 and (slice,)",
-        "len == 1 and (x:x,) -> lead to empty",
-        "len != 1 and (int,)",
-        "len != 1 and (slice,)",
-        "len != 1 and (int, int)",
-        "len != 1 and (int, slice)",
-        "len != 1 and (slice, int)",
-        "len != 1 and (slice, slice)",
-    ],
+@pytest.mark.wip
+@given(
+    label=text(),
+    unit=text(),
+    axis_type=sampled_from(("linear", "logarithmic", "log", "lin")),
 )
-def test_GridAxis_getitem(
-    kwargs, key, expected_grid_cells, expected_shape, expected_array
-):
+def test_GridAxis_repr(label, unit, axis_type):
     gridaxis = GridAxis(
-        **kwargs, name="some_name", label="some_label", unit="some_unit"
+        1, name="some_name", label=label, unit=unit, axis_type=axis_type
     )
-    subgridaxis = gridaxis[key]
-
-    assert subgridaxis is not gridaxis
-    assert subgridaxis.name == gridaxis.name
-    assert subgridaxis.label == gridaxis.label
-    assert subgridaxis.unit == gridaxis.unit
-    assert subgridaxis.axis_type == "custom"
-    assert subgridaxis.grid_cells == expected_grid_cells
-    assert subgridaxis.shape == expected_shape
-    np.testing.assert_array_equal(subgridaxis, expected_array)
+    assert (
+        repr(gridaxis)
+        == "GridAxis("
+        + "name='some_name', "
+        + f"label='{label}', "
+        + f"unit='{unit}', "
+        + "axis_dim=0, "
+        + f"axis_type={axis_type}"
+        + ")"
+    )
