@@ -7,10 +7,10 @@ from typing import Union
 
 import numpy as np
 
-from nata.utils.formatting import array_format
-from nata.utils.formatting import make_identifiable
-
 from .types import AxisType
+from .types import is_basic_indexing
+from .utils.formatting import array_format
+from .utils.formatting import make_identifiable
 
 
 def _log_axis(min_, max_, points, dtype):
@@ -26,109 +26,80 @@ class Axis:
         self,
         data: np.ndarray,
         *,
-        axis_dim: int = 0,
         name: str = "unnamed",
         label: str = "",
         unit: str = "",
     ):
-        data = np.asanyarray(data)
-
-        # data dim and dim for iteration/time -> axis_dim + 1
-        if data.ndim > axis_dim + 1 or data.ndim < axis_dim:
-            raise ValueError("Data dimensionality mismatch")
-
-        # makes sure it is always in the shape of (time_steps,) + axis_dim
-        if data.ndim == axis_dim:
-            data = data[np.newaxis]
+        if not isinstance(data, np.ndarray):
+            data = np.asanyarray(data)
 
         self._data = data
-        self._axis_dim = axis_dim
 
         name = make_identifiable(name)
-        self._name: str = name if name else "unnamed"
-
-        self._label: str = label
-        self._unit: str = unit
+        self._name = name if name else "unnamed"
+        self._label = label
+        self._unit = unit
 
     def __repr__(self) -> str:
         repr_ = f"{self.__class__.__name__}("
         repr_ += f"name='{self.name}', "
         repr_ += f"label='{self.label}', "
         repr_ += f"unit='{self.unit}', "
-        repr_ += f"data={array_format(self.data)}"
+        repr_ += f"axis_dim={self.axis_dim}"
         repr_ += ")"
 
         return repr_
 
     def __len__(self) -> int:
-        return len(self._data)
+        if self.shape == ():
+            return 1
+        else:
+            return len(self._data)
 
     def __iter__(self) -> "Axis":
-        if len(self) == 1:
-            yield self
+        if self.shape == ():
+            data = self.data[np.newaxis]
         else:
-            for d in self._data:
-                yield self.__class__(
-                    d,
-                    axis_dim=self.axis_dim,
-                    name=self.name,
-                    label=self.label,
-                    unit=self.unit,
-                )
+            data = self.data
+
+        for d in data:
+
+            yield self.__class__(
+                d, name=self.name, label=self.label, unit=self.unit,
+            )
 
     def __getitem__(
         self, key: Union[int, slice, Tuple[Union[int, slice]]]
     ) -> "Axis":
-        # ensures key is tuple
-        key = np.index_exp[key]
-        data = self.data[key]
-        other_axis = key if len(self) == 1 else key[1:]
-        new_dim = self.axis_dim - sum(isinstance(s, int) for s in other_axis)
+        if not is_basic_indexing(key):
+            raise IndexError("Only basic indexing is supported!")
 
         return self.__class__(
-            data,
-            axis_dim=new_dim,
-            name=self.name,
-            label=self.label,
-            unit=self.unit,
+            self.data[key], name=self.name, label=self.label, unit=self.unit,
         )
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
         if dtype:
-            data = self._data.astype(dtype)
+            return self._data.astype(dtype)
         else:
-            data = self._data
-
-        if len(self) == 1:
-            return np.squeeze(data, axis=0)
-        else:
-            return data
+            return self._data
 
     @property
     def data(self):
-        return self.__array__()
+        return self._data
 
     @data.setter
     def data(self, value: Union[np.ndarray, Any]) -> None:
-        value = np.asanyarray(value)
-
-        if value.shape != self.shape:
-            raise ValueError(
-                f"Shapes inconsistent {self.shape} -> {value.shape}"
-            )
-
-        if len(self) == 1:
-            self._data = value[np.newaxis]
-        else:
-            self._data = value
+        new = np.broadcast_to(value, self.shape, subok=True)
+        self._data = np.array(new)
 
     @property
     def axis_dim(self):
-        return self._axis_dim
+        return self._data.ndim
 
     @property
     def shape(self):
-        return np.squeeze(self._data).shape
+        return self._data.shape
 
     @property
     def dtype(self):
@@ -136,19 +107,36 @@ class Axis:
 
     @property
     def ndim(self):
-        return np.squeeze(self._data).ndim
+        return self._data.ndim
 
     @property
     def name(self):
         return self._name
 
+    @name.setter
+    def name(self, value):
+        parsed_value = make_identifiable(str(value))
+        if not parsed_value:
+            raise ValueError("Invalid name provided!")
+        self._name = parsed_value
+
     @property
     def label(self):
         return self._label
 
+    @label.setter
+    def label(self, value):
+        value = str(value)
+        self._label = value
+
     @property
     def unit(self):
         return self._unit
+
+    @unit.setter
+    def unit(self, value):
+        value = str(value)
+        self._unit = value
 
     def equivalent(self, other: Union[Any, AxisType]) -> bool:
         if not isinstance(other, self.__class__):
@@ -163,9 +151,6 @@ class Axis:
         if self.unit != other.unit:
             return False
 
-        if self.axis_dim != other.axis_dim:
-            return False
-
         return True
 
     def append(self, other: "Axis"):
@@ -177,7 +162,12 @@ class Axis:
                 f"Mismatch in attributes between '{self}' and '{other}'"
             )
 
-        self._data = np.append(self._data, other._data, axis=0)
+        if not self.shape and not other.shape:
+            self._data = np.array([self.data, other.data], dtype=self.dtype)
+        elif self.ndim == other.ndim:
+            self._data = np.append(self.data, other.data, axis=0)
+        else:
+            self._data = np.append(self.data, other.data)
 
 
 _ignored_if_data = object()

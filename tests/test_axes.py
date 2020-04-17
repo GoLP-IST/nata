@@ -1,44 +1,93 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pytest
+from hypothesis import assume
+from hypothesis import given
 
 from nata.axes import Axis
 from nata.axes import GridAxis
 from nata.types import AxisType
+
+from .strategies import anyarray
+from .strategies import array_and_basic_indices
 
 
 def test_Axis_type_check():
     assert isinstance(Axis, AxisType)
 
 
-def test_Axis_default_init():
-    axis = Axis(np.arange(10))
+@given(anyarray())
+def test_Axis_default_init(arr):
+    axis = Axis(arr)
 
     assert axis.name == "unnamed"
     assert axis.label == ""
     assert axis.unit == ""
-    assert axis.shape == (10,)
-    np.testing.assert_array_equal(axis, np.arange(10))
-
-
-def test_Axis_data_change():
-    arr = np.arange(10)
-    axis = Axis(arr)
+    assert axis.shape == arr.shape
     np.testing.assert_array_equal(axis, arr)
 
-    new = np.random.random_sample(axis.shape)
+
+@given(base=anyarray(), new=anyarray())
+def test_Axis_data_change_broadcastable(base, new):
+    try:
+        expected = np.broadcast_to(new, base.shape)
+    except ValueError:
+        assume(False)
+
+    axis = Axis(base)
+    np.testing.assert_array_equal(axis, base)
+
     axis.data = new
-    np.testing.assert_array_equal(axis, new)
+    np.testing.assert_array_equal(axis, expected)
 
 
-def test_Axis_data_shapeMismatch():
-    length = 10
-    arr = np.arange(length)
-    axis = Axis(arr)
+@given(base=anyarray(), new=anyarray())
+def test_Axis_data_change_not_broadcastable(base, new):
+    try:
+        np.broadcast_to(new, base.shape)
+        assume(False)  # not valid hypothesis test
+    except ValueError:
+        pass
 
-    new = np.arange(length + 1)
-    with pytest.raises(ValueError, match="Shapes inconsistent"):
+    axis = Axis(base)
+
+    with pytest.raises(ValueError):
         axis.data = new
+
+
+@pytest.mark.parametrize(
+    "arr, expected_shape",
+    [(1, ()), ([1], (1,)), ([[1]], (1, 1)), ([[[1]]], (1, 1, 1))],
+    ids=[
+        "int -> ()",
+        "[int] -> (1,)",
+        "[[int]] -> (1, 1)",
+        "[[[int]]] -> (1, 1, 1)",
+    ],
+)
+def test_Axis_shape(arr, expected_shape):
+    axis = Axis(arr)
+    assert axis.shape == expected_shape
+
+
+@pytest.mark.parametrize(
+    "arr, expected_ndim",
+    [(1, 0), ([1], 1), ([[1]], 2), ([[[1]]], 3)],
+    ids=["int -> 0", "[int] -> 1", "[[int]] -> 2", "[[[int]]] -> 3"],
+)
+def test_Axis_ndim(arr, expected_ndim):
+    axis = Axis(arr)
+    assert axis.ndim == expected_ndim
+
+
+@pytest.mark.parametrize(
+    "arr, expected_axis_dim",
+    [(1, 0), ([1], 1), ([[1]], 2), ([[[1]]], 3)],
+    ids=["int -> 0", "[int] -> 1", "[[int]] -> 2", "[[[int]]] -> 3"],
+)
+def test_Axis_axis_dim(arr, expected_axis_dim):
+    axis = Axis(arr)
+    assert axis.axis_dim == expected_axis_dim
 
 
 def test_Axis_name_init():
@@ -68,7 +117,7 @@ def test_Axis_repr():
         + "name='some_name', "
         + "label='some_label', "
         + "unit='some_unit', "
-        + "data=1"
+        + "axis_dim=0"
         + ")"
     )
 
@@ -79,63 +128,60 @@ def test_Axis_repr():
         + "name='some_name', "
         + "label='some_label', "
         + "unit='some_unit', "
-        + "data=[0, 1]"
+        + "axis_dim=1"
         + ")"
     )
 
 
-def test_Axis_dimensionality_mismatch():
-    with pytest.raises(ValueError, match="dimensionality mismatch"):
-        Axis(np.empty([]), axis_dim=1)
-
-    with pytest.raises(ValueError, match="dimensionality mismatch"):
-        Axis(np.empty((1, 1)), axis_dim=0)
-
-
-def test_Axis_underlaying_data_dimensionality():
-    axis = Axis(np.array(1))
-    assert axis._data.shape == (1,)
-
-    axis = Axis(np.array([1]))
-    assert axis._data.shape == (1,)
-
-    axis = Axis(np.array([1]), axis_dim=1)
-    assert axis._data.shape == (1, 1)
-
-
-def test_Axis_dimensionality_consist():
+def test_Axis_dimensionality():
     axis = Axis(np.empty(10))
     assert axis.shape == (10,)
     assert axis.ndim == 1
+    assert len(axis) == 10
 
-    axis = Axis(np.empty(10), axis_dim=1)
-    assert axis.shape == (10,)
-    assert axis.ndim == 1
+    axis = Axis(np.empty((1, 10)))
+    assert axis.shape == (1, 10)
+    assert axis.ndim == 2
+    assert len(axis) == 1
 
-    axis = Axis(np.empty((2, 10)), axis_dim=1)
+    axis = Axis(np.empty((2, 10)))
     assert axis.shape == (2, 10)
     assert axis.ndim == 2
 
 
 def test_Axis_equivalent():
-    axis = Axis(np.array(1))
+    axis = Axis(1)
 
-    assert axis.equivalent(Axis(np.array(1))) is True
+    assert axis.equivalent(Axis(1)) is True
     assert axis.equivalent(object()) is False
     assert axis.equivalent(Axis(np.array(1), name="other")) is False
     assert axis.equivalent(Axis(np.array(1), label="other")) is False
     assert axis.equivalent(Axis(np.array(1), unit="other")) is False
-    assert axis.equivalent(Axis(np.array([1]), axis_dim=1)) is False
 
 
 def test_Axis_append():
-    axis = Axis(np.array(1))
-    axis.append(Axis(np.array(2)))
+    axis = Axis(1)
+    assert axis.shape == ()
 
+    axis.append(Axis(2))
+    assert axis.shape == (2,)
     np.testing.assert_array_equal(axis, [1, 2])
 
-    axis.append(Axis(np.array([3, 4])))
+    axis.append(Axis([3, 4]))
+    assert axis.shape == (4,)
     np.testing.assert_array_equal(axis, [1, 2, 3, 4])
+
+    axis = Axis(1)
+    axis.append(Axis([2, 3]))
+    assert axis.shape == (3,)
+    np.testing.assert_array_equal(axis, [1, 2, 3])
+
+    axis = Axis([[1, 2]])
+    assert axis.shape == (1, 2)
+    axis.append(Axis([[3, 4]]))
+    assert axis.shape == (2, 2)
+    axis.append(Axis([[5, 6]]))
+    assert axis.shape == (3, 2)
 
 
 def test_Axis_append_wrong_type():
@@ -151,120 +197,71 @@ def test_Axis_append_different_axis():
 
 
 def test_Axis_len():
-    axis = Axis(np.array(1))
+    axis = Axis(1)
     assert len(axis) == 1
 
-    axis.append(Axis(np.array(2)))
+    axis.append(Axis(2))
     assert len(axis) == 2
 
-    axis.append(Axis(np.array([3, 4])))
+    axis.append(Axis([3, 4]))
     assert len(axis) == 4
+
+    axis = Axis([1])
+    assert len(axis) == 1
+
+    axis = Axis([1, 2])
+    assert len(axis) == 2
+
+    axis = Axis([[1, 2]])
+    assert len(axis) == 1
 
 
 def test_Axis_iterator_single_item():
-    axis = Axis(np.array(1))
+    axis = Axis(1)
 
     for ax in axis:
-        assert ax is axis
+        assert ax is not axis
+        np.testing.assert_array_equal(ax, 1)
 
 
-def test_Axis_iterator_multiple_items():
+def test_Axis_iterator_multiple_items_0d():
+    name = "some_name"
+    label = "some_label"
+    unit = "some_unit"
+
     arrays = [np.array(1), np.array(2), np.array(3)]
-    axis = Axis(
-        arrays[0], name="some_name", label="some_label", unit="some_unit"
-    )
-    axis.append(
-        Axis(arrays[1], name="some_name", label="some_label", unit="some_unit")
-    )
-    axis.append(
-        Axis(arrays[2], name="some_name", label="some_label", unit="some_unit")
-    )
+    axis = Axis(arrays[0], name=name, label=label, unit=unit)
+    axis.append(Axis(arrays[1], name=name, label=label, unit=unit))
+    axis.append(Axis(arrays[2], name=name, label=label, unit=unit))
 
     for ax, arr in zip(axis, arrays):
         assert ax is not axis
-        assert ax.name == axis.name
-        assert ax.label == axis.label
-        assert ax.unit == axis.unit
-        np.testing.assert_array_equal(ax, [arr])
+        assert ax.name == name
+        assert ax.label == label
+        assert ax.unit == unit
+        np.testing.assert_array_equal(ax, arr)
 
 
-@pytest.mark.parametrize(
-    "init_array, indexing, expected_array",
-    [
-        (np.arange(10), np.s_[0], np.array(0)),
-        (np.arange(10), np.s_[:], np.arange(10)),
-        (np.arange(10), np.s_[3:7], np.arange(10)[3:7]),
-        (np.arange(10), np.s_[3:7:2], np.arange(10)[3:7:2]),
-    ],
-    ids=["int", "slice", "range", "range+step"],
-)
-def test_Axis_getitem_0d(init_array, indexing, expected_array):
-    axis = Axis(
-        init_array, name="some_name", label="some_label", unit="some_unit"
-    )
+@given(array_and_basic_indices())
+def test_Axis_getitem(arr_and_indexing):
+    arr, indexing = arr_and_indexing
+    name = "some_name"
+    label = "some_label"
+    unit = "some_unit"
+
+    axis = Axis(arr, name=name, label=label, unit=unit)
 
     subaxis = axis[indexing]
+    subarr = arr[indexing]
 
     assert subaxis is not axis
-    assert subaxis.name == axis.name
-    assert subaxis.label == axis.label
-    assert subaxis.unit == axis.unit
-    assert subaxis.axis_dim == axis.axis_dim
+    assert subaxis.name == name
+    assert subaxis.label == label
+    assert subaxis.unit == unit
+    assert subaxis.ndim == subarr.ndim
+    assert subaxis.shape == subarr.shape
 
-    np.testing.assert_array_equal(subaxis, expected_array)
-
-
-@pytest.mark.parametrize(
-    "init_array, indexing, expected_array, expected_axis_dim",
-    [
-        (np.arange(10), np.s_[0], 0, 0),
-        (np.arange(10), np.s_[2:2], np.array([]), 1),
-        (np.arange(10).reshape((2, 5)), np.s_[0], np.arange(5), 1),
-        (
-            np.arange(100).reshape((10, 10)),
-            np.s_[2:7],
-            np.arange(100).reshape((10, 10))[2:7],
-            1,
-        ),
-        (np.arange(10).reshape((2, 5)), np.s_[1, 0], 5, 0),
-        (np.arange(10).reshape((2, 5)), np.s_[1, 1:], np.arange(4) + 6, 1),
-        (
-            np.arange(25).reshape((5, 5)),
-            np.s_[1:, 1:],
-            np.arange(25).reshape((5, 5))[1:, 1:],
-            1,
-        ),
-    ],
-    ids=[
-        "len == 1 and (int,)",
-        "len == 1 and (slice,)",
-        "len != 1 and (int,)",
-        "len != 1 and (slice,)",
-        "len != 1 and (int, int)",
-        "len != 1 and (int, slice)",
-        "len != 1 and (slice, slice)",
-    ],
-)
-def test_Axis_getitem_1d(
-    init_array, indexing, expected_array, expected_axis_dim
-):
-    axis = Axis(
-        init_array,
-        axis_dim=1,
-        name="some_name",
-        label="some_label",
-        unit="some_unit",
-    )
-
-    subaxis = axis[indexing]
-
-    assert subaxis is not axis
-    assert subaxis.name == axis.name
-    assert subaxis.label == axis.label
-    assert subaxis.unit == axis.unit
-    assert subaxis.axis_dim == expected_axis_dim
-
-    np.testing.assert_array_equal(subaxis, expected_array)
+    np.testing.assert_array_equal(subaxis, subarr)
 
 
 def test_GridAxis_type_check():
