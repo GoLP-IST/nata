@@ -25,6 +25,22 @@ def intc_bounded_intergers(draw):
 
 
 @composite
+def bounded_intergers(draw, min_value=None, max_value=None):
+    lower_limit = (
+        min_value
+        if (min_value and (min_value > np.iinfo(np.intc).min))
+        else np.iinfo(np.intc).min
+    )
+    upper_limit = (
+        max_value
+        if (max_value and (max_value < np.iinfo(np.intc).max))
+        else np.iinfo(np.intc).max
+    )
+
+    return draw(integers(min_value=lower_limit, max_value=upper_limit),)
+
+
+@composite
 def number_or_none(draw):
     return draw(
         one_of(
