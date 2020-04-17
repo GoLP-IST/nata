@@ -269,13 +269,11 @@ def test_Axis_getitem(arr_and_indexing):
     np.testing.assert_array_equal(subaxis, subarr)
 
 
-@pytest.mark.wip
 def test_GridAxis_type_check():
     assert isinstance(GridAxis, AxisType)
     assert isinstance(GridAxis, GridAxisType)
 
 
-@pytest.mark.wip
 @given(
     num=number(include_complex_numbers=False).filter(lambda n: n > 0.0),
     delta=number(include_complex_numbers=False).filter(lambda n: n >= 0.0),
@@ -312,7 +310,6 @@ def test_GridAxis_from_limits(num, delta, cells, label, unit, axis_type):
         )
 
 
-@pytest.mark.wip
 def test_GridAxis_iteration():
     gridaxis = GridAxis(np.arange(10), axis_type="custom")
     for i, axis in enumerate(gridaxis):
@@ -322,7 +319,6 @@ def test_GridAxis_iteration():
         np.testing.assert_array_equal(i, axis)
 
 
-@pytest.mark.wip
 @given(
     label=text(),
     unit=text(),
