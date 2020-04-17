@@ -88,7 +88,7 @@ class Axis:
     @data.setter
     def data(self, value: Union[np.ndarray, Any]) -> None:
         new = np.broadcast_to(value, self.shape, subok=True)
-        self._data = np.array(new)
+        self._data = np.array(new, subok=True)
 
     @property
     def axis_dim(self):
