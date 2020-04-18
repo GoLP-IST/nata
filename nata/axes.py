@@ -25,7 +25,6 @@ class Axis:
         self,
         data: np.ndarray,
         *,
-        axis_dim: int = 0,
         name: str = "unnamed",
         label: str = "",
         unit: str = "",
@@ -33,8 +32,7 @@ class Axis:
         if not isinstance(data, np.ndarray):
             data = np.asanyarray(data)
 
-        self._data = data
-        self._axis_dim = axis_dim
+        self._data = data if data.ndim > 0 else data[np.newaxis]
 
         name = make_identifiable(name)
         self._name = name if name else "unnamed"
@@ -46,26 +44,19 @@ class Axis:
         repr_ += f"name='{self.name}', "
         repr_ += f"label='{self.label}', "
         repr_ += f"unit='{self.unit}', "
-        repr_ += f"axis_dim={self.axis_dim}"
+        repr_ += f"axis_dim={self.axis_dim}, "
+        repr_ += f"len={len(self)}"
         repr_ += ")"
 
         return repr_
 
     def __len__(self) -> int:
-        if self.shape == ():
-            return 1
-        else:
-            return len(self._data)
+        return len(self._data)
 
     def __iter__(self) -> "Axis":
-        if self.shape == ():
-            data = self.data[np.newaxis]
-        else:
-            data = self.data
-
-        for d in data:
+        for d in self._data:
             yield self.__class__(
-                d, name=self.name, label=self.label, unit=self.unit,
+                d[np.newaxis], name=self.name, label=self.label, unit=self.unit,
             )
 
     def __getitem__(
@@ -74,32 +65,47 @@ class Axis:
         if not is_basic_indexing(key):
             raise IndexError("Only basic indexing is supported!")
 
+        key = np.index_exp[key]
+        requires_new_axis = False
+
+        # first index corresponds to temporal slicing if ndim == axis_dim + 1
+        if self.ndim == self.axis_dim + 1:
+            # revert dimensionality reduction
+            if isinstance(key[0], int):
+                requires_new_axis = True
+        else:
+            requires_new_axis = True
+
         return self.__class__(
-            self.data[key], name=self.name, label=self.label, unit=self.unit,
+            self.data[key][np.newaxis] if requires_new_axis else self.data[key],
+            name=self.name,
+            label=self.label,
+            unit=self.unit,
         )
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        if dtype:
-            return self._data.astype(dtype)
-        else:
-            return self._data
+        data = self._data.astype(dtype) if dtype else self._data
+        return np.squeeze(data, axis=0) if len(self) == 1 else data
 
     @property
-    def data(self):
-        return self._data
+    def data(self) -> np.ndarray:
+        return np.asanyarray(self)
 
     @data.setter
     def data(self, value: Union[np.ndarray, Any]) -> None:
         new = np.broadcast_to(value, self.shape, subok=True)
-        self._data = np.array(new, subok=True)
+        if len(self) == 1:
+            self._data = np.array(new, subok=True)[np.newaxis]
+        else:
+            self._data = np.array(new, subok=True)
 
     @property
     def axis_dim(self):
-        return self._axis_dim
+        return self._data.ndim - 1
 
     @property
     def shape(self):
-        return self._data.shape
+        return self._data.shape[1:] if len(self) == 1 else self._data.shape
 
     @property
     def dtype(self):
@@ -107,7 +113,7 @@ class Axis:
 
     @property
     def ndim(self):
-        return self._data.ndim
+        return (self._data.ndim - 1) if len(self) == 1 else self._data.ndim
 
     @property
     def name(self):
