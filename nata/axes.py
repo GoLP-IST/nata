@@ -7,6 +7,7 @@ from typing import Union
 import numpy as np
 
 from .types import AxisType
+from .types import GridAxisType
 from .types import is_basic_indexing
 from .utils.formatting import make_identifiable
 
@@ -24,6 +25,7 @@ class Axis:
         self,
         data: np.ndarray,
         *,
+        axis_dim: int = 0,
         name: str = "unnamed",
         label: str = "",
         unit: str = "",
@@ -32,6 +34,7 @@ class Axis:
             data = np.asanyarray(data)
 
         self._data = data
+        self._axis_dim = axis_dim
 
         name = make_identifiable(name)
         self._name = name if name else "unnamed"
@@ -92,7 +95,7 @@ class Axis:
 
     @property
     def axis_dim(self):
-        return self._data.ndim
+        return self._axis_dim
 
     @property
     def shape(self):
@@ -139,6 +142,9 @@ class Axis:
         if not isinstance(other, self.__class__):
             return False
 
+        if self.axis_dim != other.axis_dim:
+            return False
+
         if self.name != other.name:
             return False
 
@@ -150,7 +156,7 @@ class Axis:
 
         return True
 
-    def append(self, other: "Axis"):
+    def append(self, other: "Axis") -> "Axis":
         if not isinstance(other, self.__class__):
             raise TypeError(f"Can not append '{other}' to '{self}'")
 
@@ -159,12 +165,17 @@ class Axis:
                 f"Mismatch in attributes between '{self}' and '{other}'"
             )
 
-        if not self.shape and not other.shape:
-            self._data = np.array([self.data, other.data], dtype=self.dtype)
-        elif self.ndim == other.ndim:
-            self._data = np.append(self.data, other.data, axis=0)
-        else:
-            self._data = np.append(self.data, other.data)
+        selfdata = (
+            self.data[np.newaxis] if self.ndim == self.axis_dim else self.data
+        )
+
+        otherdata = (
+            other.data[np.newaxis]
+            if other.ndim == other.axis_dim
+            else other.data
+        )
+
+        self._data = np.append(selfdata, otherdata, axis=0)
 
 
 _ignored_if_data = object()
@@ -183,12 +194,15 @@ class GridAxis(Axis):
         self,
         data: np.ndarray,
         *,
+        axis_dim: int = 1,
         axis_type: str = "linear",
         name: str = "unnamed",
         label: str = "",
         unit: str = "",
     ) -> None:
-        super().__init__(data, name=name, label=label, unit=unit)
+        super().__init__(
+            data, axis_dim=axis_dim, name=name, label=label, unit=unit
+        )
 
         if axis_type not in self._axis_type_mapping:
             raise ValueError(
@@ -198,14 +212,12 @@ class GridAxis(Axis):
         self._axis_type = axis_type
 
     def __iter__(self) -> "GridAxis":
-        if self.shape == ():
-            data = self.data[np.newaxis]
-        else:
-            data = self.data
+        data = self.data if self.ndim else self.data[np.newaxis]
 
         for d in data:
             yield self.__class__(
                 d,
+                axis_dim=self.axis_dim,
                 name=self.name,
                 label=self.label,
                 unit=self.unit,
@@ -220,6 +232,7 @@ class GridAxis(Axis):
 
         return self.__class__(
             self.data[key],
+            axis_dim=self.axis_dim,
             name=self.name,
             label=self.label,
             unit=self.unit,
@@ -276,3 +289,12 @@ class GridAxis(Axis):
         axis = cls(axis, name=name, label=label, unit=unit)
         axis._axis_type = axis_type
         return axis
+
+    def equivalent(self, other: Union[Any, GridAxisType]) -> bool:
+        if not super().equivalent(other):
+            return False
+
+        if self.axis_type != other.axis_type:
+            return False
+
+        return True

@@ -3,6 +3,8 @@ import numpy as np
 import pytest
 from hypothesis import assume
 from hypothesis import given
+from hypothesis.extra.numpy import arrays
+from hypothesis.strategies import integers
 from hypothesis.strategies import sampled_from
 from hypothesis.strategies import text
 
@@ -162,6 +164,7 @@ def test_Axis_equivalent():
     assert axis.equivalent(Axis(np.array(1), name="other")) is False
     assert axis.equivalent(Axis(np.array(1), label="other")) is False
     assert axis.equivalent(Axis(np.array(1), unit="other")) is False
+    assert axis.equivalent(Axis(np.array([1]), axis_dim=1)) is False
 
 
 def test_Axis_append():
@@ -181,11 +184,11 @@ def test_Axis_append():
     assert axis.shape == (3,)
     np.testing.assert_array_equal(axis, [1, 2, 3])
 
-    axis = Axis([[1, 2]])
-    assert axis.shape == (1, 2)
-    axis.append(Axis([[3, 4]]))
+    axis = Axis([1, 2], axis_dim=1)
+    assert axis.shape == (2,)
+    axis.append(Axis([3, 4], axis_dim=1))
     assert axis.shape == (2, 2)
-    axis.append(Axis([[5, 6]]))
+    axis.append(Axis([5, 6], axis_dim=1))
     assert axis.shape == (3, 2)
 
 
@@ -319,6 +322,28 @@ def test_GridAxis_iteration():
         np.testing.assert_array_equal(i, axis)
 
 
+@given(array_and_basic_indices())
+def test_GridAxis_getitem(arr_and_indexing):
+    arr, indexing = arr_and_indexing
+    name = "some_name"
+    label = "some_label"
+    unit = "some_unit"
+
+    axis = GridAxis(arr, name=name, label=label, unit=unit)
+
+    subaxis = axis[indexing]
+    subarr = arr[indexing]
+
+    assert subaxis is not axis
+    assert subaxis.name == name
+    assert subaxis.label == label
+    assert subaxis.unit == unit
+    assert subaxis.ndim == subarr.ndim
+    assert subaxis.shape == subarr.shape
+
+    np.testing.assert_array_equal(subaxis, subarr)
+
+
 @given(
     label=text(),
     unit=text(),
@@ -338,3 +363,27 @@ def test_GridAxis_repr(label, unit, axis_type):
         + f"axis_type={axis_type}"
         + ")"
     )
+
+
+@given(
+    arr=(
+        integers(min_value=2, max_value=22).flatmap(
+            lambda n: arrays(np.dtype(float), (n, 123)),
+        )
+    ),
+    label=text(),
+    unit=text(),
+)
+def test_GridAxis_append(arr, label, unit):
+    gridaxis = GridAxis(arr[0], name="some_name", label=label, unit=unit)
+
+    for i, d in enumerate(arr):
+        if i == 0:
+            continue
+        gridaxis.append(
+            GridAxis(arr[i], name="some_name", label=label, unit=unit)
+        )
+
+    assert gridaxis.axis_dim == 1
+    assert gridaxis.ndim == 2
+    np.testing.assert_array_equal(gridaxis, arr)
