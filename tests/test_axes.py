@@ -93,7 +93,7 @@ def test_Axis_ndim(arr, expected_ndim):
     ids=["int -> 0", "[int] -> 1", "[[int]] -> 2", "[[[int]]] -> 3"],
 )
 def test_Axis_axis_dim(arr, expected_axis_dim):
-    axis = Axis(arr)
+    axis = Axis(arr, axis_dim=expected_axis_dim)
     assert axis.axis_dim == expected_axis_dim
 
 
@@ -128,7 +128,13 @@ def test_Axis_repr():
         + ")"
     )
 
-    axis = Axis([0, 1], name="some_name", label="some_label", unit="some_unit")
+    axis = Axis(
+        [0, 1],
+        axis_dim=1,
+        name="some_name",
+        label="some_label",
+        unit="some_unit",
+    )
     assert (
         repr(axis)
         == "Axis("
@@ -359,7 +365,7 @@ def test_GridAxis_repr(label, unit, axis_type):
         + "name='some_name', "
         + f"label='{label}', "
         + f"unit='{unit}', "
-        + "axis_dim=0, "
+        + "axis_dim=1, "
         + f"axis_type={axis_type}"
         + ")"
     )
