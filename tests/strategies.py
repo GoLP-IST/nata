@@ -72,12 +72,22 @@ def number(draw, include_complex_numbers=True):
 
 
 @composite
-def anyarray(draw, min_dims=0, max_dims=2):
+def anyarray(
+    draw,
+    min_dims: int = 0,
+    max_dims: int = 2,
+    include_complex_numbers: bool = True,
+):
+    if include_complex_numbers:
+        dtype = one_of(
+            integer_dtypes(), floating_dtypes(), complex_number_dtypes()
+        )
+    else:
+        dtype = one_of(integer_dtypes(), floating_dtypes())
+
     arr = draw(
         arrays(
-            dtype=one_of(
-                integer_dtypes(), floating_dtypes(), complex_number_dtypes()
-            ),
+            dtype=dtype,
             shape=array_shapes(min_dims=min_dims, max_dims=max_dims),
         )
     )
