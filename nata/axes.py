@@ -117,7 +117,9 @@ class Axis:
     def name(self, value):
         parsed_value = make_identifiable(str(value))
         if not parsed_value:
-            raise ValueError("Invalid name provided!")
+            raise ValueError(
+                "Invalid name provided! Has to be able to be valid code"
+            )
         self._name = parsed_value
 
     @property
@@ -182,13 +184,13 @@ _ignored_if_data = object()
 
 
 class GridAxis(Axis):
-    _axis_type_mapping = {
+    _supported_axis_types: Tuple[str, ...] = (
         "lin",
         "linear",
         "log",
         "logarithmic",
         "custom",
-    }
+    )
 
     def __init__(
         self,
@@ -204,10 +206,10 @@ class GridAxis(Axis):
             data, axis_dim=axis_dim, name=name, label=label, unit=unit
         )
 
-        if axis_type not in self._axis_type_mapping:
+        if axis_type not in self._supported_axis_types:
             raise ValueError(
                 f"'{axis_type}' is not supported for axis_type! "
-                + f"It has to by one of {self._axis_type_mapping}"
+                + f"It has to by one of {self._supported_axis_types}"
             )
         self._axis_type = axis_type
 
@@ -257,10 +259,10 @@ class GridAxis(Axis):
     @axis_type.setter
     def axis_type(self, value: str) -> None:
         value = str(value)
-        if value not in self._axis_type_mapping:
+        if value not in self._supported_axis_types:
             raise ValueError(
                 f"'{value}' is not supported for axis_type! "
-                + f"It has to by one of {self._axis_type_mapping}"
+                + f"It has to by one of {self._supported_axis_types}"
             )
         self._axis_type = value
 
