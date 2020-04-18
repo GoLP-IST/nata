@@ -97,9 +97,35 @@ def test_Axis_axis_dim(arr, expected_axis_dim):
     assert axis.axis_dim == expected_axis_dim
 
 
+@given(anyarray(min_dims=0, max_dims=1, include_complex_numbers=False))
+def test_Axis_array_interface(arr):
+    axis = Axis(arr)
+    np.testing.assert_array_equal(
+        np.array(axis, dtype=float), arr.astype(float)
+    )
+    np.testing.assert_array_equal(axis, arr)
+
+
+@given(anyarray(min_dims=0, max_dims=1, include_complex_numbers=False))
+def test_Axis_dtype(arr):
+    axis = Axis(arr)
+    assert axis.dtype == arr.dtype
+
+
 def test_Axis_name_init():
     axis = Axis(np.empty(10), name="test")
     assert axis.name == "test"
+
+
+def test_Axis_name_setter():
+    axis = Axis(0, name="something")
+    assert axis.name == "something"
+
+    axis.name = "something_else"
+    assert axis.name == "something_else"
+
+    with pytest.raises(ValueError, match="Invalid name provided!"):
+        axis.name = ""
 
 
 def test_Axis_name_parsing():
@@ -111,9 +137,25 @@ def test_Axis_label_init():
     assert axis.label == "test"
 
 
+def test_Axis_label_setter():
+    axis = Axis(0, label="something")
+    assert axis.label == "something"
+
+    axis.label = "something_else"
+    assert axis.label == "something_else"
+
+
 def test_Axis_unit_init():
     axis = Axis(np.empty(10), unit="test")
     assert axis.unit == "test"
+
+
+def test_Axis_unit_setter():
+    axis = Axis(0, unit="something")
+    assert axis.unit == "something"
+
+    axis.unit = "something_else"
+    assert axis.unit == "something_else"
 
 
 def test_Axis_repr():
@@ -278,6 +320,15 @@ def test_Axis_getitem(arr_and_indexing):
     np.testing.assert_array_equal(subaxis, subarr)
 
 
+@pytest.mark.parametrize("indexing", [object(), "something"])
+@given(arr=anyarray(min_dims=0, max_dims=1))
+def test_Axis_getitem_raise_when_not_basic_indexing(arr, indexing):
+    axis = Axis(arr)
+
+    with pytest.raises(IndexError, match="Only basic indexing is supported!"):
+        axis[indexing]
+
+
 def test_GridAxis_type_check():
     assert isinstance(GridAxis, AxisType)
     assert isinstance(GridAxis, GridAxisType)
@@ -319,6 +370,24 @@ def test_GridAxis_from_limits(num, delta, cells, label, unit, axis_type):
         )
 
 
+@given(
+    invalid_str=text().filter(lambda s: s not in GridAxis._supported_axis_types)
+)
+def test_GridAxis_from_limits_invlid_axis_type_raise(invalid_str):
+    with pytest.raises(ValueError, match="Invalid axis type provided"):
+        GridAxis.from_limits(
+            0.0, 1.0, 10, axis_type=invalid_str,
+        )
+
+
+@given(text())
+def test_GridAxis_invalid_axis_type(s):
+    with pytest.raises(
+        ValueError, match="('lin', 'linear', 'log', 'logarithmic', 'custom')"
+    ):
+        GridAxis([1, 2], axis_type=s)
+
+
 def test_GridAxis_iteration():
     gridaxis = GridAxis(np.arange(10), axis_type="custom")
     for i, axis in enumerate(gridaxis):
@@ -350,6 +419,37 @@ def test_GridAxis_getitem(arr_and_indexing):
     np.testing.assert_array_equal(subaxis, subarr)
 
 
+@pytest.mark.parametrize("indexing", [object(), "something"])
+@given(arr=anyarray(min_dims=0, max_dims=1))
+def test_GridAxis_getitem_raise_when_not_basic_indexing(arr, indexing):
+    gridaxis = GridAxis(arr)
+
+    with pytest.raises(IndexError, match="Only basic indexing is supported!"):
+        gridaxis[indexing]
+
+
+def test_GridAxis_axis_type_setter_valid():
+    gridaxis = GridAxis([0, 1])
+    # default
+    assert gridaxis.axis_type == "linear"
+
+    # try to set all possible
+    for valid in GridAxis._supported_axis_types:
+        gridaxis.axis_type = valid
+        assert gridaxis.axis_type == valid
+
+
+@given(
+    invalid_str=text().filter(lambda s: s not in GridAxis._supported_axis_types)
+)
+def test_GridAxis_axis_type_setter_invalid(invalid_str):
+    gridaxis = GridAxis([0, 1])
+    with pytest.raises(
+        ValueError, match=f"'{invalid_str}' is not supported for axis_type!"
+    ):
+        gridaxis.axis_type = invalid_str
+
+
 @given(
     label=text(),
     unit=text(),
@@ -369,6 +469,16 @@ def test_GridAxis_repr(label, unit, axis_type):
         + f"axis_type={axis_type}"
         + ")"
     )
+
+
+def test_GridAxis_equivalent_raise_from_parent_class():
+    base = GridAxis([0, 1], name="something")
+    assert base.equivalent(GridAxis([0, 1], name="something_else")) is False
+
+
+def test_GridAxis_equivalent_raise_different_axis_type():
+    base = GridAxis([0, 1], axis_type="linear")
+    assert base.equivalent(GridAxis([0, 1], axis_type="log")) is False
 
 
 @given(
