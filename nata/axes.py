@@ -12,12 +12,52 @@ from .types import is_basic_indexing
 from .utils.formatting import make_identifiable
 
 
-def _log_axis(min_, max_, points):
-    return np.logspace(np.log10(min_), np.log10(max_), points)
+def _log_axis(
+    min_: Union[float, np.ndarray], max_: Union[float, np.ndarray], points: int
+) -> np.ndarray:
+    """Generates logarithmically spaced axis/array.
+
+    Returns always an array with the shape (points,) + np.shape(min/max) and
+    a floating dtype.
+    """
+    if np.issubdtype(
+        # min_
+        type(min_) if not isinstance(min_, np.ndarray) else min_.dtype,
+        np.floating,
+    ) or np.issubdtype(
+        # max_
+        type(max_) if not isinstance(max_, np.ndarray) else max_.dtype,
+        np.floating,
+    ):
+        dtype = None
+    else:
+        dtype = float
+
+    return np.logspace(np.log10(min_), np.log10(max_), points, dtype=dtype)
 
 
-def _lin_axis(min_, max_, points):
-    return np.linspace(min_, max_, points)
+def _lin_axis(
+    min_: Union[float, np.ndarray], max_: Union[float, np.ndarray], points: int
+) -> np.ndarray:
+    """Generates linearly spaced axis/array.
+
+    Returns always an array with the shape (points,) + np.shape(min/max) and
+    a floating dtype.
+    """
+    if np.issubdtype(
+        # min_
+        type(min_) if not isinstance(min_, np.ndarray) else min_.dtype,
+        np.floating,
+    ) or np.issubdtype(
+        # max_
+        type(max_) if not isinstance(max_, np.ndarray) else max_.dtype,
+        np.floating,
+    ):
+        dtype = None
+    else:
+        dtype = float
+
+    return np.linspace(min_, max_, points, dtype=dtype)
 
 
 class Axis:
@@ -68,7 +108,8 @@ class Axis:
         key = np.index_exp[key]
         requires_new_axis = False
 
-        # first index corresponds to temporal slicing if ndim == axis_dim + 1
+        # > determine if axis extension is required
+        # 1st index (temporal slicing) not hidden if ndim == axis_dim + 1
         if self.ndim == self.axis_dim + 1:
             # revert dimensionality reduction
             if isinstance(key[0], int):
@@ -76,11 +117,13 @@ class Axis:
         else:
             requires_new_axis = True
 
+        data = self.data[key]
+
+        if requires_new_axis:
+            data = data[np.newaxis]
+
         return self.__class__(
-            self.data[key][np.newaxis] if requires_new_axis else self.data[key],
-            name=self.name,
-            label=self.label,
-            unit=self.unit,
+            data, name=self.name, label=self.label, unit=self.unit,
         )
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
@@ -202,30 +245,24 @@ class GridAxis(Axis):
         self,
         data: np.ndarray,
         *,
-        axis_dim: int = 1,
         axis_type: str = "linear",
         name: str = "unnamed",
         label: str = "",
         unit: str = "",
     ) -> None:
-        super().__init__(
-            data, axis_dim=axis_dim, name=name, label=label, unit=unit
-        )
-
         if axis_type not in self._supported_axis_types:
             raise ValueError(
                 f"'{axis_type}' is not supported for axis_type! "
                 + f"It has to by one of {self._supported_axis_types}"
             )
+
+        super().__init__(data, name=name, label=label, unit=unit)
         self._axis_type = axis_type
 
     def __iter__(self) -> "GridAxis":
-        data = self.data if self.ndim else self.data[np.newaxis]
-
-        for d in data:
+        for d in self._data:
             yield self.__class__(
-                d,
-                axis_dim=self.axis_dim,
+                d[np.newaxis],
                 name=self.name,
                 label=self.label,
                 unit=self.unit,
@@ -238,9 +275,19 @@ class GridAxis(Axis):
         if not is_basic_indexing(key):
             raise IndexError("Only basic indexing is supported!")
 
+        key = np.index_exp[key]
+        requires_new_axis = False
+
+        # first index corresponds to temporal slicing if ndim == axis_dim + 1
+        if self.ndim == self.axis_dim + 1:
+            # revert dimensionality reduction
+            if isinstance(key[0], int):
+                requires_new_axis = True
+        else:
+            requires_new_axis = True
+
         return self.__class__(
-            self.data[key],
-            axis_dim=self.axis_dim,
+            self.data[key][np.newaxis] if requires_new_axis else self.data[key],
             name=self.name,
             label=self.label,
             unit=self.unit,
@@ -252,8 +299,9 @@ class GridAxis(Axis):
         repr_ += f"name='{self.name}', "
         repr_ += f"label='{self.label}', "
         repr_ += f"unit='{self.unit}', "
+        repr_ += f"axis_type={self.axis_type}, "
         repr_ += f"axis_dim={self.axis_dim}, "
-        repr_ += f"axis_type={self.axis_type}"
+        repr_ += f"len={len(self)}"
         repr_ += ")"
 
         return repr_
@@ -285,15 +333,19 @@ class GridAxis(Axis):
         unit: str = "",
     ) -> "GridAxis":
         if axis_type in ("lin", "linear"):
-            axis = _lin_axis(min_value, max_value, cells)
+            axis: np.ndarray = _lin_axis(min_value, max_value, cells)
         elif axis_type in ("log", "logarithmic"):
-            axis = _log_axis(min_value, max_value, cells)
+            axis: np.ndarray = _log_axis(min_value, max_value, cells)
         else:
             raise ValueError(
                 "Invalid axis type provided. "
                 + "Only 'lin', 'linear', 'log', and 'logarithmic' "
                 + "are supported!"
             )
+
+        if axis.ndim == 1:
+            axis = axis[np.newaxis]
+
         axis = cls(axis, name=name, label=label, unit=unit)
         axis._axis_type = axis_type
         return axis

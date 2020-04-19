@@ -14,7 +14,6 @@ from nata.types import AxisType
 from nata.types import GridAxisType
 
 from .strategies import anyarray
-from .strategies import array_and_basic_indices
 from .strategies import bounded_intergers
 from .strategies import number
 
@@ -331,32 +330,64 @@ def test_Axis_iterator_multiple_items_0d():
         np.testing.assert_array_equal(ax, arr)
 
 
-@given(array_and_basic_indices())
-def test_Axis_getitem(arr_and_indexing):
-    arr, indexing = arr_and_indexing
+@pytest.mark.parametrize(
+    "initarr, indexing, expected_array",
+    [
+        # 0d axis
+        ([0, 1, 2], np.s_[2], 2),
+        ([0, 1, 2], np.s_[0:1], [0]),
+        ([0, 1, 2], np.s_[:], [0, 1, 2]),
+        # 1d axis
+        ([[0, 2, 3]], np.s_[1], 2),
+        ([[0, 2, 3]], np.s_[1:], [2, 3]),
+        ([[0, 2, 3]], np.s_[:], [0, 2, 3]),
+        # 1d axis - multi time steps, 1st indexing
+        ([[1, 3, 4], [0, 2, 3]], np.s_[0], [1, 3, 4]),
+        ([[1, 3, 4], [0, 2, 3]], np.s_[1:], [0, 2, 3]),
+        ([[1, 3, 4], [0, 2, 3]], np.s_[:], [[1, 3, 4], [0, 2, 3]]),
+        # 1d axis - multi time steps, both indexing
+        ([[1, 3, 4], [0, 2, 3]], np.s_[0, 1], 3),
+        ([[1, 3, 4], [0, 2, 3]], np.s_[1:, :2], [0, 2]),
+    ],
+    ids=[
+        "0d, multi - int",
+        "0d, multi - range",
+        "0d, multi - full range",
+        "1d - int",
+        "1d - range",
+        "1d - full range",
+        "1d, multi - int",
+        "1d, multi - range",
+        "1d, multi - full range",
+        "1d, multi - int, int",
+        "1d, multi - range, range",
+    ],
+)
+def test_Axis_getitem(initarr, indexing, expected_array):
+    """Test getitem [..., ...] for Axis
+
+    - Numbers are chosen randomly and tests are only for behavior.
+    - Only the array interface is checked.
+    - Properties `ndim`/`shape`are part of array assert statement
+    """
     name = "some_name"
     label = "some_label"
     unit = "some_unit"
 
-    if arr.shape and len(arr) == 1:
-        axis = Axis(arr[np.newaxis], name=name, label=label, unit=unit)
-    else:
-        axis = Axis(arr, name=name, label=label, unit=unit)
-
+    axis = Axis(initarr, name=name, label=label, unit=unit)
     subaxis = axis[indexing]
-    subarr = arr[indexing]
 
     assert subaxis is not axis
     assert subaxis.name == name
     assert subaxis.label == label
     assert subaxis.unit == unit
-    assert subaxis.ndim == subarr.ndim
-    assert subaxis.shape == subarr.shape
 
-    np.testing.assert_array_equal(subaxis, subarr)
+    np.testing.assert_array_equal(subaxis, expected_array)
 
 
-@pytest.mark.parametrize("indexing", [object(), "something"])
+@pytest.mark.parametrize(
+    "indexing", [object(), "something"], ids=["object", "str"]
+)
 @given(arr=anyarray(min_dims=0, max_dims=1))
 def test_Axis_getitem_raise_when_not_basic_indexing(arr, indexing):
     axis = Axis(arr)
@@ -433,26 +464,59 @@ def test_GridAxis_iteration():
         np.testing.assert_array_equal(i, axis)
 
 
-@given(array_and_basic_indices())
-def test_GridAxis_getitem(arr_and_indexing):
-    arr, indexing = arr_and_indexing
+@pytest.mark.parametrize(
+    "initarr, indexing, expected_array",
+    [
+        # 0d axis
+        ([0, 1, 2], np.s_[2], 2),
+        ([0, 1, 2], np.s_[0:1], [0]),
+        ([0, 1, 2], np.s_[:], [0, 1, 2]),
+        # 1d axis
+        ([[0, 2, 3]], np.s_[1], 2),
+        ([[0, 2, 3]], np.s_[1:], [2, 3]),
+        ([[0, 2, 3]], np.s_[:], [0, 2, 3]),
+        # 1d axis - multi time steps, 1st indexing
+        ([[1, 3, 4], [0, 2, 3]], np.s_[0], [1, 3, 4]),
+        ([[1, 3, 4], [0, 2, 3]], np.s_[1:], [0, 2, 3]),
+        ([[1, 3, 4], [0, 2, 3]], np.s_[:], [[1, 3, 4], [0, 2, 3]]),
+        # 1d axis - multi time steps, both indexing
+        ([[1, 3, 4], [0, 2, 3]], np.s_[0, 1], 3),
+        ([[1, 3, 4], [0, 2, 3]], np.s_[1:, :2], [0, 2]),
+    ],
+    ids=[
+        "0d, multi - int",
+        "0d, multi - range",
+        "0d, multi - full range",
+        "1d - int",
+        "1d - range",
+        "1d - full range",
+        "1d, multi - int",
+        "1d, multi - range",
+        "1d, multi - full range",
+        "1d, multi - int, int",
+        "1d, multi - range, range",
+    ],
+)
+def test_GridAxis_getitem(initarr, indexing, expected_array):
+    """Test getitem [..., ...] for GridAxis
+
+    - Numbers are chosen randomly and tests are only for behavior.
+    - Only the array interface is checked.
+    - Properties `ndim`/`shape`are part of array assert statement
+    """
     name = "some_name"
     label = "some_label"
     unit = "some_unit"
 
-    axis = GridAxis(arr, name=name, label=label, unit=unit)
-
+    axis = GridAxis(initarr, name=name, label=label, unit=unit)
     subaxis = axis[indexing]
-    subarr = arr[indexing]
 
     assert subaxis is not axis
     assert subaxis.name == name
     assert subaxis.label == label
     assert subaxis.unit == unit
-    assert subaxis.ndim == subarr.ndim
-    assert subaxis.shape == subarr.shape
 
-    np.testing.assert_array_equal(subaxis, subarr)
+    np.testing.assert_array_equal(subaxis, expected_array)
 
 
 @pytest.mark.parametrize("indexing", [object(), "something"])
@@ -480,9 +544,7 @@ def test_GridAxis_axis_type_setter_valid():
 )
 def test_GridAxis_axis_type_setter_invalid(invalid_str):
     gridaxis = GridAxis([0, 1])
-    with pytest.raises(
-        ValueError, match=f"'{invalid_str}' is not supported for axis_type!"
-    ):
+    with pytest.raises(ValueError, match=f"not supported for axis_type!"):
         gridaxis.axis_type = invalid_str
 
 
@@ -501,8 +563,41 @@ def test_GridAxis_repr(label, unit, axis_type):
         + "name='some_name', "
         + f"label='{label}', "
         + f"unit='{unit}', "
-        + "axis_dim=1, "
-        + f"axis_type={axis_type}"
+        + f"axis_type={axis_type}, "
+        + f"axis_dim={gridaxis.axis_dim}, "
+        + f"len={len(gridaxis)}"
+        + ")"
+    )
+    gridaxis = GridAxis(
+        [[1]], name="some_name", label=label, unit=unit, axis_type=axis_type
+    )
+    assert (
+        repr(gridaxis)
+        == "GridAxis("
+        + "name='some_name', "
+        + f"label='{label}', "
+        + f"unit='{unit}', "
+        + f"axis_type={axis_type}, "
+        + f"axis_dim={gridaxis.axis_dim}, "
+        + f"len={len(gridaxis)}"
+        + ")"
+    )
+    gridaxis = GridAxis(
+        [[1, 2, 3, 4]],
+        name="some_name",
+        label=label,
+        unit=unit,
+        axis_type=axis_type,
+    )
+    assert (
+        repr(gridaxis)
+        == "GridAxis("
+        + "name='some_name', "
+        + f"label='{label}', "
+        + f"unit='{unit}', "
+        + f"axis_type={axis_type}, "
+        + f"axis_dim={gridaxis.axis_dim}, "
+        + f"len={len(gridaxis)}"
         + ")"
     )
 
@@ -527,13 +622,17 @@ def test_GridAxis_equivalent_raise_different_axis_type():
     unit=text(),
 )
 def test_GridAxis_append(arr, label, unit):
-    gridaxis = GridAxis(arr[0], name="some_name", label=label, unit=unit)
+    gridaxis = GridAxis(
+        arr[0][np.newaxis], name="some_name", label=label, unit=unit
+    )
 
     for i, d in enumerate(arr):
         if i == 0:
             continue
         gridaxis.append(
-            GridAxis(arr[i], name="some_name", label=label, unit=unit)
+            GridAxis(
+                arr[i][np.newaxis], name="some_name", label=label, unit=unit
+            )
         )
 
     assert gridaxis.axis_dim == 1
