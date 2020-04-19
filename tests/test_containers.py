@@ -463,8 +463,8 @@ def test_GridDataset_repr_backend(SampleGridBackend: GridBackendType):
         + f"iteration={backend.iteration}, "
         + f"time={backend.time_step}, "
         + f"grid_axes=["
-        + f"Axis('{backend.axes_names[0]}', grid_cells={backend.shape[0]}), "
-        + f"Axis('{backend.axes_names[1]}', grid_cells={backend.shape[1]})"
+        + f"Axis('{backend.axes_names[0]}', len=1, shape=(2,)), "
+        + f"Axis('{backend.axes_names[1]}', len=1, shape=(5,))"
         + "]"
         + ")"
     )

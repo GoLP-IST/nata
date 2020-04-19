@@ -91,7 +91,7 @@ class GridDataset:
                     data.shape,
                 ):
                     grid_axes.append(
-                        GridAxis(
+                        GridAxis.from_limits(
                             min_,
                             max_,
                             grid_points,
@@ -165,7 +165,7 @@ class GridDataset:
             axes_formmating = []
             for axis in grid_axes:
                 axes_formmating.append(
-                    f"Axis('{axis.name}', grid_cells={axis.grid_cells})"
+                    f"Axis('{axis.name}', len={len(axis)}, shape={axis.shape})"
                 )
             repr_ += f"grid_axes=[{', '.join(axes_formmating)}]"
         else:
