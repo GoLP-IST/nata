@@ -614,8 +614,10 @@ def test_GridAxis_equivalent_raise_different_axis_type():
 
 @given(
     arr=(
-        integers(min_value=2, max_value=22).flatmap(
-            lambda n: arrays(np.dtype(float), (n, 123)),
+        integers(min_value=2, max_value=22)
+        .flatmap(lambda n: arrays(np.dtype(float), (n, 123)),)
+        .filter(
+            lambda arr: not np.any(np.isnan(arr)) and np.all(np.isfinite(arr))
         )
     ),
     label=text(),
