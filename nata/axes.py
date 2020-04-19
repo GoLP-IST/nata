@@ -110,7 +110,8 @@ class Axis:
 
         # > determine if axis extension is required
         # 1st index (temporal slicing) not hidden if ndim == axis_dim + 1
-        if self.ndim == self.axis_dim + 1:
+        # or alternatively -> check len of the axis -> number of temporal slices
+        if len(self) != 1:
             # revert dimensionality reduction
             if isinstance(key[0], int):
                 requires_new_axis = True
@@ -279,7 +280,8 @@ class GridAxis(Axis):
         requires_new_axis = False
 
         # first index corresponds to temporal slicing if ndim == axis_dim + 1
-        if self.ndim == self.axis_dim + 1:
+        # or alternatively -> check len of the axis -> number of temporal slices
+        if len(self) != 1:
             # revert dimensionality reduction
             if isinstance(key[0], int):
                 requires_new_axis = True
