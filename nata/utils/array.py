@@ -6,26 +6,28 @@ import numpy as np
 
 
 def expand_ellipsis(key, dimensions: int) -> Tuple[Union[int, slice], ...]:
-    _None = object()
-
     key = np.index_exp[key]
 
     if all(k is not Ellipsis for k in key):
         return key
 
-    first_key = key[0] if key[0] is not Ellipsis else _None
-    last_key = key[-1] if key[-1] is not Ellipsis else _None
+    if key.count(Ellipsis) > 1:
+        raise KeyError("Only one Ellipse '...' is allowed!")
 
-    unexpended_dimensions = dimensions
-    unexpended_dimensions -= 1 if first_key is not _None else 0
-    unexpended_dimensions -= 1 if last_key is not _None else 0
+    key = list(key)
+    cleaned_key = list(
+        filter(lambda k: (k is not None) and (k is not Ellipsis), key)
+    )
 
-    expanded_key = [slice(None) for _ in range(unexpended_dimensions)]
+    ellipsis_expanded = [
+        slice(None) for _ in range(dimensions - len(cleaned_key))
+    ]
 
-    if first_key is not _None:
-        expanded_key.insert(0, first_key)
-
-    if last_key is not _None:
-        expanded_key.append(last_key)
+    index_of_ellipse = key.index(Ellipsis)
+    expanded_key = (
+        key[:index_of_ellipse]
+        + ellipsis_expanded
+        + key[(index_of_ellipse + 1) :]
+    )
 
     return tuple(expanded_key)
