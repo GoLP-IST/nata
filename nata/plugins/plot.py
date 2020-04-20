@@ -2,10 +2,7 @@
 from typing import List
 from typing import Optional
 
-import attr
 import numpy as np
-from attr.validators import instance_of
-from attr.validators import optional
 
 from IPython.display import display
 from ipywidgets import Layout
@@ -16,6 +13,9 @@ from nata.plots.axes import Axes
 from nata.plots.data import PlotData
 from nata.plots.data import PlotDataAxis
 from nata.plots.figure import Figure
+from nata.plots.plans import AxesPlan
+from nata.plots.plans import FigurePlan
+from nata.plots.plans import PlotPlan
 from nata.plugins.register import register_container_plugin
 from nata.utils.attrs import filter_style
 from nata.utils.env import inside_notebook
@@ -63,30 +63,12 @@ def grid_plot_type(dataset: GridDataset) -> PlotData:
 #     a = []
 #     d = []
 
-
-@attr.s
-class FigurePlanPlot:
-    dataset: object() = attr.ib()
-    quants: list = attr.ib(default=None, validator=optional(instance_of(list)))
-    # other arguments specific to the type of dataset,
-    # necessary to build the PlotData and PlotDataAxis objects
-    style: dict = attr.ib(default=dict(), validator=optional(instance_of(dict)))
-
-
 #     for quant in quants:
 #         q = getattr(dataset, quant)
 #         new_a = PlotDataAxis(name=q.name, label=q.label, units=q.unit)
 
 #         a.append(new_a)
 #         d.append(np.array(q))
-
-
-@attr.s
-class FigurePlanAxis:
-    plots: List[FigurePlanPlot] = attr.ib()
-    axes: Axes = attr.ib(default=None, validator=optional(instance_of(Axes)))
-    style: dict = attr.ib(default=dict(), validator=optional(instance_of(dict)))
-
 
 #     p_d = PlotData(
 #         name=dataset.name,
@@ -99,22 +81,6 @@ class FigurePlanAxis:
 #     )
 
 #     return p_d
-
-
-@attr.s
-class FigurePlan:
-    axes: List[FigurePlanAxis] = attr.ib()
-    fig: Figure = attr.ib(default=None, validator=optional(instance_of(Figure)))
-    style: dict = attr.ib(default=dict(), validator=optional(instance_of(dict)))
-
-    @property
-    def datasets(self) -> list:
-        d = []
-        for a in self.axes:
-            for p in a.plots:
-                d.append(p.dataset)
-        return d
-
 
 # @register_container_plugin(ParticleDataset, name="plot_type")
 # def particle_plot_type(dataset: ParticleDataset) -> PlotData:
@@ -131,11 +97,11 @@ def plot_grid_dataset(
     n: int = 0,
 ):
 
-    p_plan = FigurePlanPlot(
+    p_plan = PlotPlan(
         dataset=dataset, style=filter_style(dataset.plot_type(), style)
     )
 
-    a_plan = FigurePlanAxis(
+    a_plan = AxesPlan(
         axes=axes, plots=[p_plan], style=filter_style(Axes, style)
     )
 
@@ -163,7 +129,7 @@ def plot_grid_dataset(
 #     n: int = 0,
 # ):
 
-#     p_plan = FigurePlanPlot(
+#     p_plan = PlotPlan(
 #         dataset=dataset,
 #         quants=quants,
 #         style=filter_style(dataset.plot_type(), style),
@@ -219,13 +185,13 @@ def plot_grid_dataset(
 #         else:
 #             i_quants = None
 
-#         p_plan = FigurePlanPlot(
+#         p_plan = PlotPlan(
 #             dataset=dataset,
 #             quants=i_quants,
 #             style=filter_style(dataset.plot_type(), i_style),
 #         )
 
-#         a_plan = FigurePlanAxis(
+#         a_plan = AxesPlan(
 #             axes=None, plots=[p_plan], style=filter_style(Axes, i_style)
 #         )
 
@@ -329,12 +295,12 @@ def build_interactive_tools(f_plan=FigurePlan, n: int = 0):
             a_p = []
             for p in a.plots:
                 a_p.append(
-                    FigurePlanPlot(
+                    PlotPlan(
                         dataset=p.dataset[n], quants=p.quants, style=p.style
                     )
                 )
 
-            f_a.append(FigurePlanAxis(axes=None, plots=a_p, style=a.style))
+            f_a.append(AxesPlan(axes=None, plots=a_p, style=a.style))
 
         f_p = FigurePlan(fig=None, axes=f_a, style=f_plan.style)
 
