@@ -2,8 +2,8 @@
 from pathlib import Path
 from typing import Any
 from typing import Dict
-from typing import Iterable
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 from typing import Union
@@ -55,7 +55,7 @@ class GridDataset:
         *,
         iteration: Optional[AxisType] = _extract_from_backend,
         time: Optional[AxisType] = _extract_from_backend,
-        grid_axes: Iterable[Optional[GridAxisType]] = _extract_from_backend,
+        grid_axes: Sequence[Optional[GridAxisType]] = _extract_from_backend,
         name: str = _extract_from_backend,
         label: str = _extract_from_backend,
         unit: str = _extract_from_backend,
