@@ -3,3 +3,10 @@
 max-line-length = 80
 per-file-ignores =
   __init__.py:F401,F403
+ignore =
+  # E203 whitespace before ':'
+  # -> does not comply to PEP8 and introduces issues with black
+  E203,
+  # W503 line break before binary operator
+  # -> issues with not complying with black
+  W503

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-# flake8: noqa
 from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Optional
+from typing import Sequence
 from typing import Set
 from typing import Tuple
 from typing import Union
@@ -12,13 +12,38 @@ import numpy as np
 
 from .axes import Axis
 from .axes import GridAxis
+from .types import AxisType
+from .types import GridAxisType
 from .types import GridBackendType
 from .types import GridDatasetAxes
 from .types import GridDatasetType
+from .types import is_basic_indexing
+from .utils.array import expand_ellipsis
 from .utils.exceptions import NataInvalidContainer
 from .utils.formatting import array_format
 
 _extract_from_backend = object()
+
+
+def _separation_newaxis(key, two_types=True):
+    if two_types:
+        # find last occupance of newaxis
+        for i, k in enumerate(key):
+            if k is np.newaxis:
+                continue
+            else:
+                break
+
+        type_1 = key[:i]
+        key = key[i:]
+    else:
+        type_1 = ()
+
+    # determine positions of new axis for second type
+    type_2 = tuple([k for k, v in enumerate(key) if v is np.newaxis])
+    key = tuple(filter(lambda v: v is not np.newaxis, key))
+
+    return key, type_1, type_2
 
 
 class GridDataset:
@@ -28,12 +53,12 @@ class GridDataset:
         self,
         data: Union[np.ndarray, GridBackendType, str, Path],
         *,
-        iteration=_extract_from_backend,
-        time=_extract_from_backend,
-        grid_axes=_extract_from_backend,
-        name=_extract_from_backend,
-        label=_extract_from_backend,
-        unit=_extract_from_backend,
+        iteration: Optional[AxisType] = _extract_from_backend,
+        time: Optional[AxisType] = _extract_from_backend,
+        grid_axes: Sequence[Optional[GridAxisType]] = _extract_from_backend,
+        name: str = _extract_from_backend,
+        label: str = _extract_from_backend,
+        unit: str = _extract_from_backend,
     ):
         if isinstance(data, str):
             data = Path(data)
@@ -91,7 +116,7 @@ class GridDataset:
                     data.shape,
                 ):
                     grid_axes.append(
-                        GridAxis(
+                        GridAxis.from_limits(
                             min_,
                             max_,
                             grid_points,
@@ -149,13 +174,13 @@ class GridDataset:
         repr_ += f"shape={self.shape}, "
 
         iteration_axis = self.axes["iteration"]
-        if iteration_axis:
+        if isinstance(iteration_axis, AxisType):
             repr_ += f"iteration={array_format(iteration_axis.data)}, "
         else:
             repr_ += f"iteration={iteration_axis}, "
 
         time_axis = self.axes["time"]
-        if time_axis:
+        if isinstance(time_axis, AxisType):
             repr_ += f"time={array_format(time_axis.data)}, "
         else:
             repr_ += f"time={time_axis}, "
@@ -164,9 +189,14 @@ class GridDataset:
         if grid_axes:
             axes_formmating = []
             for axis in grid_axes:
-                axes_formmating.append(
-                    f"Axis('{axis.name}', grid_cells={axis.grid_cells})"
-                )
+                if isinstance(axis, AxisType):
+                    axes_formmating.append(
+                        f"Axis('{axis.name}', "
+                        + f"len={len(axis)}, "
+                        + f"shape={axis.shape})"
+                    )
+                else:
+                    axes_formmating.append(f"{axis}")
             repr_ += f"grid_axes=[{', '.join(axes_formmating)}]"
         else:
             repr_ += f"grid_axes={self.axes['grid_axes']}"
@@ -198,23 +228,98 @@ class GridDataset:
     def __getitem__(
         self, key: Union[int, slice, Tuple[int, slice]]
     ) -> "GridDataset":
-        if not isinstance(key, int) or len(self) != 1:
-            raise NotImplementedError
+        if not is_basic_indexing(key):
+            raise IndexError("Only basic indexing is supported!")
 
-        data = self.data[key][np.newaxis]
+        # expand ellipsis to all dimensions -> newaxis are added
+        key = expand_ellipsis(key, self.ndim)
 
+        # >>>> data
+        # > determine if new axis extension is required
+        new_axis_for_data = False
+        if len(self) != 1:
+            # revert dimensionality reduction
+            if isinstance(key[0], int):
+                new_axis_for_data = True
+        else:
+            new_axis_for_data = True
+
+        data = self.data[key]
+
+        if new_axis_for_data:
+            data = data[np.newaxis]
+
+        # >>>> separate new axis from key
+        key, temporal_new_axis, grid_new_axis = _separation_newaxis(
+            key, two_types=len(self) != 1
+        )
+
+        # >>>> iteration/time axis
+        # string is the best way to insure not overlapping with key
+        # -> 'np.newaxis is None == True' therefore we use a string
+        temporal_indexing = "None"
+        if len(self) != 1:
+            temporal_indexing = key[0]
+
+        time = (
+            self.axes["time"][temporal_indexing]
+            if temporal_indexing != "None"
+            else self.axes["time"]
+        )
+        iteration = (
+            self.axes["iteration"][temporal_indexing]
+            if temporal_indexing != "None"
+            else self.axes["iteration"]
+        )
+
+        if temporal_new_axis:
+            time = time[temporal_new_axis]
+            iteration = iteration[temporal_new_axis]
+
+        # >>>> grid_axes
+        index_for_grid_axes = [slice(None) for _ in self.axes["grid_axes"]]
+        if len(self) == 1:
+            for i, k in enumerate(key):
+                index_for_grid_axes[i] = k
+        else:
+            for i, k in enumerate(key[1:]):
+                index_for_grid_axes[i] = k
+
+        grid_axes = []
+        for index, grid_axis in zip(
+            index_for_grid_axes, self.axes["grid_axes"]
+        ):
+            # dimension will be reduced
+            if isinstance(index, int):
+                continue
+
+            if temporal_indexing == "None":
+                grid_axes.append(grid_axis[index])
+            else:
+                grid_axes.append(grid_axis[temporal_indexing, index])
+
+        for i in grid_new_axis:
+            if len(self) == 1:
+                # shift not required as no time index is included
+                grid_axes.insert(i, None)
+            else:
+                grid_axes.insert(i - 1, None)
+
+        # finally return the reduced data entries
         return self.__class__(
             data,
-            iteration=self.axes["iteration"][key],
-            time=self.axes["time"][key],
-            grid_axes=self.axes["grid_axes"],
+            iteration=iteration,
+            time=time,
+            grid_axes=grid_axes,
             name=self.name,
             label=self.label,
             unit=self.unit,
         )
 
     def __setitem__(
-        self, key: Union[int, slice, Tuple[int, slice]], value: Any
+        self,
+        key: Union[int, slice, Tuple[int, slice]],
+        value: Union[np.ndarray, float, int],
     ) -> None:
         self.data[key] = value
 
@@ -579,9 +684,10 @@ class DatasetCollection:
 #         converter=converters.optional(make_as_identifier),
 #         validator=optional(subdtype_of(np.str_)),
 #     )
-#     label: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
-#     unit: str = attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
-
+#     label: str =
+#           attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
+#     unit: str =
+#           attr.ib(default=None, validator=optional(subdtype_of(np.str_)))
 #     iteration: IterationAxis = attr.ib(
 #         default=None, validator=optional(instance_of(IterationAxis))
 #     )
@@ -664,8 +770,9 @@ class DatasetCollection:
 #                 )
 #             setattr(self, axis.name, axis)
 
-#         # cross validate - just for the ake for safety - we can remove later on
-#         attr.validate(self)
+#         # cross validate
+#           - just for the ake for safety
+#           - we can remove later on attr.validate(self)
 
 #     def __iter__(self):
 #         if len(self) == 1:

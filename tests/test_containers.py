@@ -16,7 +16,10 @@ from hypothesis.extra.numpy import integer_dtypes
 from hypothesis.strategies import composite
 from hypothesis.strategies import one_of
 
-from nata._containers import GridDataset
+from nata.axes import Axis
+from nata.axes import GridAxis
+from nata.containers import GridDataset
+from nata.containers import _separation_newaxis
 from nata.types import AxisType
 from nata.types import GridBackendType
 from nata.types import GridDatasetType
@@ -245,6 +248,27 @@ def test_GridDataset_default_init_array_2d_array():
     np.testing.assert_array_equal(grid.data, arr)
 
 
+@pytest.mark.parametrize(
+    "data, expected_array",
+    (([1, 2, 3], np.array([1, 2, 3])), ([[1, 2, 3]], np.array([1, 2, 3]))),
+)
+def test_GridDataset_default_Sequence(data, expected_array):
+    grid = GridDataset(data)
+
+    assert grid.backend is None
+    assert grid.name == "unnamed"
+    assert grid.label == "unnamed"
+    assert grid.unit == ""
+    assert grid.shape == expected_array.shape
+    assert grid.ndim == expected_array.ndim
+
+    assert grid.axes["iteration"] is None
+    assert grid.axes["time"] is None
+    assert tuple(grid.axes["grid_axes"]) == tuple([None] * len(grid.grid_shape))
+
+    np.testing.assert_array_equal(grid, expected_array)
+
+
 def test_GridDataset_change_data():
     grid = GridDataset(np.random.random_sample((10,)))
 
@@ -369,50 +393,841 @@ def test_GridDataset_iterator_multiple_items(SampleGridBackend):
         np.testing.assert_array_equal(g, backend.get_data())
 
 
-@pytest.mark.skip
-@given(arr_and_ind=random_array(return_with_indexing=True))
-def test_GridDataset_getitem_single(arr_and_ind, SampleGridBackend):
-    arr, key = arr_and_ind
-    grid = GridDataset(SampleGridBackend(data=arr, raise_on_read=False))
-    subgrid = grid[key]
-
-    assert isinstance(subgrid, GridDataset)
-    assert grid.equivalent(subgrid)
-    np.testing.assert_array_equal(subgrid, arr[key])
-
-
-@pytest.mark.skip
 @pytest.mark.parametrize(
-    "arr, ind, newarr, num_grid_axes, num_iterations",
     [
-        (np.arange(10).reshape((2, 5)), np.s_[0], None, 1, 1),
-        (np.arange(10).reshape((2, 5)), np.s_[:, :], None, 1, 2),
+        "key",
+        "expected_deconstruction",
+        "expected_temporal_key",
+        "expected_spatial_key",
+        "two_types",
+    ],
+    [
+        (np.index_exp[:], np.index_exp[:], (), (), True),
+        (np.index_exp[:, :, :], np.index_exp[:, :, :], (), (), True),
+        (np.index_exp[4, 2, 0], np.index_exp[4, 2, 0], (), (), True),
+        (np.index_exp[None, :], np.index_exp[:], (None,), (), True),
+        (
+            np.index_exp[None, None, None, :],
+            np.index_exp[:],
+            (None, None, None),
+            (),
+            True,
+        ),
+        (
+            np.index_exp[:, None, :, None, :, :, None],
+            np.index_exp[:, :, :, :],
+            (),
+            (1, 3, 6),
+            True,
+        ),
+        (
+            np.index_exp[None, None, :, None, :, None, :, :, None],
+            np.index_exp[:, :, :, :],
+            (None, None),
+            (1, 3, 6),
+            True,
+        ),
+        (
+            np.index_exp[None, None, :, None, :, None, :, :, None],
+            np.index_exp[:, :, :, :],
+            (),
+            (0, 1, 3, 5, 8),
+            False,
+        ),
+    ],
+    ids=[
+        ":",
+        ":, :, :",
+        "int, int, int",
+        "newaxis, :",
+        "newaxis, newaxis, newaxis, :",
+        ":, newaxis, :, newaxis, :, :, newaxis",
+        "newaxis, newaxis, :, newaxis, :, newaxis, :, :, newaxis",
+        "newaxis, newaxis, :, newaxis, :, newaxis, :, :, newaxis | single_type",
     ],
 )
-def test_GridDataset_getitem_multi(
-    arr, ind, newarr, num_grid_axes, num_iterations, SampleGridBackend
+def test_separation_newaxis(
+    key,
+    expected_deconstruction,
+    expected_temporal_key,
+    expected_spatial_key,
+    two_types,
 ):
-    grid = GridDataset(SampleGridBackend(data=arr[0], raise_on_read=False))
+    deconstructed_key, temporal_key, spatial_key = _separation_newaxis(
+        key, two_types=two_types
+    )
 
-    for i, subarr in enumerate(arr):
-        if i == 0:
-            continue
-        grid.append(
-            GridDataset(SampleGridBackend(data=subarr, raise_on_read=False))
-        )
+    assert deconstructed_key == expected_deconstruction
+    assert temporal_key == expected_temporal_key
+    assert spatial_key == expected_spatial_key
 
-    subgrid = grid[ind]
-    if newarr is not None:
-        subarr = newarr
-    else:
-        subarr = arr[ind]
 
-    assert subgrid is not grid
-    np.testing.assert_array_equal(subgrid, subarr)
+@pytest.mark.parametrize(
+    [
+        "indexing",
+        "data",
+        "iteration",
+        "time",
+        "grid_axes",
+        "expected_data",
+        "expected_iteration",
+        "expected_time",
+        "expected_grid_axes",
+    ],
+    [
+        ########################################################################
+        # > 1d, single time step, [int]
+        (
+            # indexing
+            np.s_[2],
+            # data
+            np.arange(10).reshape((1, 10)),
+            # iteration
+            Axis(0),
+            # time
+            Axis(0),
+            # grid_axes
+            [GridAxis(np.arange(10).reshape((1, 10)))],
+            # expected data
+            np.array(2),
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [],
+        ),
+        ########################################################################
+        # > 1d, single time step, [:]
+        (
+            # indexing
+            np.s_[:],
+            # data
+            np.arange(10).reshape((1, 10)),
+            # iteration
+            Axis(0),
+            # time
+            Axis(0),
+            # grid_axes
+            [GridAxis(np.arange(10).reshape((1, 10)))],
+            # expected data
+            np.arange(10).reshape((1, 10)),
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [GridAxis(np.arange(10).reshape((1, 10)))],
+        ),
+        ########################################################################
+        # > 1d, single time step, [range]
+        (
+            # indexing
+            np.s_[1:7],
+            # data
+            np.arange(10).reshape((1, 10)),
+            # iteration
+            Axis(0),
+            # time
+            Axis(0),
+            # grid_axes
+            [GridAxis(np.arange(10).reshape((1, 10)))],
+            # expected data
+            np.arange(10).reshape((1, 10))[:, 1:7],
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [GridAxis(np.arange(10).reshape((1, 10))[:, 1:7])],
+        ),
+        ########################################################################
+        # > 1d, multiple time steps, [int]
+        (
+            # indexing
+            np.s_[1],
+            # data
+            np.arange(21).reshape((3, 7)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+            # expected data
+            np.arange(21).reshape((3, 7))[1],
+            # expected iteration
+            Axis(1),
+            # expected time
+            Axis(1),
+            # expected grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))[1]],
+        ),
+        ########################################################################
+        # > 1d, multiple time steps, [:]
+        (
+            # indexing
+            np.s_[:],
+            # data
+            np.arange(21).reshape((3, 7)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+            # expected data
+            np.arange(21).reshape((3, 7)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+        ),
+        ########################################################################
+        # > 1d, multiple time steps, [range]
+        (
+            # indexing
+            np.s_[0:1],
+            # data
+            np.arange(21).reshape((3, 7)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+            # expected data
+            np.arange(7).reshape((1, 7)),
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [GridAxis(np.arange(7).reshape((1, 7)))],
+        ),
+        ########################################################################
+        # > 1d, multiple time steps, [int, int]
+        (
+            # indexing
+            np.s_[0, 5],
+            # data
+            np.arange(21).reshape((3, 7)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+            # expected data
+            np.array(5),
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [],
+        ),
+        ########################################################################
+        # > 1d, multiple time steps, [:, int]
+        (
+            # indexing
+            np.s_[:, 5],
+            # data
+            np.arange(21).reshape((3, 7)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+            # expected data
+            np.array([5, 12, 19]),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [],
+        ),
+        ########################################################################
+        # > 1d, multiple time steps, [int, :]
+        (
+            # indexing
+            np.s_[1, :],
+            # data
+            np.arange(21).reshape((3, 7)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+            # expected data
+            np.arange(21).reshape((3, 7))[1, :],
+            # expected iteration
+            Axis(1),
+            # expected time
+            Axis(1),
+            # expected grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))[1]],
+        ),
+        ########################################################################
+        # > 2d, multiple time steps, [:, :, :]
+        (
+            # indexing
+            np.s_[:, :, :],
+            # data
+            np.arange(105).reshape((3, 7, 5)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+            ],
+            # expected data
+            np.arange(105).reshape((3, 7, 5)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+            ],
+        ),
+        ########################################################################
+        # > 2d, multiple time steps, [int, :, :]
+        (
+            # indexing
+            np.s_[1, :, :],
+            # data
+            np.arange(105).reshape((3, 7, 5)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+            ],
+            # expected data
+            np.arange(105).reshape((3, 7, 5))[1, :, :],
+            # expected iteration
+            Axis(1),
+            # expected time
+            Axis(1),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7)))[1],
+                GridAxis(np.arange(15).reshape((3, 5)))[1],
+            ],
+        ),
+        ########################################################################
+        # > 2d, multiple time steps, [:, int, :]
+        (
+            # indexing
+            np.s_[:, 4, :],
+            # data
+            np.arange(105).reshape((3, 7, 5)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+            ],
+            # expected data
+            np.arange(105).reshape((3, 7, 5))[:, 4, :],
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [GridAxis(np.arange(15).reshape((3, 5)))],
+        ),
+        ########################################################################
+        # > 2d, multiple time steps, [:, :, int]
+        (
+            # indexing
+            np.s_[:, :, 2],
+            # data
+            np.arange(105).reshape((3, 7, 5)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+            ],
+            # expected data
+            np.arange(105).reshape((3, 7, 5))[:, :, 2],
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [GridAxis(np.arange(21).reshape((3, 7)))],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [:, :, :, :, :]
+        (
+            # indexing
+            np.s_[:, :, :, :, :],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [:, ...]
+        (
+            # indexing
+            np.s_[:, ..., :],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [:, ..., int]
+        (
+            # indexing
+            np.s_[:, ..., 4],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((3, 7, 5, 2, 6))[:, ..., 4],
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+            ],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [...]
+        (
+            # indexing
+            np.s_[...],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [newaxis, ...]
+        #   -> new axis for time/iteration
+        (
+            # indexing
+            np.s_[np.newaxis, ...],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((1, 3, 7, 5, 2, 6)),
+            # expected iteration
+            Axis([[0, 1, 2]]),
+            # expected time
+            Axis([[0, 1, 2]]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [:, newaxis, ...]
+        #   -> new axis with None on 1st position
+        (
+            # indexing
+            np.s_[:, np.newaxis, ...],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((3, 1, 7, 5, 2, 6)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                None,
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [:, :, newaxis,  :, :, :]
+        #   -> new axis with None on 2nd position
+        (
+            # indexing
+            np.s_[:, :, np.newaxis, ...],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((3, 7, 1, 5, 2, 6)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                None,
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+        ),
+        ########################################################################
+        # > 4d, multiple time steps, [..., newaxis]
+        #   -> new axis with None on last position
+        (
+            # indexing
+            np.s_[..., np.newaxis],
+            # data
+            np.arange(1260).reshape((3, 7, 5, 2, 6)),
+            # iteration
+            Axis([0, 1, 2]),
+            # time
+            Axis([0, 1, 2]),
+            # grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+            ],
+            # expected data
+            np.arange(1260).reshape((3, 7, 5, 2, 6, 1)),
+            # expected iteration
+            Axis([0, 1, 2]),
+            # expected time
+            Axis([0, 1, 2]),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(21).reshape((3, 7))),
+                GridAxis(np.arange(15).reshape((3, 5))),
+                GridAxis(np.arange(6).reshape((3, 2))),
+                GridAxis(np.arange(18).reshape((3, 6))),
+                None,
+            ],
+        ),
+        ########################################################################
+        # > 3d, single time step [newaxis, ...]
+        (
+            # indexing
+            # np.s_[np.newaxis, ...],
+            np.s_[np.newaxis, ...],
+            # data
+            np.arange(60).reshape((1, 3, 4, 5)),
+            # iteration
+            Axis(0),
+            # time
+            Axis(0),
+            # grid_axes
+            [
+                GridAxis(np.arange(3).reshape((1, 3))),
+                GridAxis(np.arange(4).reshape((1, 4))),
+                GridAxis(np.arange(5).reshape((1, 5))),
+            ],
+            # expected data
+            np.arange(60).reshape((1, 1, 3, 4, 5)),
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [
+                None,
+                GridAxis(np.arange(3).reshape((1, 3))),
+                GridAxis(np.arange(4).reshape((1, 4))),
+                GridAxis(np.arange(5).reshape((1, 5))),
+            ],
+        ),
+        ########################################################################
+        # > 3d, single time step [:, newaxis, ...]
+        (
+            # indexing
+            np.s_[:, np.newaxis, ...],
+            # data
+            np.arange(60).reshape((1, 3, 4, 5)),
+            # iteration
+            Axis(0),
+            # time
+            Axis(0),
+            # grid_axes
+            [
+                GridAxis(np.arange(3).reshape((1, 3))),
+                GridAxis(np.arange(4).reshape((1, 4))),
+                GridAxis(np.arange(5).reshape((1, 5))),
+            ],
+            # expected data
+            np.arange(60).reshape((1, 3, 1, 4, 5)),
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(3).reshape((1, 3))),
+                None,
+                GridAxis(np.arange(4).reshape((1, 4))),
+                GridAxis(np.arange(5).reshape((1, 5))),
+            ],
+        ),
+        ########################################################################
+        # > 3d, single time step [:, :, :, newaxis]
+        (
+            # indexing
+            np.s_[..., np.newaxis],
+            # data
+            np.arange(60).reshape((1, 3, 4, 5)),
+            # iteration
+            Axis(0),
+            # time
+            Axis(0),
+            # grid_axes
+            [
+                GridAxis(np.arange(3).reshape((1, 3))),
+                GridAxis(np.arange(4).reshape((1, 4))),
+                GridAxis(np.arange(5).reshape((1, 5))),
+            ],
+            # expected data
+            np.arange(60).reshape((1, 3, 4, 5, 1)),
+            # expected iteration
+            Axis(0),
+            # expected time
+            Axis(0),
+            # expected grid_axes
+            [
+                GridAxis(np.arange(3).reshape((1, 3))),
+                GridAxis(np.arange(4).reshape((1, 4))),
+                GridAxis(np.arange(5).reshape((1, 5))),
+                None,
+            ],
+        ),
+    ],
+    ids=[
+        "1d, single time step, [int]",
+        "1d, single time step, [:]",
+        "1d, single time step, [range]",
+        "1d, multiple time steps, [int]",
+        "1d, multiple time steps, [:]",
+        "1d, multiple time steps, [range]",
+        "1d, multiple time steps, [int, int]",
+        "1d, multiple time steps, [:, int]",
+        "1d, multiple time steps, [int, :]",
+        "2d, multiple time steps, [:, :, :]",
+        "2d, multiple time steps, [int, :, :]",
+        "2d, multiple time steps, [:, int, :]",
+        "2d, multiple time steps, [:, :, int]",
+        "4d, multiple time steps, [:, :, :, :, :]",
+        "4d, multiple time steps, [:, ...]",
+        "4d, multiple time steps, [:, ..., 4]",
+        "4d, multiple time steps, [...]",
+        "4d, multiple time steps, [newaxis, ...]",
+        "4d, multiple time steps, [:, newaxis, ...]",
+        "4d, multiple time steps, [:, :, newaxis, ...]",
+        "4d, multiple time steps, [..., newaxis]",
+        "3d, single time step, [newaxis, ...]",
+        "3d, single time step, [:, newaxis, ...]",
+        "3d, single time step, [..., newaxis]",
+    ],
+)
+def test_GridDataset_getitem(
+    indexing,
+    data,
+    iteration,
+    time,
+    grid_axes,
+    expected_data,
+    expected_iteration,
+    expected_time,
+    expected_grid_axes,
+):
+    # some valid names GridDatset
+    name = "some_name"
+    label = "some_label"
+    unit = "some_unit"
 
-    assert len(subgrid.axes["grid_axes"]) == num_grid_axes
-    assert len(subgrid.axes["iteration"]) == num_iterations
-    assert len(subgrid.axes["time"]) == num_iterations
+    grid = GridDataset(
+        data,
+        iteration=iteration,
+        time=time,
+        grid_axes=grid_axes,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    expected_subgrid = GridDataset(
+        expected_data,
+        iteration=expected_iteration,
+        time=expected_time,
+        grid_axes=expected_grid_axes,
+        name=name,
+        label=label,
+        unit=unit,
+    )
+
+    subgrid = grid[indexing]
+
+    assert isinstance(subgrid, GridDataset)
+
+    # will check equivalence of axis as well
+    # do it two different ways as equivalent is not guaranteed to be commutative
+    assert subgrid.equivalent(expected_subgrid)
+    assert expected_subgrid.equivalent(subgrid)
+
+    # data
+    np.testing.assert_array_equal(subgrid, expected_subgrid)
+
+    # iteration
+    np.testing.assert_array_equal(
+        subgrid.axes["iteration"], expected_subgrid.axes["iteration"]
+    )
+    # time
+    np.testing.assert_array_equal(
+        subgrid.axes["time"], expected_subgrid.axes["time"]
+    )
+
+    # grid_axes
+    assert len(subgrid.axes["grid_axes"]) == len(
+        expected_subgrid.axes["grid_axes"]
+    )
+    for grid_axis, expected_grid_axis in zip(
+        subgrid.axes["grid_axes"], expected_subgrid.axes["grid_axes"]
+    ):
+        np.testing.assert_array_equal(grid_axis, expected_grid_axis)
 
 
 def test_GridDataset_change_name():
@@ -450,6 +1265,32 @@ def test_GridDataset_repr_default():
         + ")"
     )
 
+    grid = GridDataset([1, 2, 3])
+    assert repr(grid) == (
+        "GridDataset("
+        + "name='unnamed', "
+        + "label='unnamed', "
+        + "unit='', "
+        + "shape=(3,), "
+        + "iteration=None, "
+        + "time=None, "
+        + "grid_axes=[]"
+        + ")"
+    )
+
+    grid = GridDataset([[1, 2, 3]])
+    assert repr(grid) == (
+        "GridDataset("
+        + "name='unnamed', "
+        + "label='unnamed', "
+        + "unit='', "
+        + "shape=(3,), "
+        + "iteration=None, "
+        + "time=None, "
+        + "grid_axes=[None]"
+        + ")"
+    )
+
 
 def test_GridDataset_repr_backend(SampleGridBackend: GridBackendType):
     backend = SampleGridBackend(data=np.arange(10).reshape((2, 5)))
@@ -463,8 +1304,8 @@ def test_GridDataset_repr_backend(SampleGridBackend: GridBackendType):
         + f"iteration={backend.iteration}, "
         + f"time={backend.time_step}, "
         + f"grid_axes=["
-        + f"Axis('{backend.axes_names[0]}', grid_cells={backend.shape[0]}), "
-        + f"Axis('{backend.axes_names[1]}', grid_cells={backend.shape[1]})"
+        + f"Axis('{backend.axes_names[0]}', len=1, shape=(2,)), "
+        + f"Axis('{backend.axes_names[1]}', len=1, shape=(5,))"
         + "]"
         + ")"
     )
