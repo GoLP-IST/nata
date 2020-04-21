@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
+
 import numpy as np
 from hypothesis import assume
 from hypothesis.extra.numpy import array_shapes
@@ -77,13 +79,15 @@ def anyarray(
     min_dims: int = 0,
     max_dims: int = 2,
     include_complex_numbers: bool = True,
+    dtype: Optional[np.dtype] = None,
 ):
-    if include_complex_numbers:
-        dtype = one_of(
-            integer_dtypes(), floating_dtypes(), complex_number_dtypes()
-        )
-    else:
-        dtype = one_of(integer_dtypes(), floating_dtypes())
+    if dtype is None:
+        if include_complex_numbers:
+            dtype = one_of(
+                integer_dtypes(), floating_dtypes(), complex_number_dtypes()
+            )
+        else:
+            dtype = one_of(integer_dtypes(), floating_dtypes())
 
     arr = draw(
         arrays(
@@ -98,8 +102,15 @@ def anyarray(
 
 
 @composite
-def array_and_basic_indices(draw, array_min_dims=0, array_max_dims=2):
-    arr = draw(anyarray(min_dims=array_min_dims, max_dims=array_max_dims))
+def array_and_basic_indices(
+    draw,
+    array_min_dims: int = 0,
+    array_max_dims: int = 2,
+    dtype: np.dtype = None,
+):
+    arr = draw(
+        anyarray(min_dims=array_min_dims, max_dims=array_max_dims, dtype=dtype)
+    )
     ind = draw(basic_indices(arr.shape))
     return arr, ind
 
