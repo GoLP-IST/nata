@@ -127,6 +127,11 @@ class Axis:
             data, name=self.name, label=self.label, unit=self.unit,
         )
 
+    def __setitem__(
+        self, key: Union[int, slice, Tuple[Union[int, slice]]], value: Any
+    ) -> None:
+        self.data[key] = value
+
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
         data = self._data.astype(dtype) if dtype else self._data
         return np.squeeze(data, axis=0) if len(self) == 1 else data
