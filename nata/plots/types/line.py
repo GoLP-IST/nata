@@ -6,7 +6,7 @@ from typing import Union
 import numpy as np
 
 from nata.plots.data import PlotData
-from nata.plots.plots.base import BasePlot
+from nata.plots.types import BasePlot
 
 
 class LinePlot(BasePlot):

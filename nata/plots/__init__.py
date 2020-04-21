@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from typing import Union
 
-from .plots.line import LinePlot
-from .plots.color import ColorPlot
-from .plots.scatter import ScatterPlot
+from .types import BasePlot
+from .types import LinePlot
+from .types import ColorPlot
+from .types import ScatterPlot
+
 from .data import PlotDataAxis, PlotData
 
 PlotTypes = Union[LinePlot]

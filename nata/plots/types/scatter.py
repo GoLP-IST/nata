@@ -6,7 +6,7 @@ import numpy as np
 from attr.validators import instance_of
 from attr.validators import optional
 
-from nata.plots.plots.base import BasePlot
+from nata.plots.types.base import BasePlot
 
 
 @attr.s
