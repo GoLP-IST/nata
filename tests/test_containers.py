@@ -19,10 +19,12 @@ from hypothesis.strategies import one_of
 from nata.axes import Axis
 from nata.axes import GridAxis
 from nata.containers import GridDataset
+from nata.containers import ParticleDataset
 from nata.containers import _separation_newaxis
 from nata.types import AxisType
 from nata.types import GridBackendType
 from nata.types import GridDatasetType
+from nata.types import ParticleDatasetType
 
 
 @composite
@@ -1309,3 +1311,8 @@ def test_GridDataset_repr_backend(SampleGridBackend: GridBackendType):
         + "]"
         + ")"
     )
+
+
+@pytest.mark.wip
+def test_ParticleDatset_type_check():
+    assert isinstance(ParticleDataset, ParticleDatasetType)

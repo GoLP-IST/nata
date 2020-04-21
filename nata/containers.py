@@ -17,6 +17,9 @@ from .types import GridAxisType
 from .types import GridBackendType
 from .types import GridDatasetAxes
 from .types import GridDatasetType
+from .types import ParticleBackendType
+from .types import ParticleDatasetAxes
+from .types import QuantityType
 from .types import is_basic_indexing
 from .utils.array import expand_ellipsis
 from .utils.exceptions import NataInvalidContainer
@@ -486,6 +489,52 @@ class GridDataset:
                 self_grid_axis.append(other_grid_axis)
 
         self._data = np.append(self._data, other._data, axis=0)
+
+
+class ParticleDataset:
+    _backends: AbstractSet[ParticleBackendType] = set()
+
+    @property
+    def name(self) -> str:
+        ...
+
+    @property
+    def label(self) -> str:
+        ...
+
+    @property
+    def quantities(self) -> Dict[str, QuantityType]:
+        ...
+
+    @property
+    def axes(self) -> ParticleDatasetAxes:
+        ...
+
+    @property
+    def num_particles(self) -> AxisType:
+        ...
+
+    @classmethod
+    def add_backend(cls, backend: ParticleBackendType) -> None:
+        ...
+
+    @classmethod
+    def remove_backend(cls, backend: ParticleBackendType) -> None:
+        ...
+
+    @classmethod
+    def is_valid_backend(cls, backend: ParticleBackendType) -> bool:
+        ...
+
+    @classmethod
+    def get_backends(cls) -> Dict[str, ParticleBackendType]:
+        ...
+
+    def append(self, other: "ParticleDataset") -> None:
+        ...
+
+    def equivalent(self, other: "ParticleDataset") -> bool:
+        ...
 
 
 class DatasetCollection:

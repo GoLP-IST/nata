@@ -206,6 +206,6 @@ class ParticleDatasetType(DatasetType, Protocol):
     name: str
     label: str
 
-    quantities: Sequence[QuantityType]
+    quantities: Dict[str, QuantityType]
     axes: ParticleDatasetAxes
     num_particles: AxisType
