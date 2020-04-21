@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
+
 import numpy as np
 from hypothesis import assume
 from hypothesis.extra.numpy import array_shapes
@@ -22,6 +24,22 @@ def intc_bounded_intergers(draw):
             min_value=np.iinfo(np.intc).min, max_value=np.iinfo(np.intc).max
         ),
     )
+
+
+@composite
+def bounded_intergers(draw, min_value=None, max_value=None):
+    lower_limit = (
+        min_value
+        if (min_value and (min_value > np.iinfo(np.intc).min))
+        else np.iinfo(np.intc).min
+    )
+    upper_limit = (
+        max_value
+        if (max_value and (max_value < np.iinfo(np.intc).max))
+        else np.iinfo(np.intc).max
+    )
+
+    return draw(integers(min_value=lower_limit, max_value=upper_limit),)
 
 
 @composite
@@ -56,12 +74,24 @@ def number(draw, include_complex_numbers=True):
 
 
 @composite
-def anyarray(draw, min_dims=0, max_dims=2):
+def anyarray(
+    draw,
+    min_dims: int = 0,
+    max_dims: int = 2,
+    include_complex_numbers: bool = True,
+    dtype: Optional[np.dtype] = None,
+):
+    if dtype is None:
+        if include_complex_numbers:
+            dtype = one_of(
+                integer_dtypes(), floating_dtypes(), complex_number_dtypes()
+            )
+        else:
+            dtype = one_of(integer_dtypes(), floating_dtypes())
+
     arr = draw(
         arrays(
-            dtype=one_of(
-                integer_dtypes(), floating_dtypes(), complex_number_dtypes()
-            ),
+            dtype=dtype,
             shape=array_shapes(min_dims=min_dims, max_dims=max_dims),
         )
     )
@@ -72,8 +102,15 @@ def anyarray(draw, min_dims=0, max_dims=2):
 
 
 @composite
-def array_and_basic_indices(draw, array_min_dims=0, array_max_dims=2):
-    arr = draw(anyarray(min_dims=array_min_dims, max_dims=array_max_dims))
+def array_and_basic_indices(
+    draw,
+    array_min_dims: int = 0,
+    array_max_dims: int = 2,
+    dtype: np.dtype = None,
+):
+    arr = draw(
+        anyarray(min_dims=array_min_dims, max_dims=array_max_dims, dtype=dtype)
+    )
     ind = draw(basic_indices(arr.shape))
     return arr, ind
 

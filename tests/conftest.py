@@ -19,7 +19,7 @@ def does_not_raise():
 
 # taken from:
 # https://hypothesis.readthedocs.io/en/latest/settings.html#settings-profiles
-settings.register_profile("ci", max_examples=1000)
+settings.register_profile("ci", max_examples=100)
 settings.register_profile("dev", max_examples=10)
 settings.register_profile(
     "debug", max_examples=10, report_multiple_bugs=False,
