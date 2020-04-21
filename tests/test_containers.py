@@ -393,7 +393,6 @@ def test_GridDataset_iterator_multiple_items(SampleGridBackend):
         np.testing.assert_array_equal(g, backend.get_data())
 
 
-@pytest.mark.wip
 @pytest.mark.parametrize(
     [
         "key",
@@ -463,7 +462,6 @@ def test_separation_newaxis(
     assert spatial_key == expected_spatial_key
 
 
-@pytest.mark.wip
 @pytest.mark.parametrize(
     [
         "indexing",
