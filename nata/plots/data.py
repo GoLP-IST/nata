@@ -1,28 +1,34 @@
 # -*- coding: utf-8 -*-
-import attr
+from typing import List
+from typing import Optional
+from typing import Union
+
 import numpy as np
-from attr.validators import instance_of
-from attr.validators import optional
 
 
-@attr.s
 class PlotDataAxis:
-    name: str = attr.ib(default="")
-    label: str = attr.ib(default="")
-    units: str = attr.ib(default="")
-    data: np.ndarray = attr.ib(
-        default=None, validator=optional(instance_of(np.ndarray))
-    )
-    min: float = attr.ib(default=0, init=False)
-    max: float = attr.ib(default=0, init=False)
-    type: str = attr.ib(default="", validator=optional(instance_of(str)))
+    def __init__(
+        self,
+        name: str = "",
+        label: Optional[str] = None,
+        units: Optional[str] = None,
+        data: Optional[np.ndarray] = None,
+    ):
 
-    def __attrs_post_init__(self):
-        if self.data is not None:
-            self.min = np.min(self.data)
-            self.max = np.max(self.data)
+        self.name = name
+        self.label = label
+        self.units = units
+        self.data = None if data is None else np.asanyarray(data)
 
-    def get_label(self, units=True):
+    @property
+    def min(self) -> float:
+        return np.min(self.data)
+
+    @property
+    def max(self) -> float:
+        return np.max(self.data)
+
+    def get_label(self, units=True) -> str:
         label = ""
         if self.label:
             label += f"${self.label}$"
@@ -31,19 +37,26 @@ class PlotDataAxis:
         return label
 
 
-@attr.s
 class PlotData:
-    name: str = attr.ib(default="")
-    label: str = attr.ib(default="")
-    units: str = attr.ib(default="", validator=optional(instance_of(str)))
-    data: np.ndarray = attr.ib(default=[])
-    axes: list = attr.ib(default=())
+    def __init__(
+        self,
+        data: np.ndarray,
+        axes: List[PlotDataAxis],
+        name: str = "",
+        label: Optional[str] = None,
+        units: Optional[str] = None,
+        time: Optional[Union[float, int]] = None,
+        time_units: Optional[str] = None,
+    ):
+        self.data = np.asanyarray(data)
+        self.axes = axes
+        self.name = name
+        self.label = label
+        self.units = units
+        self.time = time
+        self.time_units = time_units
 
-    # time properties
-    time: float = attr.ib(default=0.0)
-    time_units: str = attr.ib(default="")
-
-    def get_label(self, units=True):
+    def get_label(self, units=True) -> str:
         label = ""
         if self.label:
             label += f"${self.label}$"
@@ -51,7 +64,7 @@ class PlotData:
                 label += f" $\\left[{self.units}\\right]$"
         return label
 
-    def get_time_label(self):
+    def get_time_label(self) -> str:
         label = ""
         if self.time is not None:
             label += f"Time = ${self.time:.2f}$"

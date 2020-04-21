@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 from copy import copy
 from math import ceil
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
-import attr
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
-from attr.validators import and_
-from attr.validators import in_
-from attr.validators import instance_of
-from attr.validators import optional
 from pkg_resources import resource_filename
 
 from nata.plots import PlotTypes
@@ -17,42 +16,23 @@ from nata.plots.axes import Axes
 from nata.plots.data import PlotData
 
 
-@attr.s
 class Figure:
+    def __init__(
+        self,
+        figsize: Optional[Tuple[Union[int, float]]] = (9, 6),
+        nrows: Optional[int] = 1,
+        ncols: Optional[int] = 1,
+        style: Optional[str] = "light",
+        fname: Optional[str] = None,
+        rc: Optional[Dict] = None,
+    ):
+        self.figsize = figsize
+        self.nrows = nrows
+        self.ncols = ncols
 
-    # axes contained in the figure
-    _axes: list = attr.ib(init=False, repr=False)
-
-    # backend objects
-    _plt: attr.ib(init=False, repr=False)
-    _mpl: attr.ib(init=False, repr=False)
-
-    # backend figure object
-    _fig: attr.ib(init=False, repr=False)
-
-    # backend object options
-    figsize: tuple = attr.ib(
-        default=(9, 6),
-        validator=attr.validators.instance_of((tuple, np.ndarray)),
-    )
-    nrows: int = attr.ib(default=1)
-    ncols: int = attr.ib(default=1)
-
-    # style-related variables
-    style: str = attr.ib(
-        default="light",
-        validator=optional(and_(instance_of(str), in_(("light", "dark")))),
-    )
-    fname: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    rc: dict = attr.ib(repr=False, default={})
-
-    @property
-    def axes(self) -> dict:
-        return {axes.index: axes for axes in self._axes}
-
-    # TODO: add metadata to attributes to identify auto state
-
-    def __attrs_post_init__(self):
+        self.style = style
+        self.fname = fname
+        self.rc = rc
 
         # initialize list of axes objects
         self.init_axes()
@@ -85,7 +65,6 @@ class Figure:
         self.open()
 
     def set_style(self):
-
         if not self.fname:
             self.fname = resource_filename(
                 __name__, "styles/" + self.style + ".rc"
@@ -188,3 +167,18 @@ class Figure:
         new.close()
 
         return new
+
+    @property
+    def axes(self) -> dict:
+        return {axes.index: axes for axes in self._axes}
+
+    @classmethod
+    def style_attrs(self) -> List[str]:
+        return [
+            "figsize",
+            "nrows",
+            "ncols",
+            "style",
+            "fname",
+            "rc",
+        ]

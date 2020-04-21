@@ -1,108 +1,64 @@
 # -*- coding: utf-8 -*-
 from copy import copy
+from typing import List
 from typing import Optional
 
-import attr
 import matplotlib as mpl
-from attr.validators import and_
-from attr.validators import in_
-from attr.validators import instance_of
-from attr.validators import optional
 
 # from nata.plots import Figure
 from nata.plots import PlotData
 from nata.plots import PlotTypes
 
 
-@attr.s
 class Axes:
+    def __init__(
+        self,
+        fig,
+        index: int = 0,
+        xlim: Optional[tuple] = None,
+        ylim: Optional[tuple] = None,
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
+        title: Optional[str] = None,
+        xscale: Optional[str] = "linear",
+        yscale: Optional[str] = "linear",
+        aspect: Optional[str] = "auto",
+        legend_show: Optional[bool] = True,
+        legend_loc: Optional[str] = "upper right",
+        legend_frameon: Optional[bool] = False,
+        cb_show: Optional[bool] = True,
+        cb_loc: Optional[str] = "right",
+    ):
 
-    # plots contained in the axes
-    _plots: list = attr.ib(init=False, repr=False)
+        self._fig = fig
+        self.index = index
 
-    # parent figure object
-    _fig = attr.ib(repr=False)
+        self.xlim = xlim
+        self.xlim_auto = None
 
-    # backend axes object
-    _ax: attr.ib(init=False, repr=False)
+        self.ylim = xlim
+        self.ylim_auto = None
 
-    # axes index in the parent figure object
-    index: int = attr.ib()
+        self.xlabel = xlabel
+        self.xlabel_auto = None
 
-    # backend legend object
-    _legend: attr.ib(init=False, repr=True, default=None)
+        self.ylabel = ylabel
+        self.ylabel_auto = None
 
-    # backend colorbar object
-    _cb: attr.ib(init=False, repr=True, default=None)
+        self.title = title
+        self.title_auto = None
 
-    # plot options
+        self.xscale = xscale
+        self.yscale = xscale
 
-    # axes limit options
-    xlim: tuple = attr.ib(default=None, validator=optional(instance_of(tuple)))
-    ylim: tuple = attr.ib(default=None, validator=optional(instance_of(tuple)))
+        self.aspect = aspect
 
-    # axes label options
-    xlabel: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    ylabel: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    title: str = attr.ib(default=None, validator=optional(instance_of(str)))
+        self.legend_show = legend_show
+        self.legend_loc = legend_loc
+        self.legend_frameon = legend_frameon
 
-    # axes scale options
-    xscale: str = attr.ib(
-        default="linear",
-        validator=optional(
-            and_(instance_of(str), in_(("linear", "log", "symlog")))
-        ),
-    )
-    yscale: str = attr.ib(
-        default="linear",
-        validator=optional(
-            and_(instance_of(str), in_(("linear", "log", "symlog")))
-        ),
-    )
-    aspect: str = attr.ib(
-        default="auto",
-        validator=optional(and_(instance_of(str), in_(("equal", "auto")))),
-    )
-
-    # legend options
-    legend_show: bool = attr.ib(
-        default=True, validator=optional(instance_of(bool))
-    )
-    legend_loc: str = attr.ib(
-        default="upper right", validator=optional(instance_of(str))
-    )
-    legend_frameon: bool = attr.ib(
-        default=False, validator=optional(instance_of(bool))
-    )
-
-    # colorbar options
-    cb_show: bool = attr.ib(default=True, validator=optional(instance_of(bool)))
-
-    @property
-    def plots(self) -> list:
-        return self._plots
-
-    def copy(self):
-        new = copy(self)
-
-        for plot in new._plots:
-            plot._axes = new
-
-        return new
-
-    def __attrs_post_init__(self):
-
-        # set flags to control automatic plot options
-        self._xlim_auto = None
-        self._ylim_auto = None
-
-        self._xlabel_auto = None
-        self._ylabel_auto = None
-        self._title_auto = None
-
-        self._xscale_auto = None
-        self._yscale_auto = None
-        self._aspect_auto = None
+        self.cb_show = cb_show
+        self.cb_loc = cb_loc
 
         # initialize list of plot objects
         self.init_plots()
@@ -110,26 +66,28 @@ class Axes:
         # initialize axes backend
         self.init_backend()
 
-    def init_plots(self):
-        self._plots = []
+    @property
+    def plots(self) -> list:
+        return self._plots
 
+    # backend methods
+    # TODO: generalize the following methods for arbitrary backend
     def init_backend(self):
-        # TODO: generalize this for arbitrary backend
         with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
             self._ax = self._fig._fig.add_subplot(
                 self._fig.nrows, self._fig.ncols, self.index
             )
 
-        self._legend = None
-        self._cb = None
+        self.legend = None
+        self.cb = None
 
     def clear_backend(self):
         for plot in self._plots:
             plot.clear()
 
         self.clear_colorbar()
+        self.clear_legend()
 
-        # TODO: generalize this for arbitrary backend
         self._ax.clear()
         self._ax.remove()
         self._ax = None
@@ -138,90 +96,7 @@ class Axes:
         self.clear_backend()
         self.init_backend()
 
-    def add_plot(
-        self,
-        plot_type: Optional[PlotTypes] = None,
-        plot: Optional[PlotTypes] = None,
-        data: Optional[PlotData] = None,
-        style: Optional[dict] = dict(),
-    ):
-
-        if plot is None:
-            plot = plot_type(axes=self, data=data, **style)
-        else:
-            plot._axes = self
-
-        self._plots.append(plot)
-
-        return plot
-
-    def update(self):
-
-        self.update_plot_options()
-        self.update_backend()
-
-        if len(self._plots) > 1:
-            self.legend()
-
-    def update_plot_options(self):
-        if self._xlim_auto:
-            self.xlim = (
-                min([p._default_xlim()[0] for p in self._plots]),
-                max([p._default_xlim()[1] for p in self._plots]),
-            )
-
-        if self._ylim_auto:
-            self.ylim = (
-                min([p._default_ylim()[0] for p in self._plots]),
-                max([p._default_ylim()[1] for p in self._plots]),
-            )
-
-        if self._xlabel_auto:
-            units = [p._xunits() for p in self._plots]
-            xlabels = [p._default_xlabel(units=False) for p in self._plots]
-
-            if len(set(units)) == 1 and len(set(xlabels)) == 1:
-                self.xlabel = set(xlabels).pop() + " [" + set(units).pop() + "]"
-            elif len(set(units)) == 1:
-                xlabels = [p._default_xlabel(units=False) for p in self._plots]
-                self.xlabel = ", ".join(xlabels) + " [" + set(units).pop() + "]"
-            else:
-                xlabels = [p._default_xlabel(units=True) for p in self._plots]
-                self.xlabel = ", ".join(xlabels)
-
-        if self._ylabel_auto:
-            units = [p._yunits() for p in self._plots]
-            ylabels = [p._default_ylabel(units=False) for p in self._plots]
-
-            if len(set(units)) == 1 and len(set(ylabels)) == 1:
-                self.ylabel = set(ylabels).pop() + " [" + set(units).pop() + "]"
-            elif len(set(units)) == 1:
-                ylabels = [p._default_ylabel(units=False) for p in self._plots]
-                self.ylabel = ", ".join(ylabels) + " [" + set(units).pop() + "]"
-            else:
-                ylabels = [p._default_ylabel(units=True) for p in self._plots]
-                self.ylabel = ", ".join(ylabels)
-
-        if self._title_auto:
-            titles = [p._default_title() for p in self._plots]
-
-            if len(set(titles)) == 1:
-                self.title = set(titles).pop()
-            else:
-                self.title = None
-
-    def redo_plots(self):
-
-        self.reset_backend()
-
-        for plot in self.plots:
-            plot.build_canvas()
-
-        self.update()
-
     def update_backend(self):
-        # TODO: generalize this for arbitrary backend
-
         with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
             ax = self._ax
 
@@ -244,7 +119,93 @@ class Axes:
             # set aspect ratio
             ax.set_aspect(self.aspect)
 
-    def legend(self):
+    # plot methods
+    def init_plots(self):
+        self._plots = []
+        self._cb = None
+        self._legend = None
+
+    def add_plot(
+        self,
+        plot_type: Optional[PlotTypes] = None,
+        plot: Optional[PlotTypes] = None,
+        data: Optional[PlotData] = None,
+        style: Optional[dict] = dict(),
+    ):
+        if plot is None:
+            plot = plot_type(axes=self, data=data, **style)
+        else:
+            plot._axes = self
+
+        self._plots.append(plot)
+
+        return plot
+
+    def update_plot_options(self):
+        if self.xlim_auto:
+            self.xlim = (
+                min([p._default_xlim()[0] for p in self._plots]),
+                max([p._default_xlim()[1] for p in self._plots]),
+            )
+
+        if self.ylim_auto:
+            self.ylim = (
+                min([p._default_ylim()[0] for p in self._plots]),
+                max([p._default_ylim()[1] for p in self._plots]),
+            )
+
+        if self.xlabel_auto:
+            units = [p._xunits() for p in self._plots]
+            xlabels = [p._default_xlabel(units=False) for p in self._plots]
+
+            if len(set(units)) == 1 and len(set(xlabels)) == 1:
+                self.xlabel = set(xlabels).pop() + " [" + set(units).pop() + "]"
+            elif len(set(units)) == 1:
+                xlabels = [p._default_xlabel(units=False) for p in self._plots]
+                self.xlabel = ", ".join(xlabels) + " [" + set(units).pop() + "]"
+            else:
+                xlabels = [p._default_xlabel(units=True) for p in self._plots]
+                self.xlabel = ", ".join(xlabels)
+
+        if self.ylabel_auto:
+            units = [p._yunits() for p in self._plots]
+            ylabels = [p._default_ylabel(units=False) for p in self._plots]
+
+            if len(set(units)) == 1 and len(set(ylabels)) == 1:
+                self.ylabel = set(ylabels).pop() + " [" + set(units).pop() + "]"
+            elif len(set(units)) == 1:
+                ylabels = [p._default_ylabel(units=False) for p in self._plots]
+                self.ylabel = ", ".join(ylabels) + " [" + set(units).pop() + "]"
+            else:
+                ylabels = [p._default_ylabel(units=True) for p in self._plots]
+                self.ylabel = ", ".join(ylabels)
+
+        if self.title_auto:
+            titles = [p._default_title() for p in self._plots]
+
+            if len(set(titles)) == 1:
+                self.title = set(titles).pop()
+            else:
+                self.title = None
+
+    def update(self):
+        self.update_plot_options()
+        self.update_backend()
+
+        if len(self._plots) > 1:
+            self.init_legend()
+
+    def redo_plots(self):
+
+        self.reset_backend()
+
+        for plot in self.plots:
+            plot.build_canvas()
+
+        self.update()
+
+    # legend methods
+    def init_legend(self):
         if self.legend_show:
             handles, labels = self._ax.get_legend_handles_labels()
             with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
@@ -256,13 +217,18 @@ class Axes:
                     frameon=self.legend_frameon,
                 )
 
-    def colorbar(self, plot: PlotTypes):
+    def clear_legend(self):
+        if self._legend:
+            self._legend.remove()
 
+    # colorbar methods
+    def init_colorbar(self, plot: PlotTypes):
         if self.cb_show:
-
             with mpl.rc_context(fname=self._fig.fname, rc=self._fig.rc):
                 # show colorbar
-                self._cb = self._ax.get_figure().colorbar(plot._h, aspect=30)
+                self._cb = self._ax.get_figure().colorbar(
+                    plot._h, location=self.cb_loc, aspect=30
+                )
 
                 # set colorbar title
                 self._cb.set_label(label=plot.cb_title)
@@ -270,3 +236,29 @@ class Axes:
     def clear_colorbar(self):
         if self._cb:
             self._cb.remove()
+
+    def copy(self):
+        new = copy(self)
+
+        for plot in new._plots:
+            plot._axes = new
+
+        return new
+
+    @classmethod
+    def style_attrs(self) -> List[str]:
+        return [
+            "xlim",
+            "ylim",
+            "xlabel",
+            "ylabel",
+            "title",
+            "xscale",
+            "yscale",
+            "aspect",
+            "legend_show",
+            "legend_loc",
+            "legend_frameon",
+            "cb_show",
+            "cb_loc",
+        ]

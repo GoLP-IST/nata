@@ -1,57 +1,47 @@
 # -*- coding: utf-8 -*-
-from abc import ABC
-
-import attr
-from attr.validators import instance_of
-from attr.validators import optional
+from typing import List
+from typing import Optional
 
 from nata.plots.data import PlotData
 
 
-@attr.s
-class BasePlot(ABC):
+class BasePlot:
+    def __init__(
+        self, axes, data: PlotData, label: Optional[str] = None,
+    ):
+        # set child data object
+        self._data = data
 
-    # parent axes object
-    _axes = attr.ib(init=True, repr=False)
+        # set defaults on parent axes object
+        if axes.xlim is None:
+            axes.xlim_auto = True
+            axes.xlim = self._default_xlim()
 
-    # data object
-    _data: PlotData = attr.ib(init=True, repr=False)
+        if axes.ylim is None:
+            axes.ylim_auto = True
+            axes.ylim = self._default_ylim()
 
-    # plot handle object
-    _h: attr.ib(init=False, repr=False)
+        if axes.xlabel is None:
+            axes.xlabel_auto = True
+            axes.xlabel = self._default_xlabel()
 
-    label: str = attr.ib(default=None, validator=optional(instance_of(str)))
+        if axes.ylabel is None:
+            axes.ylabel_auto = True
+            axes.ylabel = self._default_ylabel()
 
-    # validator for parent axes object
-    @_axes.validator
-    def _axes_validator(self, attr, _axes):
+        if axes.title is None:
+            axes.title_auto = True
+            axes.title = self._default_title()
 
-        if _axes.xlim is None:
-            _axes._xlim_auto = True
-            _axes.xlim = self._default_xlim()
+        self._axes = axes
 
-        if _axes.ylim is None:
-            _axes._ylim_auto = True
-            _axes.ylim = self._default_ylim()
+        # set default label
+        if label is None:
+            label = self._default_label()
 
-        if _axes.xlabel is None:
-            _axes._xlabel_auto = True
-            _axes.xlabel = self._default_xlabel()
+        self.label = label
 
-        if _axes.ylabel is None:
-            _axes._ylabel_auto = True
-            _axes.ylabel = self._default_ylabel()
-
-        if _axes.title is None:
-            _axes._title_auto = True
-            _axes.title = self._default_title()
-
-    # validator for label
-    @label.validator
-    def label_validator(self, attr, _axes):
-
-        if self.label is None:
-            self.label = self._default_label()
+        self.build_canvas()
 
     def _default_xlim(self):
         return ()
@@ -77,12 +67,14 @@ class BasePlot(ABC):
     def _yunits(self):
         return ""
 
-    def __attrs_post_init__(self):
-
-        self.build_canvas()
-
     def build_canvas(self):
         pass
 
     def clear(self):
         pass
+
+    @classmethod
+    def style_attrs(self) -> List[str]:
+        return [
+            "label",
+        ]

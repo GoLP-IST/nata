@@ -1,31 +1,38 @@
 # -*- coding: utf-8 -*-
-import attr
-import numpy as np
-from attr.validators import instance_of
-from attr.validators import optional
+from typing import List
+from typing import Optional
+from typing import Union
 
+import numpy as np
+
+from nata.plots.data import PlotData
 from nata.plots.plots.base import BasePlot
 
 
-@attr.s
 class LinePlot(BasePlot):
+    def __init__(
+        self,
+        axes,
+        data: PlotData,
+        label: Optional[str] = None,
+        ls: Optional[str] = None,
+        lw: Optional[Union[float, int]] = None,
+        c: Optional[str] = None,
+        alpha: Optional[Union[float, int]] = None,
+        marker: Optional[str] = None,
+        ms: Optional[Union[float, int]] = None,
+        antialiased: Optional[bool] = True,
+    ):
 
-    # line plot options
-    ls: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    lw: float = attr.ib(
-        default=None, validator=optional(instance_of((int, float)))
-    )
-    c: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    alpha: float = attr.ib(
-        default=None, validator=optional(instance_of((int, float)))
-    )
-    marker: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    ms: float = attr.ib(
-        default=None, validator=optional(instance_of((int, float)))
-    )
-    antialiased: bool = attr.ib(
-        default=True, validator=optional(instance_of(bool))
-    )
+        self.ls = ls
+        self.lw = lw
+        self.c = c
+        self.alpha = alpha
+        self.marker = marker
+        self.ms = ms
+        self.antialiased = antialiased
+
+        super().__init__(axes, data, label)
 
     def _default_xlim(self):
         return (self._data.axes[0].min, self._data.axes[0].max)
@@ -69,3 +76,15 @@ class LinePlot(BasePlot):
             label=self.label,
             antialiased=self.antialiased,
         )
+
+    @classmethod
+    def style_attrs(cls) -> List[str]:
+        return [
+            "ls",
+            "lw",
+            "c",
+            "alpha",
+            "marker",
+            "ms",
+            "antialiased",
+        ] + BasePlot.style_attrs()

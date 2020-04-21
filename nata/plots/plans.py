@@ -15,21 +15,9 @@ class PlotPlan:
         quants: Optional[List[str]] = list(),
         style: Optional[Dict] = dict(),
     ):
-        self._dataset: dict = dataset
-        self._quants: List[str] = quants
-        self._style: dict = style
-
-    @property
-    def dataset(self) -> GridDataset:
-        return self._dataset
-
-    @property
-    def quants(self) -> List[str]:
-        return self._quants
-
-    @property
-    def style(self) -> dict:
-        return self._style
+        self.dataset = dataset
+        self.quants = quants
+        self.style = style
 
 
 class AxesPlan:
@@ -39,21 +27,9 @@ class AxesPlan:
         axes: Optional[Axes] = object(),
         style: Optional[dict] = dict(),
     ):
-        self._plots: dict = plots
-        self._axes: Axes = axes
-        self._style: dict = style
-
-    @property
-    def plots(self) -> List[PlotPlan]:
-        return self._plots
-
-    @property
-    def axes(self) -> Axes:
-        return self._axes
-
-    @property
-    def style(self) -> dict:
-        return self._style
+        self.plots = plots
+        self.axes = axes
+        self.style = style
 
     @property
     def datasets(self) -> list:
@@ -70,21 +46,9 @@ class FigurePlan:
         fig: Optional[Figure] = object(),
         style: Optional[dict] = dict(),
     ):
-        self._axes: dict = axes
-        self._fig: list = fig
-        self._style: dict = style
-
-    @property
-    def axes(self) -> List[AxesPlan]:
-        return self._axes
-
-    @property
-    def fig(self) -> Figure:
-        return self._fig
-
-    @property
-    def style(self) -> dict:
-        return self._style
+        self.axes = axes
+        self.fig = fig
+        self.style = style
 
     @property
     def datasets(self) -> list:

@@ -13,11 +13,11 @@ from nata.plots.axes import Axes
 from nata.plots.data import PlotData
 from nata.plots.data import PlotDataAxis
 from nata.plots.figure import Figure
+from nata.plots.helpers import filter_style
 from nata.plots.plans import AxesPlan
 from nata.plots.plans import FigurePlan
 from nata.plots.plans import PlotPlan
 from nata.plugins.register import register_container_plugin
-from nata.utils.attrs import filter_style
 from nata.utils.env import inside_notebook
 
 
@@ -31,7 +31,6 @@ def grid_plot_data(dataset: GridDataset, quants: List[str] = []) -> PlotData:
             name=ds_a.name,
             label=ds_a.label,
             units=ds_a.unit,
-            type=ds_a.axis_type,
             data=np.array(ds_a),
         )
 
