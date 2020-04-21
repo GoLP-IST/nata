@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import AbstractSet
 from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import Sequence
-from typing import Set
 from typing import Tuple
 from typing import Union
 
@@ -47,7 +47,7 @@ def _separation_newaxis(key, two_types=True):
 
 
 class GridDataset:
-    _backends: Set[GridBackendType] = set()
+    _backends: AbstractSet[GridBackendType] = set()
 
     def __init__(
         self,
