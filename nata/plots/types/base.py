@@ -1,18 +1,33 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
 from typing import List
 from typing import Optional
 
 from nata.plots.data import PlotData
 
+# from nata.plots.axes import Axes
 
+
+@dataclass
 class BasePlot:
-    def __init__(
-        self, axes, data: PlotData, label: Optional[str] = None,
-    ):
-        # set child data object
-        self._data = data
+    # style properties
+    label: Optional[str] = None
 
+    # plot data object
+    data: PlotData = None
+
+    # parent axes object
+    axes: Any = None
+
+    # backend objects
+    h: Any = field(init=False, repr=False, default=None)
+
+    def __post_init__(self):
         # set defaults on parent axes object
+        axes = self.axes
+
         if axes.xlim is None:
             axes.xlim_auto = True
             axes.xlim = self._default_xlim()
@@ -33,13 +48,9 @@ class BasePlot:
             axes.title_auto = True
             axes.title = self._default_title()
 
-        self._axes = axes
-
         # set default label
-        if label is None:
-            label = self._default_label()
-
-        self.label = label
+        if self.label is None:
+            self.label = self._default_label()
 
         self.build_canvas()
 

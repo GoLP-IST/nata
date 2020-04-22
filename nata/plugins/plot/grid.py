@@ -5,7 +5,6 @@ from typing import Optional
 import numpy as np
 
 from nata.containers import GridDataset
-from nata.plots import DefaultGridPlotTypes
 from nata.plots.axes import Axes
 from nata.plots.data import PlotData
 from nata.plots.data import PlotDataAxis
@@ -14,6 +13,7 @@ from nata.plots.helpers import filter_style
 from nata.plots.plans import AxesPlan
 from nata.plots.plans import FigurePlan
 from nata.plots.plans import PlotPlan
+from nata.plots.types import DefaultGridPlotTypes
 from nata.plugins.register import register_container_plugin
 from nata.utils.env import inside_notebook
 

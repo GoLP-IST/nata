@@ -11,9 +11,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from pkg_resources import resource_filename
 
-from nata.plots import PlotTypes
 from nata.plots.axes import Axes
 from nata.plots.data import PlotData
+from nata.plots.types import PlotTypes
 
 
 class Figure:
@@ -132,7 +132,7 @@ class Figure:
         for key, axes in new.axes.items():
 
             if key in other.axes:
-                for plot in other.axes[key]._plots:
+                for plot in other.axes[key].plots:
                     axes.add_plot(plot=plot)
 
             axes.redo_plots()
