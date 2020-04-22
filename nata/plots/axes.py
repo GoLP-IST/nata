@@ -56,7 +56,7 @@ class Axes:
     # TODO: generalize the following methods for arbitrary backend
     def init_backend(self):
         with mpl.rc_context(fname=self.fig.fname, rc=self.fig.rc):
-            self.ax = self.fig._fig.add_subplot(
+            self.ax = self.fig.fig.add_subplot(
                 self.fig.nrows, self.fig.ncols, self.index
             )
 

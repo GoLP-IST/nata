@@ -12,7 +12,7 @@ from nata.plots.types import BasePlot
 @dataclass
 class LinePlot(BasePlot):
     ls: Optional[str] = None
-    lw: Optional[Union[float, int]] = None
+    lw: Optional[Union[float, int]] = 1
     c: Optional[str] = None
     alpha: Optional[Union[float, int]] = None
     marker: Optional[str] = None
