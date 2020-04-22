@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
 from typing import List
 from typing import Optional
 from typing import Union
@@ -6,19 +7,12 @@ from typing import Union
 import numpy as np
 
 
+@dataclass
 class PlotDataAxis:
-    def __init__(
-        self,
-        name: str = "",
-        label: Optional[str] = None,
-        units: Optional[str] = None,
-        data: Optional[np.ndarray] = None,
-    ):
-
-        self.name = name
-        self.label = label
-        self.units = units
-        self.data = None if data is None else np.asanyarray(data)
+    name: str = ""
+    label: Optional[str] = None
+    units: Optional[str] = None
+    data: Optional[np.ndarray] = None
 
     @property
     def min(self) -> float:
@@ -37,24 +31,15 @@ class PlotDataAxis:
         return label
 
 
+@dataclass
 class PlotData:
-    def __init__(
-        self,
-        data: np.ndarray,
-        axes: List[PlotDataAxis],
-        name: str = "",
-        label: Optional[str] = None,
-        units: Optional[str] = None,
-        time: Optional[Union[float, int]] = None,
-        time_units: Optional[str] = None,
-    ):
-        self.data = np.asanyarray(data)
-        self.axes = axes
-        self.name = name
-        self.label = label
-        self.units = units
-        self.time = time
-        self.time_units = time_units
+    data: np.ndarray
+    axes: List[PlotDataAxis]
+    name: str = ""
+    label: Optional[str] = None
+    units: Optional[str] = None
+    time: Optional[Union[float, int]] = None
+    time_units: Optional[str] = None
 
     def get_label(self, units=True) -> str:
         label = ""
