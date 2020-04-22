@@ -24,6 +24,7 @@ from nata.containers import _separation_newaxis
 from nata.types import AxisType
 from nata.types import GridBackendType
 from nata.types import GridDatasetType
+from nata.types import ParticleBackendType
 from nata.types import ParticleDatasetType
 
 
@@ -1316,3 +1317,70 @@ def test_GridDataset_repr_backend(SampleGridBackend: GridBackendType):
 @pytest.mark.wip
 def test_ParticleDatset_type_check():
     assert isinstance(ParticleDataset, ParticleDatasetType)
+
+
+@pytest.fixture(name="SampleParticleBackend")
+def _dummy_ParticleBackend():
+    class Backend:
+        name = "dummy_backend"
+        location = None
+
+        dataset_name = "dummy_particles"
+        num_particles = 10
+
+        quantity_names = ("x1", "p1", "p2")
+        quantity_labels = ("x_1", "p_1", "p_2")
+        quantity_units = ("", "", "")
+
+        iteration = 0
+        time_step = 0.0
+        time_unit = "time_unit"
+
+        dtype: np.dtype = np.dtype(int)
+
+        def __init__(
+            self, data: Optional[Any] = None, raise_on_read: bool = True
+        ) -> None:
+            raise NotImplementedError
+
+        @staticmethod
+        def is_valid_backend(path) -> bool:
+            return True
+
+        def get_data(self, indexing=None) -> np.ndarray:
+            raise NotImplementedError
+
+    assert isinstance(Backend, ParticleBackendType)
+    return Backend
+
+
+@pytest.fixture(name="RegisteredSampleParticleBackend")
+def _register_dummy_ParticleBackend(SampleParticleBackend):
+    ParticleDataset.add_backend(SampleParticleBackend)
+    yield SampleParticleBackend
+    # teardown
+    ParticleDataset.remove_backend(SampleParticleBackend)
+
+
+def test_ParticleDataset_is_valid_backend(SampleParticleBackend):
+    class InvalidBackend:
+        pass
+
+    assert ParticleDataset.is_valid_backend(InvalidBackend) is False
+    assert ParticleDataset.is_valid_backend(SampleParticleBackend) is True
+
+
+def test_ParticleDataset_backend_registration(SampleParticleBackend):
+    # registration
+    ParticleDataset.add_backend(SampleParticleBackend)
+    assert SampleParticleBackend in ParticleDataset._backends
+
+    # removing
+    ParticleDataset.remove_backend(SampleParticleBackend)
+    assert SampleParticleBackend not in ParticleDataset._backends
+
+
+def test_ParticleDataset_get_backends(RegisteredSampleParticleBackend):
+    assert (
+        RegisteredSampleParticleBackend.name in ParticleDataset.get_backends()
+    )

@@ -516,19 +516,25 @@ class ParticleDataset:
 
     @classmethod
     def add_backend(cls, backend: ParticleBackendType) -> None:
-        ...
+        if cls.is_valid_backend(backend):
+            cls._backends.add(backend)
+        else:
+            raise ValueError("Invalid backend provided")
 
     @classmethod
     def remove_backend(cls, backend: ParticleBackendType) -> None:
-        ...
+        cls._backends.remove(backend)
 
     @classmethod
     def is_valid_backend(cls, backend: ParticleBackendType) -> bool:
-        ...
+        return isinstance(backend, ParticleBackendType)
 
     @classmethod
     def get_backends(cls) -> Dict[str, ParticleBackendType]:
-        ...
+        backends_dict = {}
+        for backend in cls._backends:
+            backends_dict[backend.name] = backend
+        return backends_dict
 
     def append(self, other: "ParticleDataset") -> None:
         ...
