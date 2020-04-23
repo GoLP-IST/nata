@@ -202,7 +202,7 @@ class Axes:
                 # show colorbar
                 self.cb = self.ax.get_figure().colorbar(plot.h, aspect=30)
 
-                # set colorbar title
+                # set colorbar title)
                 self.cb.set_label(label=plot.cb_title)
 
     def clear_colorbar(self):

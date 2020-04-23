@@ -20,10 +20,10 @@ class ColorPlot(BasePlot):
     interpolation: Optional[str] = "none"
 
     def __post_init__(self):
-        super().__post_init__()
-
         if self.cb_title is None:
             self.cb_title = self.data.get_label()
+
+        super().__post_init__()
 
     def _default_xlim(self):
         return (self.data.axes[0].min, self.data.axes[0].max)

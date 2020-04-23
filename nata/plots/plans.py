@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
+from dataclasses import field
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -13,28 +15,18 @@ from nata.plots.axes import Axes
 from nata.plots.figure import Figure
 
 
+@dataclass
 class PlotPlan:
-    def __init__(
-        self,
-        dataset: GridDataset = object(),
-        quants: Optional[List[str]] = list(),
-        style: Optional[Dict] = dict(),
-    ):
-        self.dataset = dataset
-        self.quants = quants
-        self.style = style
+    dataset: GridDataset = object()
+    quants: Optional[List[str]] = field(default_factory=list)
+    style: Optional[Dict] = field(default_factory=dict)
 
 
+@dataclass
 class AxesPlan:
-    def __init__(
-        self,
-        plots: List[PlotPlan] = list(),
-        axes: Optional[Axes] = object(),
-        style: Optional[dict] = dict(),
-    ):
-        self.plots = plots
-        self.axes = axes
-        self.style = style
+    plots: List[PlotPlan] = field(default_factory=list)
+    axes: Optional[Axes] = object()
+    style: Optional[Dict] = field(default_factory=dict)
 
     @property
     def datasets(self) -> list:
@@ -44,16 +36,11 @@ class AxesPlan:
         return ds
 
 
+@dataclass
 class FigurePlan:
-    def __init__(
-        self,
-        axes: List[AxesPlan] = list(),
-        fig: Optional[Figure] = object(),
-        style: Optional[dict] = dict(),
-    ):
-        self.axes = axes
-        self.fig = fig
-        self.style = style
+    axes: List[AxesPlan] = field(default_factory=list)
+    fig: Optional[Figure] = object()
+    style: Optional[Dict] = field(default_factory=dict)
 
     @property
     def datasets(self) -> list:

@@ -23,12 +23,13 @@ class ScatterPlot(BasePlot):
     cb_title: Optional[str] = None
 
     def __post_init__(self):
-        super().__post_init__()
         if self.cb_title is None and len(self.data.axes) > 2:
             self.cb_title = self.data.axes[2].get_label(units=True)
 
         if self.has_cb:
             self.c = self.data.data[2]
+
+        super().__post_init__()
 
     @property
     def has_cb(self):
