@@ -98,7 +98,7 @@ def _convert_to_backend(dataset: DatasetType, data: Union[str, Path]):
         data = Path(data)
 
     if isinstance(data, Path):
-        for _, backend in dataset.get_backends():
+        for backend in dataset.get_backends().values():
             if backend.is_valid_backend(data):
                 data = backend(data)
                 break
@@ -794,38 +794,41 @@ class ParticleDataset:
             data = _convert_to_backend(self, data)
 
         # ensure data is only a valid backend for particles or numpy array
-        if not isinstance(data, (np.ndarray, ParticleBackendType)):
-            data = np.asanyarray(data)
+        # TODO: assumed that dtype object corresponds to particle dataset
+        data = np.asanyarray(data)
 
-        if isinstance(data, np.ndarray):
-            if data.ndim > 3 or (data.dtype.fields and data.ndim > 2):
-                raise ValueError(
-                    "Unsupported data dimensionality! "
-                    + "Dimensionality of the data has to be <= 3 "
-                    + "for an unstructured array "
-                    + "or <= 2 for a structured array!"
-                )
+        if data.ndim > 3 or (data.dtype.fields and data.ndim > 2):
+            raise ValueError(
+                "Unsupported data dimensionality! "
+                + "Dimensionality of the data has to be <= 3 "
+                + "for an unstructured array "
+                + "or <= 2 for a structured array!"
+            )
 
+        if data.dtype != object:
             data = _transform_particle_data_array(data)
 
         if name is _extract_from_backend:
-            if isinstance(data, ParticleBackendType):
-                name = data.dataset_name
+            if data.dtype == object:
+                name = data.item().dataset_name
             else:
                 name = "unnamed"
 
         self._name = name
 
         if axes is _extract_from_backend:
-            if isinstance(data, ParticleBackendType):
+            if data.dtype == object:
                 iteration = Axis(
-                    data.iteration, name="iteration", label="iteration", unit=""
+                    data.item().iteration,
+                    name="iteration",
+                    label="iteration",
+                    unit="",
                 )
                 time = Axis(
-                    data.time_step,
+                    data.item().time_step,
                     name="time",
                     label="time",
-                    unit=data.time_unit,
+                    unit=data.item().time_unit,
                 )
             else:
                 iteration = None
@@ -838,19 +841,19 @@ class ParticleDataset:
         if quantities is _extract_from_backend:
             quantities = {}
 
-            if isinstance(data, ParticleBackendType):
+            if data.dtype == object:
                 for name, label, unit in zip(
-                    data.quantity_names,
-                    data.quantity_labels,
-                    data.quantity_units,
+                    data.item().quantity_names,
+                    data.item().quantity_labels,
+                    data.item().quantity_units,
                 ):
                     quantities[name] = ParticleQuantity(
-                        data,
+                        data.item(),
                         name=name,
                         label=label,
                         unit=unit,
-                        particles=data.num_particles,
-                        dtype=data.dtype,
+                        particles=data.item().num_particles,
+                        dtype=data.item().dtype,
                     )
 
             else:
@@ -867,9 +870,9 @@ class ParticleDataset:
 
         self._quantaties = quantities
 
-        if isinstance(data, ParticleBackendType):
+        if data.dtype == object:
             self._num_particles = Axis(
-                data.num_particles,
+                data.item().num_particles,
                 name="num_particles",
                 label="num. of particles",
                 unit="",
