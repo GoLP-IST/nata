@@ -1419,7 +1419,6 @@ def test_ParticleDataset_name(RegisteredSampleParticleBackend):
     )
 
 
-@pytest.mark.wip
 def test_ParticleDataset_init_array():
     # without fields
     prt = ParticleDataset(0)
@@ -1431,7 +1430,6 @@ def test_ParticleDataset_init_array():
     np.testing.assert_array_equal(prt.num_particles, 1)
 
 
-@pytest.mark.wip
 def test_ParticleDataset_init_backend(RegisteredSampleParticleBackend):
     arr = np.random.random_sample((10, 2))
     backend = RegisteredSampleParticleBackend(data=arr)
@@ -1468,7 +1466,6 @@ def test_ParticleDataset_axes(RegisteredSampleParticleBackend):
     assert prt.axes["time"] is None
 
 
-@pytest.mark.wip
 def test_ParticleDataset_equivalent():
     particles = ParticleDataset(np.arange(10))
 
@@ -1477,7 +1474,6 @@ def test_ParticleDataset_equivalent():
     assert particles.equivalent(ParticleDataset(0, name="some_name")) is False
 
 
-@pytest.mark.wip
 def test_ParticleDataset_append():
     particles = ParticleDataset(np.arange(10))
     particles.append(ParticleDataset(np.arange(10)))
@@ -1487,7 +1483,6 @@ def test_ParticleDataset_append():
     np.testing.assert_array_equal(particles.num_particles, [10, 10])
 
 
-@pytest.mark.wip
 def test_ParticleDataset_getitem():
     particles = ParticleDataset(np.arange(10))
     assert particles.quantities["quant0"] is particles["quant0"]
@@ -1528,7 +1523,6 @@ def test_transform_particle_data_array(arr, expected_data):
     np.testing.assert_array_equal(transformed_arr, expected_data)
 
 
-@pytest.mark.wip
 def test_ParticleQuantity_props_without_backend():
     quant = ParticleQuantity(123)
 
@@ -1571,7 +1565,6 @@ def _particle_quantity_backend():
     return Backend
 
 
-@pytest.mark.wip
 def test_ParticleQuantity_props_with_backend(SimpleParticleBackend):
     data = np.random.random_sample((10,))
     backend = SimpleParticleBackend(data=data, field="unnamed")
@@ -1598,7 +1591,6 @@ def test_ParticleQuantity_props_with_backend(SimpleParticleBackend):
     np.testing.assert_array_equal(quant, data)
 
 
-@pytest.mark.wip
 def test_ParticleQuantity_repr():
     quant = ParticleQuantity(1)
 
@@ -1608,7 +1600,6 @@ def test_ParticleQuantity_repr():
     )
 
 
-@pytest.mark.wip
 def test_ParticleQuantity_append(SimpleParticleBackend):
     # w/o backend
     quant = ParticleQuantity(1)
