@@ -549,6 +549,10 @@ class GridDataset:
 
         self._data = np.append(self._data, other._data, axis=0)
 
+    @classmethod
+    def register_plugin(cls, plugin_name, plugin):
+        setattr(cls, plugin_name, plugin)
+
 
 class ParticleQuantity:
     def __init__(

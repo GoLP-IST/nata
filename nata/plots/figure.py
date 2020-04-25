@@ -1,91 +1,61 @@
 # -*- coding: utf-8 -*-
 from copy import copy
+from dataclasses import dataclass
+from dataclasses import field
 from math import ceil
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
-import attr
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
-from attr.validators import and_
-from attr.validators import in_
-from attr.validators import instance_of
-from attr.validators import optional
 from pkg_resources import resource_filename
 
-from nata.plots import PlotTypes
 from nata.plots.axes import Axes
 from nata.plots.data import PlotData
+from nata.plots.types import PlotTypes
 
 
-@attr.s
+@dataclass
 class Figure:
-
-    # axes contained in the figure
-    _axes: list = attr.ib(init=False, repr=False)
+    figsize: Optional[Tuple[Union[int, float]]] = (6, 4)
+    nrows: Optional[int] = 1
+    ncols: Optional[int] = 1
+    style: Optional[str] = "light"
+    fname: Optional[str] = None
+    rc: Optional[Dict[str, Any]] = None
 
     # backend objects
-    _plt: attr.ib(init=False, repr=False)
-    _mpl: attr.ib(init=False, repr=False)
+    fig: Any = field(init=False, repr=False, default=None)
+    plt: Any = field(init=False, repr=False, default=None)
+    mpl: Any = field(init=False, repr=False, default=None)
 
-    # backend figure object
-    _fig: attr.ib(init=False, repr=False)
+    # child axes objects
+    _axes: List[Axes] = field(init=False, repr=False, default_factory=list)
 
-    # backend object options
-    figsize: tuple = attr.ib(
-        default=(9, 6),
-        validator=attr.validators.instance_of((tuple, np.ndarray)),
-    )
-    nrows: int = attr.ib(default=1)
-    ncols: int = attr.ib(default=1)
-
-    # style-related variables
-    style: str = attr.ib(
-        default="light",
-        validator=optional(and_(instance_of(str), in_(("light", "dark")))),
-    )
-    fname: str = attr.ib(default=None, validator=optional(instance_of(str)))
-    rc: dict = attr.ib(repr=False, default={})
-
-    @property
-    def axes(self) -> dict:
-        return {axes.index: axes for axes in self._axes}
-
-    # TODO: add metadata to attributes to identify auto state
-
-    def __attrs_post_init__(self):
-
-        # initialize list of axes objects
-        self.init_axes()
-
+    def __post_init__(self):
         # set plotting style
         self.set_style()
-
-        # initialize plotting backend
-        self.init_backend()
 
         # open figure object
         self.open()
 
-    def init_axes(self):
-        self._axes = []
-
-    def init_backend(self):
-        self._plt = plt
-        self._mpl = mpl
-
     def open(self):
         # TODO: generalize this for arbitrary backend
-        self._fig = self._plt.figure(figsize=self.figsize)
+        with mpl.rc_context(fname=self.fname, rc=self.rc):
+            self.fig = plt.figure(figsize=self.figsize)
 
     def close(self):
-        self._plt.close(self._fig)
+        plt.close(self.fig)
 
     def reset(self):
         self.close()
         self.open()
 
     def set_style(self):
-
         if not self.fname:
             self.fname = resource_filename(
                 __name__, "styles/" + self.style + ".rc"
@@ -94,12 +64,12 @@ class Figure:
     def show(self):
         # TODO: generalize this for arbitrary backend
         with mpl.rc_context(fname=self.fname, rc=self.rc):
-            dummy = self._plt.figure()
+            dummy = plt.figure()
             new_manager = dummy.canvas.manager
-            new_manager.canvas.figure = self._fig
+            new_manager.canvas.figure = self.fig
 
-            self._fig.tight_layout()
-            self._plt.show()
+            self.fig.tight_layout()
+            plt.show()
 
     def _repr_html_(self):
         self.show()
@@ -107,7 +77,7 @@ class Figure:
     def save(self, path, dpi=150):
         # TODO: generalize this for arbitrary backend
         with mpl.rc_context(fname=self.fname, rc=self.rc):
-            self._fig.savefig(path, dpi=dpi, bbox_inches="tight")
+            self.fig.savefig(path, dpi=dpi, bbox_inches="tight")
 
     def copy(self):
 
@@ -116,21 +86,21 @@ class Figure:
         new = copy(self)
         new.open()
 
-        for axes in new.axes.values():
-            axes._fig = new
+        for axes in new._axes.values():
+            axes.fig = new
 
         return new
 
     def add_axes(self, style=dict()):
 
-        new_index = len(self.axes) + 1
+        new_index = len(self._axes) + 1
 
         if new_index > (self.nrows * self.ncols):
             # increase number of rows
             # TODO: really?
             self.nrows += 1
 
-            for axes in self.axes.values():
+            for axes in self._axes.values():
                 axes.redo_plots()
 
         axes = Axes(fig=self, index=new_index, **style)
@@ -153,7 +123,7 @@ class Figure:
         for key, axes in new.axes.items():
 
             if key in other.axes:
-                for plot in other.axes[key]._plots:
+                for plot in other.axes[key].plots:
                     axes.add_plot(plot=plot)
 
             axes.redo_plots()
@@ -176,7 +146,7 @@ class Figure:
             new_axes = axes.copy()
 
             # reset parent figure object
-            new_axes._fig = new
+            new_axes.fig = new
 
             # redo plots in new axes
             new_axes.index = len(new._axes) + 1
@@ -188,3 +158,18 @@ class Figure:
         new.close()
 
         return new
+
+    @property
+    def axes(self) -> dict:
+        return {axes.index: axes for axes in self._axes}
+
+    @classmethod
+    def style_attrs(self) -> List[str]:
+        return [
+            "figsize",
+            "nrows",
+            "ncols",
+            "style",
+            "fname",
+            "rc",
+        ]

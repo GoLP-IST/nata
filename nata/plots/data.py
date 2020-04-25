@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
-import attr
+from dataclasses import dataclass
+from typing import List
+from typing import Optional
+from typing import Union
+
 import numpy as np
-from attr.validators import instance_of
-from attr.validators import optional
 
 
-@attr.s
+@dataclass
 class PlotDataAxis:
-    name: str = attr.ib(default="")
-    label: str = attr.ib(default="")
-    units: str = attr.ib(default="")
-    data: np.ndarray = attr.ib(
-        default=None, validator=optional(instance_of(np.ndarray))
-    )
-    min: float = attr.ib(default=0, init=False)
-    max: float = attr.ib(default=0, init=False)
-    type: str = attr.ib(default="", validator=optional(instance_of(str)))
+    name: str = ""
+    label: Optional[str] = None
+    units: Optional[str] = None
+    data: Optional[np.ndarray] = None
 
-    def __attrs_post_init__(self):
-        if self.data is not None:
-            self.min = np.min(self.data)
-            self.max = np.max(self.data)
+    @property
+    def min(self) -> float:
+        return np.min(self.data)
 
-    def get_label(self, units=True):
+    @property
+    def max(self) -> float:
+        return np.max(self.data)
+
+    def get_label(self, units=True) -> str:
         label = ""
         if self.label:
             label += f"${self.label}$"
@@ -31,19 +31,17 @@ class PlotDataAxis:
         return label
 
 
-@attr.s
+@dataclass
 class PlotData:
-    name: str = attr.ib(default="")
-    label: str = attr.ib(default="")
-    units: str = attr.ib(default="", validator=optional(instance_of(str)))
-    data: np.ndarray = attr.ib(default=[])
-    axes: list = attr.ib(default=())
+    data: np.ndarray
+    axes: List[PlotDataAxis]
+    name: str = ""
+    label: Optional[str] = None
+    units: Optional[str] = None
+    time: Optional[Union[float, int]] = None
+    time_units: Optional[str] = None
 
-    # time properties
-    time: float = attr.ib(default=0.0)
-    time_units: str = attr.ib(default="")
-
-    def get_label(self, units=True):
+    def get_label(self, units=True) -> str:
         label = ""
         if self.label:
             label += f"${self.label}$"
@@ -51,7 +49,7 @@ class PlotData:
                 label += f" $\\left[{self.units}\\right]$"
         return label
 
-    def get_time_label(self):
+    def get_time_label(self) -> str:
         label = ""
         if self.time is not None:
             label += f"Time = ${self.time:.2f}$"
