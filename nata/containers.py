@@ -3,16 +3,20 @@ from pathlib import Path
 from typing import AbstractSet
 from typing import Any
 from typing import Dict
+from typing import Iterable
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
 
 import numpy as np
+from numpy.lib import recfunctions as rfn
 
 from .axes import Axis
 from .axes import GridAxis
 from .types import AxisType
+from .types import DatasetType
 from .types import GridAxisType
 from .types import GridBackendType
 from .types import GridDatasetAxes
@@ -24,8 +28,10 @@ from .types import is_basic_indexing
 from .utils.array import expand_ellipsis
 from .utils.exceptions import NataInvalidContainer
 from .utils.formatting import array_format
+from .utils.formatting import make_identifiable
 
 _extract_from_backend = object()
+_extract_from_data = object()
 
 
 def _separation_newaxis(key, two_types=True):
@@ -47,6 +53,59 @@ def _separation_newaxis(key, two_types=True):
     key = tuple(filter(lambda v: v is not np.newaxis, key))
 
     return key, type_1, type_2
+
+
+def _transform_particle_data_array(data: np.ndarray):
+    """Transform a array into a required particle data array.
+
+    Data is assumed to fulfill the condition `data.ndim =< 3` for
+    unstructured and `data.ndim =< 2` for structured array.
+
+    Array specification:
+        * axis == 0: time/iteration
+        * axis == 1: particle index
+        * dtype: [('q0', 'type'), ('q1', 'type')]
+            -> 'q0/q1' represent quantity names
+            -> 'type' represents the type of dtype (e.g. int, float, ...)
+    """
+    if data.ndim == 2 and data.dtype.fields:
+        return data
+
+    # data has fields
+    if data.dtype.fields:
+        if data.ndim == 0:
+            data = data[np.newaxis, np.newaxis]
+        else:  # data.ndim == 1
+            data = data[np.newaxis]
+
+    # data has not fields -> is associated with quantity index
+    else:
+        if data.ndim == 0:
+            data = data[(np.newaxis,) * 3]
+        elif data.ndim == 1:
+            data = data[np.newaxis, ..., np.newaxis]
+        else:
+            data = data[..., np.newaxis]
+
+        field_names = [f"quant{i}" for i in range(data.shape[-1])]
+        data = rfn.unstructured_to_structured(data, names=field_names)
+
+    return data
+
+
+def _convert_to_backend(dataset: DatasetType, data: Union[str, Path]):
+    if isinstance(data, str):
+        data = Path(data)
+
+    if isinstance(data, Path):
+        for _, backend in dataset.get_backends():
+            if backend.is_valid_backend(data):
+                data = backend(data)
+                break
+        else:
+            raise NataInvalidContainer(f"No valid backend found for '{data}'")
+
+    return data
 
 
 class GridDataset:
@@ -491,28 +550,352 @@ class GridDataset:
         self._data = np.append(self._data, other._data, axis=0)
 
 
-class ParticleDataset:
-    _backends: AbstractSet[ParticleBackendType] = set()
+class ParticleQuantity:
+    def __init__(
+        self,
+        data: Union[np.ndarray, ParticleBackendType],
+        *,
+        name: str = "",
+        label: str = "",
+        unit: str = "",
+        particles: Union[int, np.ndarray] = _extract_from_data,
+        dtype: np.dtype = _extract_from_data,
+    ) -> None:
+
+        if not isinstance(data, np.ndarray):
+            data = np.asanyarray(data)
+
+        # data.shape is 2d -> (#iteration, particle_id) unless delayed reading
+        if data.ndim == 0 and data.dtype == object:
+            data = data[np.newaxis]
+        elif data.ndim == 0 and data.dtype != object:
+            data = data[np.newaxis, np.newaxis]
+        elif data.ndim == 1 and data.dtype != object:
+            data = data[np.newaxis]
+
+        self._data = data
+
+        # particle number required if delayed reading
+        if data.dtype == object and particles is _extract_from_data:
+            raise ValueError("Number of particles required delayed reading!")
+        elif data.dtype == object:
+            self._num_prt = np.array([particles])
+        else:
+            self._num_prt = np.array([data.shape[1]])
+
+        # dtype is required for delayed reading
+        if data.dtype == object and dtype is _extract_from_data:
+            raise ValueError("Number of particles required delayed reading!")
+        elif data.dtype != object:
+            dtype = data.dtype
+
+        self._dtype = dtype
+
+        name = make_identifiable(name)
+        self._name = name if name else "unnamed"
+        self._label = label
+        self._unit = unit
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __repr__(self) -> str:
+        repr_ = f"{self.__class__.__name__}("
+        repr_ += f"name='{self.name}', "
+        repr_ += f"label='{self.label}', "
+        repr_ += f"unit='{self.unit}', "
+        repr_ += f"len={len(self)}"
+        repr_ += ")"
+
+        return repr_
+
+    def __iter__(self) -> Iterable["ParticleQuantity"]:
+        for d, num in zip(self._data, self._num_prt):
+            yield self.__class__(
+                d[np.newaxis],
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+                particles=num,
+            )
+
+    def __getitem__(
+        self, key: Union[int, slice, Tuple[Union[int, slice]]]
+    ) -> "ParticleQuantity":
+        if not is_basic_indexing(key):
+            raise IndexError("Only basic indexing is supported!")
+
+        index = np.index_exp[key]
+        requires_new_axis = False
+
+        # > determine if axis extension is required
+        # 1st index (temporal slicing) not hidden if ndim == axis_dim + 1
+        if len(self) != 1:
+            # revert dimensionality reduction
+            if isinstance(index[0], int):
+                requires_new_axis = True
+        else:
+            requires_new_axis = True
+
+        data = self.data[index]
+
+        if requires_new_axis:
+            data = data[np.newaxis]
+
+        return self.__class__(
+            data,
+            name=self.name,
+            label=self.label,
+            unit=self.unit,
+            particles=self._num_prt,
+        )
+
+    def __setitem__(
+        self, key: Union[int, slice, Tuple[Union[int, slice]]], value: Any
+    ) -> None:
+        self.data[key] = value
+
+    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        if self._data.dtype == object:
+            max_ = np.max(self._num_prt)
+            data = np.ma.empty((len(self._data), max_), dtype=self._dtype)
+            data.mask = np.ones((len(self._data), max_), dtype=np.bool)
+
+            for i, (d, entries) in enumerate(zip(self._data, self._num_prt)):
+                if isinstance(d, np.ndarray):
+                    data[i, :entries] = d[:entries]
+                else:
+                    data[i, :entries] = d.get_data(fields=self.name)
+
+                data.mask[i, entries:] = np.zeros(max_ - entries, dtype=np.bool)
+
+            self._data = data
+
+        return np.squeeze(self._data, axis=0) if len(self) == 1 else self._data
+
+    @property
+    def ndim(self) -> int:
+        if len(self) == 1:
+            return 1
+        else:
+            return 2
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        if len(self) == 1:
+            return (np.max(self._num_prt),)
+        else:
+            return (len(self), np.max(self._num_prt))
+
+    @property
+    def num_particles(self) -> np.ndarray:
+        return np.squeeze(self._num_prt)
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._dtype
+
+    @property
+    def data(self) -> np.ndarray:
+        return np.asanyarray(self)
+
+    @data.setter
+    def data(self, value: Union[np.ndarray, Any]) -> None:
+        new = np.broadcast_to(value, self.shape, subok=True)
+        if len(self) == 1:
+            self._data = np.array(new, subok=True)[np.newaxis]
+        else:
+            self._data = np.array(new, subok=True)
+
+        self._dtype = self._data.dtype
 
     @property
     def name(self) -> str:
-        ...
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        parsed_value = make_identifiable(str(value))
+        if not parsed_value:
+            raise ValueError(
+                "Invalid name provided! Has to be able to be valid code"
+            )
+        self._name = parsed_value
 
     @property
-    def label(self) -> str:
-        ...
+    def label(self):
+        return self._label
+
+    @label.setter
+    def label(self, value):
+        value = str(value)
+        self._label = value
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @unit.setter
+    def unit(self, value):
+        value = str(value)
+        self._unit = value
+
+    def equivalent(self, other: "ParticleQuantity") -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        if self.name != other.name:
+            return False
+
+        if self.label != other.label:
+            return False
+
+        if self.unit != other.unit:
+            return False
+
+        return True
+
+    def append(self, other: "ParticleQuantity") -> None:
+        if not isinstance(other, self.__class__):
+            raise TypeError(f"Can not append '{other}' to '{self}'")
+
+        if not self.equivalent(other):
+            raise ValueError(
+                f"Mismatch in attributes between '{self}' and '{other}'"
+            )
+
+        self._data = np.append(self._data, other._data, axis=0)
+        self._num_prt = np.append(self._num_prt, other._num_prt)
+
+
+class ParticleDataset:
+    _backends: AbstractSet[ParticleBackendType] = set()
+
+    def __init__(
+        self,
+        data: Optional[
+            Union[ParticleBackendType, np.ndarray, str, Path]
+        ] = None,
+        *,
+        name: str = _extract_from_backend,
+        axes: ParticleDatasetAxes = _extract_from_backend,
+        # TODO: remove quantaties -> use it with data together
+        quantities: Mapping[str, QuantityType] = _extract_from_backend,
+    ):
+        if data is None and quantities is _extract_from_backend:
+            raise ValueError("Requires either data or quantaties being set!")
+
+        # conversion to a valid backend
+        if isinstance(data, (str, Path)):
+            data = _convert_to_backend(self, data)
+
+        # ensure data is only a valid backend for particles or numpy array
+        if not isinstance(data, (np.ndarray, ParticleBackendType)):
+            data = np.asanyarray(data)
+
+        if isinstance(data, np.ndarray):
+            if data.ndim > 3 or (data.dtype.fields and data.ndim > 2):
+                raise ValueError(
+                    "Unsupported data dimensionality! "
+                    + "Dimensionality of the data has to be <= 3 "
+                    + "for an unstructured array "
+                    + "or <= 2 for a structured array!"
+                )
+
+            data = _transform_particle_data_array(data)
+
+        if name is _extract_from_backend:
+            if isinstance(data, ParticleBackendType):
+                name = data.dataset_name
+            else:
+                name = "unnamed"
+
+        self._name = name
+
+        if axes is _extract_from_backend:
+            if isinstance(data, ParticleBackendType):
+                iteration = Axis(
+                    data.iteration, name="iteration", label="iteration", unit=""
+                )
+                time = Axis(
+                    data.time_step,
+                    name="time",
+                    label="time",
+                    unit=data.time_unit,
+                )
+            else:
+                iteration = None
+                time = None
+
+            axes = {"time": time, "iteration": iteration}
+
+        self._axes = axes
+
+        if quantities is _extract_from_backend:
+            quantities = {}
+
+            if isinstance(data, ParticleBackendType):
+                for name, label, unit in zip(
+                    data.quantity_names,
+                    data.quantity_labels,
+                    data.quantity_units,
+                ):
+                    quantities[name] = ParticleQuantity(
+                        data,
+                        name=name,
+                        label=label,
+                        unit=unit,
+                        particles=data.num_particles,
+                        dtype=data.dtype,
+                    )
+
+            else:
+                quantity_names = [f for f in data.dtype.fields.keys()]
+                quantity_labels = quantity_names
+                quantity_units = [""] * len(quantity_names)
+
+                for name, label, unit in zip(
+                    quantity_names, quantity_labels, quantity_units
+                ):
+                    quantities[name] = ParticleQuantity(
+                        data[name], name=name, label=label, unit=unit
+                    )
+
+        self._quantaties = quantities
+
+        if isinstance(data, ParticleBackendType):
+            self._num_particles = Axis(
+                data.num_particles,
+                name="num_particles",
+                label="num. of particles",
+                unit="",
+            )
+        else:
+            self._num_particles = Axis(
+                data.shape[1],
+                name="num_particles",
+                label="num. of particles",
+                unit="",
+            )
+
+    def __getitem__(self, key: str) -> ParticleQuantity:
+        return self.quantities[key]
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     @property
     def quantities(self) -> Dict[str, QuantityType]:
-        ...
+        return self._quantaties
 
     @property
     def axes(self) -> ParticleDatasetAxes:
-        ...
+        return self._axes
 
     @property
     def num_particles(self) -> AxisType:
-        ...
+        return self._num_particles
 
     @classmethod
     def add_backend(cls, backend: ParticleBackendType) -> None:
@@ -537,10 +920,35 @@ class ParticleDataset:
         return backends_dict
 
     def append(self, other: "ParticleDataset") -> None:
-        ...
+        if not self.equivalent(other):
+            raise ValueError(
+                f"Can not append '{other}' particle datasets are unequal!"
+            )
+
+        for quant_name in self.quantities:
+            self.quantities[quant_name].append(other.quantities[quant_name])
+        self.num_particles.append(other.num_particles)
 
     def equivalent(self, other: "ParticleDataset") -> bool:
-        ...
+        if not isinstance(other, self.__class__):
+            return False
+
+        if self.name != other.name:
+            return False
+
+        if set(self.quantities.keys()) ^ set(other.quantities.keys()):
+            return False
+
+        for quant_name in self.quantities:
+            if not self.quantities[quant_name].equivalent(
+                other.quantities[quant_name]
+            ):
+                return False
+
+        if not self.num_particles.equivalent(other.num_particles):
+            return False
+
+        return True
 
 
 class DatasetCollection:

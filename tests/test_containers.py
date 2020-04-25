@@ -15,12 +15,15 @@ from hypothesis.extra.numpy import floating_dtypes
 from hypothesis.extra.numpy import integer_dtypes
 from hypothesis.strategies import composite
 from hypothesis.strategies import one_of
+from numpy.lib.recfunctions import unstructured_to_structured
 
 from nata.axes import Axis
 from nata.axes import GridAxis
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
+from nata.containers import ParticleQuantity
 from nata.containers import _separation_newaxis
+from nata.containers import _transform_particle_data_array
 from nata.types import AxisType
 from nata.types import GridBackendType
 from nata.types import GridDatasetType
@@ -1314,7 +1317,6 @@ def test_GridDataset_repr_backend(SampleGridBackend: GridBackendType):
     )
 
 
-@pytest.mark.wip
 def test_ParticleDatset_type_check():
     assert isinstance(ParticleDataset, ParticleDatasetType)
 
@@ -1326,8 +1328,9 @@ def _dummy_ParticleBackend():
         location = None
 
         dataset_name = "dummy_particles"
-        num_particles = 10
 
+        # definition here circumvents the type check an props definition
+        num_particles = 10
         quantity_names = ("x1", "p1", "p2")
         quantity_labels = ("x_1", "p_1", "p_2")
         quantity_units = ("", "", "")
@@ -1336,19 +1339,38 @@ def _dummy_ParticleBackend():
         time_step = 0.0
         time_unit = "time_unit"
 
-        dtype: np.dtype = np.dtype(int)
+        dtype = np.dtype(int)
 
         def __init__(
-            self, data: Optional[Any] = None, raise_on_read: bool = True
+            self, data: Optional[np.ndarray] = None, raise_on_read: bool = True
         ) -> None:
-            raise NotImplementedError
+            self.raise_on_read = raise_on_read
+            if data is not None:
+                fields = [f"q{i}" for i in range(data.shape[-1])]
+                self._data = unstructured_to_structured(data, names=fields)
+
+                self.quantity_names = fields
+                self.quantity_labels = [f"q_{i}" for i in range(data.shape[-1])]
+                self.quantity_units = [""] * data.shape[-1]
+                self.num_particles = data.shape[0]
+                self.dtype = data.dtype
+            else:
+                self._data = unstructured_to_structured(
+                    np.random.random_sample(10, 3), names=self.quantity_names
+                )
 
         @staticmethod
         def is_valid_backend(path) -> bool:
             return True
 
-        def get_data(self, indexing=None) -> np.ndarray:
-            raise NotImplementedError
+        def get_data(self, indexing=None, fields=None) -> np.ndarray:
+            if self.raise_on_read:
+                raise ValueError
+
+            if fields in self._data.dtype.fields:
+                return self._data[fields]
+            else:
+                raise KeyError
 
     assert isinstance(Backend, ParticleBackendType)
     return Backend
@@ -1384,3 +1406,238 @@ def test_ParticleDataset_get_backends(RegisteredSampleParticleBackend):
     assert (
         RegisteredSampleParticleBackend.name in ParticleDataset.get_backends()
     )
+
+
+def test_ParticleDataset_name(RegisteredSampleParticleBackend):
+    assert (
+        ParticleDataset(np.array([1, 2, 3]), name="some_name").name
+        == "some_name"
+    )
+    assert (
+        ParticleDataset(RegisteredSampleParticleBackend).name
+        == "dummy_particles"
+    )
+
+
+@pytest.mark.wip
+def test_ParticleDataset_init_array():
+    # without fields
+    prt = ParticleDataset(0)
+    assert "quant0" in prt.quantities
+    assert isinstance(prt.quantities["quant0"], ParticleQuantity)
+    np.testing.assert_array_equal(prt.quantities["quant0"], 0)
+
+    assert isinstance(prt.num_particles, AxisType)
+    np.testing.assert_array_equal(prt.num_particles, 1)
+
+
+@pytest.mark.wip
+def test_ParticleDataset_init_backend(RegisteredSampleParticleBackend):
+    arr = np.random.random_sample((10, 2))
+    backend = RegisteredSampleParticleBackend(data=arr)
+
+    particles = ParticleDataset(backend)
+    assert particles.name == "dummy_particles"
+
+    assert isinstance(particles.num_particles, AxisType)
+    np.testing.assert_array_equal(particles.num_particles, 10)
+
+    # q0 and q1 are quantity names provided by backend -> avoid using default
+    assert "q0" in particles.quantities
+    assert isinstance(particles.quantities["q0"], ParticleQuantity)
+    assert "q1" in particles.quantities
+    assert isinstance(particles.quantities["q1"], ParticleQuantity)
+
+    backend.raise_on_read = False
+    np.testing.assert_array_equal(particles.quantities["q0"], arr[:, 0])
+    np.testing.assert_array_equal(particles.quantities["q1"], arr[:, 1])
+
+
+def test_ParticleDataset_axes(RegisteredSampleParticleBackend):
+    prt = ParticleDataset(RegisteredSampleParticleBackend)
+
+    assert "iteration" in prt.axes
+    assert isinstance(prt.axes["iteration"], AxisType)
+    assert "time" in prt.axes
+    assert isinstance(prt.axes["time"], AxisType)
+
+    prt = ParticleDataset(0)
+    assert "iteration" in prt.axes
+    assert prt.axes["iteration"] is None
+    assert "time" in prt.axes
+    assert prt.axes["time"] is None
+
+
+@pytest.mark.wip
+def test_ParticleDataset_equivalent():
+    particles = ParticleDataset(np.arange(10))
+
+    assert particles.equivalent(ParticleDataset(np.arange(10))) is True
+    assert particles.equivalent(object()) is False
+    assert particles.equivalent(ParticleDataset(0, name="some_name")) is False
+
+
+@pytest.mark.wip
+def test_ParticleDataset_append():
+    particles = ParticleDataset(np.arange(10))
+    particles.append(ParticleDataset(np.arange(10)))
+    np.testing.assert_almost_equal(
+        particles.quantities["quant0"], [np.arange(10)] * 2
+    )
+    np.testing.assert_array_equal(particles.num_particles, [10, 10])
+
+
+@pytest.mark.wip
+def test_ParticleDataset_getitem():
+    particles = ParticleDataset(np.arange(10))
+    assert particles.quantities["quant0"] is particles["quant0"]
+
+
+@pytest.mark.parametrize(
+    "arr, expected_data",
+    [
+        (
+            np.array(0, dtype=int),
+            np.array(
+                [[0]], dtype=np.dtype({"names": ["quant0"], "formats": [int]})
+            ),
+        ),
+        (
+            np.array([0, 1, 2], dtype=int),
+            np.array(
+                [[0, 1, 2]],
+                dtype=np.dtype({"names": ["quant0"], "formats": [int]}),
+            ),
+        ),
+        (
+            np.array([[0, 1, 2], [2, 3, 4]], dtype=int),
+            np.array(
+                [[0, 1, 2], [2, 3, 4]],
+                dtype=np.dtype({"names": ["quant0"], "formats": [int]}),
+            ),
+        ),
+    ],
+)
+def test_transform_particle_data_array(arr, expected_data):
+    transformed_arr = _transform_particle_data_array(arr)
+
+    assert transformed_arr.ndim == 2
+    assert transformed_arr.ndim == expected_data.ndim
+    assert transformed_arr.shape == expected_data.shape
+
+    np.testing.assert_array_equal(transformed_arr, expected_data)
+
+
+@pytest.mark.wip
+def test_ParticleQuantity_props_without_backend():
+    quant = ParticleQuantity(123)
+
+    assert len(quant) == 1
+    assert quant.ndim == 1
+    assert quant.shape == (1,)
+    assert quant.name == "unnamed"
+    assert quant.label == ""
+    assert quant.unit == ""
+    assert np.issubdtype(quant.dtype, np.integer)
+    assert quant.num_particles.shape == ()
+    assert quant.num_particles == 1
+    assert np.issubdtype(quant.dtype, np.integer)
+    np.testing.assert_array_equal(quant, [123])
+
+
+@pytest.fixture(name="SimpleParticleBackend")
+def _particle_quantity_backend():
+    class Backend:
+        def __init__(
+            self,
+            data: Optional[np.ndarray] = None,
+            raise_on_read: bool = True,
+            field: str = "quant0",
+        ):
+            self._data = data if data is not None else np.arange(10)
+            self.num_particles = len(self._data)
+            self.raise_on_read = raise_on_read
+            self._field = field
+
+        def get_data(self, fields=None):
+            if self.raise_on_read:
+                raise ValueError("reading block active")
+
+            if fields != self._field:
+                raise ValueError("Wrong field")
+
+            return self._data
+
+    return Backend
+
+
+@pytest.mark.wip
+def test_ParticleQuantity_props_with_backend(SimpleParticleBackend):
+    data = np.random.random_sample((10,))
+    backend = SimpleParticleBackend(data=data, field="unnamed")
+    quant = ParticleQuantity(
+        backend, particles=backend.num_particles, dtype=data.dtype
+    )
+
+    backend.raise_on_read = True
+
+    # props which don't depend on reading
+    assert len(quant) == 1
+    assert quant.ndim == 1
+    assert quant.shape == (10,)
+    assert quant.name == "unnamed"
+    assert quant.label == ""
+    assert quant.unit == ""
+    assert quant.num_particles == 10
+
+    with pytest.raises(ValueError, match="reading block active"):
+        quant.data
+        np.testing.assert_array_equal(quant, data)
+
+    backend.raise_on_read = False
+    np.testing.assert_array_equal(quant, data)
+
+
+@pytest.mark.wip
+def test_ParticleQuantity_repr():
+    quant = ParticleQuantity(1)
+
+    assert (
+        repr(quant)
+        == "ParticleQuantity(name='unnamed', label='', unit='', len=1)"
+    )
+
+
+@pytest.mark.wip
+def test_ParticleQuantity_append(SimpleParticleBackend):
+    # w/o backend
+    quant = ParticleQuantity(1)
+    quant.append(ParticleQuantity(2))
+    assert len(quant) == 2
+    assert quant.ndim == 2
+    assert quant.shape == (2, 1)
+    np.testing.assert_array_equal(quant, [[1], [2]])
+    assert quant.num_particles.shape == (2,)
+    np.testing.assert_array_equal(quant.num_particles, [1, 1])
+
+    # w/ backend
+    arr = np.random.random_sample((10,))
+    backend = SimpleParticleBackend(data=arr, field="unnamed")
+    quant = ParticleQuantity(
+        backend, particles=backend.num_particles, dtype=arr.dtype
+    )
+    quant.append(
+        ParticleQuantity(
+            backend, particles=backend.num_particles, dtype=arr.dtype
+        )
+    )
+
+    assert len(quant) == 2
+
+    assert quant.num_particles.shape == (2,)
+    np.testing.assert_array_equal(quant.num_particles, [10, 10])
+
+    assert quant.ndim == 2
+    assert quant.shape == (2, 10)
+    backend.raise_on_read = False  # allows reading from backend
+    np.testing.assert_array_equal(quant, [arr, arr])
