@@ -49,6 +49,7 @@ tox = "^3.14.3"
 [tool.isort]
 atomic=true
 force_single_line=true
+line_length=80
 known_first_party="nata"
 known_third_party=["attr", "h5py", "matplotlib", "numpy", "pytest", "hypothesis"]
 

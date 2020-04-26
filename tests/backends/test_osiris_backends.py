@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import pytest
-
 from nata.backends.osiris.hdf5_grid import Osiris_Hdf5_GridFile
 from nata.backends.osiris.hdf5_grid_dev import Osiris_Dev_Hdf5_GridFile
 from nata.backends.osiris.hdf5_particles import Osiris_Hdf5_ParticleFile
+from nata.backends.osiris.hdf5_particles_dev import Osiris_Dev_Hdf5_ParticleFile
 from nata.backends.osiris.zdf_grid import Osiris_zdf_GridFile
+from nata.backends.osiris.zdf_particles import Osiris_zdf_ParticleFile
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
 from nata.types import GridBackendType
@@ -23,11 +23,6 @@ def test_Osiris_zdf_GridFile_isinstance_GridBackendType():
     assert isinstance(Osiris_zdf_GridFile, GridBackendType)
 
 
-@pytest.mark.wip
-def test_Osiris_Hdf5_ParticleFile_ParticleBackendType():
-    assert isinstance(Osiris_Hdf5_ParticleFile, ParticleBackendType)
-
-
 def test_GridDatasets_backends_are_registered():
     backends = GridDataset.get_backends()
 
@@ -36,8 +31,24 @@ def test_GridDatasets_backends_are_registered():
     assert backends[Osiris_zdf_GridFile.name] is Osiris_zdf_GridFile
 
 
-@pytest.mark.wip
+def test_Osiris_Hdf5_ParticleFile_ParticleBackendType():
+    assert isinstance(Osiris_Hdf5_ParticleFile, ParticleBackendType)
+
+
+def test_Osiris_Dev_Hdf5_ParticleFile_ParticleBackendType():
+    assert isinstance(Osiris_Dev_Hdf5_ParticleFile, ParticleBackendType)
+
+
+def test_Osiris_zdf_ParticleFile_ParticleBackendType():
+    assert isinstance(Osiris_zdf_ParticleFile, ParticleBackendType)
+
+
 def test_ParticleDatasets_backends_are_registered():
     backends = ParticleDataset.get_backends()
 
     assert backends[Osiris_Hdf5_ParticleFile.name] is Osiris_Hdf5_ParticleFile
+    assert (
+        backends[Osiris_Dev_Hdf5_ParticleFile.name]
+        is Osiris_Dev_Hdf5_ParticleFile
+    )
+    assert backends[Osiris_zdf_ParticleFile.name] is Osiris_zdf_ParticleFile
