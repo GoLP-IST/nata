@@ -40,15 +40,15 @@ def lineout(dataset: GridDataset, fixed: str, value: float,) -> GridDataset:
 
     # get lineout
     if ax_idx == 0:
-        lo_data = data[:, idx, :] if len(dataset) > 2 else data[idx, :]
+        lo_data = data[:, idx, :] if len(dataset) > 1 else data[idx, :]
         lo_axis = axes[1]
 
     elif ax_idx == 1:
-        lo_data = data[:, :, idx] if len(dataset) > 2 else data[:, idx]
+        lo_data = data[:, :, idx] if len(dataset) > 1 else data[:, idx]
         lo_axis = axes[0]
 
-    lo = GridDataset(
-        lo_data,
+    return GridDataset(
+        lo_data if len(dataset) > 1 else lo_data[np.newaxis],
         name=dataset.name,
         label=dataset.label,
         unit=dataset.unit,
@@ -56,5 +56,3 @@ def lineout(dataset: GridDataset, fixed: str, value: float,) -> GridDataset:
         time=dataset.axes["time"],
         iteration=dataset.axes["iteration"],
     )
-
-    return lo
