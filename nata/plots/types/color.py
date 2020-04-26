@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -95,3 +96,15 @@ class ColorPlot(BasePlot):
         )
 
         self.axes.init_colorbar(plot=self)
+
+    @classmethod
+    def style_attrs(cls) -> List[str]:
+        return [
+            "vmin",
+            "vmax",
+            "cb_map",
+            "cb_scale",
+            "cb_linthresh",
+            "cb_title",
+            "interpolation",
+        ] + BasePlot.style_attrs()

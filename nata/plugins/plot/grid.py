@@ -48,7 +48,7 @@ def grid_plot_data(dataset: GridDataset, quants: List[str] = []) -> PlotData:
 
 @register_container_plugin(GridDataset, name="plot_type")
 def grid_plot_type(dataset: GridDataset) -> PlotData:
-    return DefaultGridPlotTypes[dataset.ndim]
+    return DefaultGridPlotTypes[len(dataset.grid_shape)]
 
 
 @register_container_plugin(GridDataset, name="plot")
