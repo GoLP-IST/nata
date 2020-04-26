@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import AbstractSet
 from typing import Any
 from typing import Dict
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -204,8 +205,13 @@ class ParticleDatasetAxes(TypedDict):
 @runtime_checkable
 class ParticleDatasetType(DatasetType, Protocol):
     name: str
-    label: str
 
-    quantities: Sequence[QuantityType]
+    quantities: Mapping[str, QuantityType]
     axes: ParticleDatasetAxes
-    num_particles: AxisType
+
+
+# Scalars and numbers
+Number = Union[float, int]
+
+# Arrays
+ArrayLike = Union[np.ndarray, Sequence[Number]]
