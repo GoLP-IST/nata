@@ -39,6 +39,7 @@ matplotlib = "^3.1.2"
 h5py = "^2.10.0"
 attrs = "^19.3.0"
 typing_extensions = {version = "^3.7.4", python = "<3.8"}
+ipywidgets = "^7.5.1"
 sphinx = {version = "^3.0.3", optional = true}
 
 [tool.poetry.dev-dependencies]
