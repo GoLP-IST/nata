@@ -3,8 +3,8 @@ from nata.backends.osiris.hdf5 import Osiris_Dev_Hdf5_GridFile
 from nata.backends.osiris.hdf5 import Osiris_Dev_Hdf5_ParticleFile
 from nata.backends.osiris.hdf5 import Osiris_Hdf5_GridFile
 from nata.backends.osiris.hdf5 import Osiris_Hdf5_ParticleFile
-from nata.backends.osiris.zdf_grid import Osiris_zdf_GridFile
-from nata.backends.osiris.zdf_particles import Osiris_zdf_ParticleFile
+from nata.backends.osiris.zdf import Osiris_zdf_GridFile
+from nata.backends.osiris.zdf import Osiris_zdf_ParticleFile
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
 from nata.types import GridBackendType
