@@ -616,11 +616,12 @@ class ParticleQuantity:
     def __iter__(self) -> Iterable["ParticleQuantity"]:
         for d, num in zip(self._data, self._num_prt):
             yield self.__class__(
-                d[np.newaxis],
+                d,
                 name=self.name,
                 label=self.label,
                 unit=self.unit,
                 particles=num,
+                dtype=self.dtype,
             )
 
     def __getitem__(
