@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from nata.backends.osiris.hdf5_grid import Osiris_Hdf5_GridFile
-from nata.backends.osiris.hdf5_grid_dev import Osiris_Dev_Hdf5_GridFile
-from nata.backends.osiris.hdf5_particles import Osiris_Hdf5_ParticleFile
-from nata.backends.osiris.hdf5_particles_dev import Osiris_Dev_Hdf5_ParticleFile
+from nata.backends.osiris.hdf5 import Osiris_Dev_Hdf5_GridFile
+from nata.backends.osiris.hdf5 import Osiris_Dev_Hdf5_ParticleFile
+from nata.backends.osiris.hdf5 import Osiris_Hdf5_GridFile
+from nata.backends.osiris.hdf5 import Osiris_Hdf5_ParticleFile
 from nata.backends.osiris.zdf_grid import Osiris_zdf_GridFile
 from nata.backends.osiris.zdf_particles import Osiris_zdf_ParticleFile
 from nata.containers import GridDataset
