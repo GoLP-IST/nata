@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import List
+from typing import Optional
 from typing import Union
 
 import h5py as h5
@@ -8,12 +10,16 @@ import numpy as np
 from nata.containers import ParticleDataset
 from nata.utils.container_tools import register_backend
 
-from ..particles import ParticleBackend
-
 
 @register_backend(ParticleDataset)
-class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
+class Osiris_Dev_Hdf5_ParticleFile:
     name = "osiris_dev_hdf5_particles"
+    location: Optional[Path] = None
+
+    def __init__(self, location=Union[str, Path]) -> None:
+        self.location = (
+            location if isinstance(location, Path) else Path(location)
+        )
 
     @staticmethod
     def is_valid_backend(file_path: Union[Path, str]) -> bool:
@@ -51,27 +57,7 @@ class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
         with h5.File(self.location, mode="r") as fp:
             return fp["q"].shape[0]
 
-    @property
-    def has_tags(self):
-        with h5.File(self.location, mode="r") as fp:
-            return "tag" in fp
-
-    @property
-    def tags(self):
-        if not self.has_tags:
-            raise AttributeError(
-                f'The file "{self.location}" does not include tags!'
-            )
-
-        with h5.File(self.location, mode="r") as fp:
-            tag_dset = fp["tag"]
-            tags = np.zeros(tag_dset.shape, dtype=tag_dset.dtype)
-            tag_dset.read_direct(tags)
-
-        return set((node, tag) for node, tag in tags)
-
-    # TODO: allow indexing
-    def get_data(self, indexing=None, fields=None):
+    def get_data(self, indexing=None, fields=None) -> np.ndarray:
         with h5.File(self.location, mode="r") as fp:
             if fields is None:
                 # create a structured array
@@ -89,7 +75,7 @@ class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
         return dset
 
     @property
-    def quantities(self):
+    def quantity_names(self) -> List[str]:
         quantities = []
 
         with h5.File(self.location, mode="r") as fp:
@@ -102,7 +88,7 @@ class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
         return quantities
 
     @property
-    def quantity_labels(self):
+    def quantity_labels(self) -> List[str]:
         ordered_quants = self.quantities
         labels = []
 
@@ -119,7 +105,7 @@ class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
         return labels
 
     @property
-    def quantity_units(self):
+    def quantity_units(self) -> List[str]:
         ordered_quants = self.quantities
         units = []
 
@@ -136,7 +122,7 @@ class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
         return units
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         fields = []
         with h5.File(self.location, mode="r") as fp:
             for quant in self.quantities:
@@ -144,16 +130,16 @@ class Osiris_Dev_Hdf5_ParticleFile(ParticleBackend):
         return np.dtype(fields)
 
     @property
-    def iteration(self):
+    def iteration(self) -> int:
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["ITER"][0]
 
     @property
-    def time_step(self):
+    def time_step(self) -> float:
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["TIME"][0]
 
     @property
-    def time_unit(self):
+    def time_unit(self) -> str:
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["TIME UNITS"].astype(str)[0]
