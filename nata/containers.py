@@ -782,7 +782,8 @@ class ParticleDataset:
         ] = None,
         *,
         name: str = _extract_from_backend,
-        axes: ParticleDatasetAxes = _extract_from_backend,
+        iteration: Optional[AxisType] = _extract_from_backend,
+        time: Optional[AxisType] = _extract_from_backend,
         # TODO: remove quantaties -> use it with data together
         quantities: Mapping[str, QuantityType] = _extract_from_backend,
     ):
@@ -816,7 +817,7 @@ class ParticleDataset:
 
         self._name = name
 
-        if axes is _extract_from_backend:
+        if iteration is _extract_from_backend:
             if data.dtype == object:
                 iteration = Axis(
                     data.item().iteration,
@@ -824,6 +825,11 @@ class ParticleDataset:
                     label="iteration",
                     unit="",
                 )
+            else:
+                iteration = None
+
+        if time is _extract_from_backend:
+            if data.dtype == object:
                 time = Axis(
                     data.item().time_step,
                     name="time",
@@ -834,9 +840,7 @@ class ParticleDataset:
                 iteration = None
                 time = None
 
-            axes = {"time": time, "iteration": iteration}
-
-        self._axes = axes
+        self._axes = {"time": time, "iteration": iteration}
 
         if quantities is _extract_from_backend:
             quantities = {}
@@ -853,7 +857,7 @@ class ParticleDataset:
                         label=label,
                         unit=unit,
                         particles=data.item().num_particles,
-                        dtype=data.item().dtype,
+                        dtype=data.item().dtype[name],
                     )
 
             else:
@@ -885,8 +889,24 @@ class ParticleDataset:
                 unit="",
             )
 
+    def __repr__(self) -> str:
+        repr_ = f"{self.__class__.__name__}("
+        repr_ += f"name='{self.name}', "
+        repr_ += f"len={len(self)}, "
+        repr_ += f"quantaties={[q for q in self.quantities]}"
+        repr_ += ")"
+
+        return repr_
+
+    def __len__(self) -> int:
+        return len(self.num_particles)
+
     def __getitem__(self, key: str) -> ParticleQuantity:
         return self.quantities[key]
+
+    @property
+    def axes(self) -> ParticleDatasetAxes:
+        return self._axes
 
     @property
     def name(self) -> str:
@@ -895,10 +915,6 @@ class ParticleDataset:
     @property
     def quantities(self) -> Dict[str, QuantityType]:
         return self._quantaties
-
-    @property
-    def axes(self) -> ParticleDatasetAxes:
-        return self._axes
 
     @property
     def num_particles(self) -> AxisType:

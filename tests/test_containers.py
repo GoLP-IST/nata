@@ -1353,11 +1353,12 @@ def _dummy_ParticleBackend():
                 self.quantity_labels = [f"q_{i}" for i in range(data.shape[-1])]
                 self.quantity_units = [""] * data.shape[-1]
                 self.num_particles = data.shape[0]
-                self.dtype = data.dtype
+                self.dtype = self._data.dtype
             else:
                 self._data = unstructured_to_structured(
-                    np.random.random_sample(10, 3), names=self.quantity_names
+                    np.random.random_sample((10, 3)), names=self.quantity_names
                 )
+                self.dtype = self._data.dtype
 
         @staticmethod
         def is_valid_backend(path) -> bool:
@@ -1414,7 +1415,7 @@ def test_ParticleDataset_name(RegisteredSampleParticleBackend):
         == "some_name"
     )
     assert (
-        ParticleDataset(RegisteredSampleParticleBackend).name
+        ParticleDataset(RegisteredSampleParticleBackend()).name
         == "dummy_particles"
     )
 
@@ -1452,7 +1453,7 @@ def test_ParticleDataset_init_backend(RegisteredSampleParticleBackend):
 
 
 def test_ParticleDataset_axes(RegisteredSampleParticleBackend):
-    prt = ParticleDataset(RegisteredSampleParticleBackend)
+    prt = ParticleDataset(RegisteredSampleParticleBackend())
 
     assert "iteration" in prt.axes
     assert isinstance(prt.axes["iteration"], AxisType)
