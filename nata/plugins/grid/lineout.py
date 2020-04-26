@@ -8,7 +8,7 @@ from nata.plugins.register import register_container_plugin
 @register_container_plugin(GridDataset, name="lineout")
 def lineout(dataset: GridDataset, fixed: str, value: float,) -> GridDataset:
 
-    if dataset.ndim != 2:
+    if len(dataset.grid_shape) != 2:
         raise ValueError(
             "Grid lineouts are only supported for two-dimensional grid datasets"
         )

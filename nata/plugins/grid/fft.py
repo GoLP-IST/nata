@@ -11,7 +11,7 @@ from nata.plugins.register import register_container_plugin
 def fft_grid_dataset(dataset: GridDataset, type: str = "abs",) -> GridDataset:
 
     fft_data = np.array(dataset)
-    fft_axes = np.arange(dataset.ndim) + 1
+    fft_axes = np.arange(len(dataset.grid_shape)) + 1
 
     fft_data = fft.fftn(
         fft_data if len(dataset) > 1 else fft_data[np.newaxis], axes=fft_axes
