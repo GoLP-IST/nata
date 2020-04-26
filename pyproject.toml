@@ -50,6 +50,7 @@ pytest-cov = "^2.8.1"
 pre-commit = "^2.0.1"
 tox = "^3.14.3"
 hypothesis = "^5.10.4"
+black = "^19.10b0"
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme", "recommonmark"]
