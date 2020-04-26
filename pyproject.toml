@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nata"
-version = "0.1.0"
+version = "0.0.1"
 description = "Post-processing and visualization for PIC codes"
 authors = [
   "Anton Helm <anton.helm@tecnico.ulisboa.pt>"
@@ -39,12 +39,17 @@ matplotlib = "^3.1.2"
 h5py = "^2.10.0"
 attrs = "^19.3.0"
 typing_extensions = {version = "^3.7.4", python = "<3.8"}
+sphinx = {version = "^3.0.3", optional = true}
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.3.5"
 pytest-cov = "^2.8.1"
 pre-commit = "^2.0.1"
 tox = "^3.14.3"
+hypothesis = "^5.10.4"
+
+[tool.poetry.extras]
+docs = ["sphinx"]
 
 [tool.isort]
 atomic=true
