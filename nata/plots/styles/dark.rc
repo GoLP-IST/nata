@@ -1,6 +1,9 @@
 # tex
 # text.usetex : True
 
+# figure size
+figure.figsize : 6, 4
+
 # colors
 text.color        : white
 figure.facecolor  : black
