@@ -48,6 +48,12 @@ class Figure:
         with mpl.rc_context(fname=self.fname, rc=self.rc):
             self.fig = plt.figure(figsize=self.figsize)
 
+            if self.figsize is None:
+                size = self.fig.get_size_inches()
+                self.fig.set_size_inches(
+                    size[0] * self.ncols, size[1] * self.nrows
+                )
+
     def close(self):
         plt.close(self.fig)
 
@@ -86,7 +92,7 @@ class Figure:
         new = copy(self)
         new.open()
 
-        for axes in new._axes.values():
+        for axes in new._axes:
             axes.fig = new
 
         return new
@@ -100,7 +106,13 @@ class Figure:
             # TODO: really?
             self.nrows += 1
 
-            for axes in self._axes.values():
+            if self.figsize is None:
+                size = self.fig.get_size_inches()
+                self.fig.set_size_inches(
+                    size[0], size[1] * self.nrows / (self.nrows - 1)
+                )
+
+            for axes in self._axes:
                 axes.redo_plots()
 
         axes = Axes(fig=self, index=new_index, **style)
