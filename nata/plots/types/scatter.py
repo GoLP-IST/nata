@@ -33,7 +33,7 @@ class ScatterPlot(BasePlot):
 
     @property
     def has_cb(self):
-        return (self.c is None) and (len(self.data.axes) > 2)
+        return len(self.data.axes) > 2
 
     def _default_xlim(self):
         return (np.min(self.data.data[0]), np.max(self.data.data[0]))

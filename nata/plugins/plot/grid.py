@@ -73,7 +73,7 @@ def plot_grid_dataset(
         fig=fig, axes=[a_plan], style=filter_style(Figure, style)
     )
 
-    if len(dataset.axes["iteration"]) > 1 and inside_notebook() and interactive:
+    if len(dataset) > 1 and inside_notebook() and interactive:
         f_plan.build_interactive(n)
 
     else:

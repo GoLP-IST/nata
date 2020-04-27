@@ -855,11 +855,11 @@ class ParticleDataset:
         name: str = _extract_from_backend,
         iteration: Optional[AxisType] = _extract_from_backend,
         time: Optional[AxisType] = _extract_from_backend,
-        # TODO: remove quantaties -> use it with data together
+        # TODO: remove quantities -> use it with data together
         quantities: Mapping[str, QuantityType] = _extract_from_backend,
     ):
         if data is None and quantities is _extract_from_backend:
-            raise ValueError("Requires either data or quantaties being set!")
+            raise ValueError("Requires either data or quantities being set!")
 
         # conversion to a valid backend
         if isinstance(data, (str, Path)):
@@ -931,6 +931,8 @@ class ParticleDataset:
                         dtype=data.item().dtype[name],
                     )
 
+                num_particles = data.item().num_particles
+
             else:
                 quantity_names = [f for f in data.dtype.fields.keys()]
                 quantity_labels = quantity_names
@@ -943,28 +945,24 @@ class ParticleDataset:
                         data[name], name=name, label=label, unit=unit
                     )
 
-        self._quantaties = quantities
+                num_particles = data.shape[1]
 
-        if data.dtype == object:
-            self._num_particles = Axis(
-                data.item().num_particles,
-                name="num_particles",
-                label="num. of particles",
-                unit="",
-            )
         else:
-            self._num_particles = Axis(
-                data.shape[1],
-                name="num_particles",
-                label="num. of particles",
-                unit="",
-            )
+            num_particles = next(iter(quantities.values())).shape[-1]
+
+        self._quantities = quantities
+        self._num_particles = Axis(
+            num_particles,
+            name="num_particles",
+            label="num. of particles",
+            unit="",
+        )
 
     def __repr__(self) -> str:
         repr_ = f"{self.__class__.__name__}("
         repr_ += f"name='{self.name}', "
         repr_ += f"len={len(self)}, "
-        repr_ += f"quantaties={[q for q in self.quantities]}"
+        repr_ += f"quantities={[q for q in self.quantities]}"
         repr_ += ")"
 
         return repr_
@@ -972,8 +970,27 @@ class ParticleDataset:
     def __len__(self) -> int:
         return len(self.num_particles)
 
-    def __getitem__(self, key: str) -> ParticleQuantity:
-        return self.quantities[key]
+    def __getitem__(
+        self, key: Union[int, slice, Tuple[int, slice]] = None
+    ) -> "ParticleDataset":
+        # >>>> iteration/time axis
+        time = self.axes["time"][key] if key is not None else self.axes["time"]
+        iteration = (
+            self.axes["iteration"][key]
+            if key is not None
+            else self.axes["iteration"]
+        )
+        quantities = {
+            quant.name: quant[key] for quant in self.quantities.values()
+        }
+
+        # finally return the reduced data entries
+        return self.__class__(
+            iteration=iteration,
+            time=time,
+            name=self.name,
+            quantities=quantities,
+        )
 
     @property
     def axes(self) -> ParticleDatasetAxes:
@@ -985,7 +1002,7 @@ class ParticleDataset:
 
     @property
     def quantities(self) -> Dict[str, QuantityType]:
-        return self._quantaties
+        return self._quantities
 
     @property
     def num_particles(self) -> AxisType:
@@ -1019,6 +1036,11 @@ class ParticleDataset:
                 f"Can not append '{other}' particle datasets are unequal!"
             )
 
+        if self.axes["iteration"]:
+            self.axes["iteration"].append(other.axes["iteration"])
+        if self.axes["time"]:
+            self.axes["time"].append(other.axes["time"])
+
         for quant_name in self.quantities:
             self.quantities[quant_name].append(other.quantities[quant_name])
         self.num_particles.append(other.num_particles)
@@ -1043,6 +1065,10 @@ class ParticleDataset:
             return False
 
         return True
+
+    @classmethod
+    def register_plugin(cls, plugin_name, plugin):
+        setattr(cls, plugin_name, plugin)
 
 
 class DatasetCollection:
