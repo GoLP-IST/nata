@@ -108,10 +108,13 @@ def _convert_to_backend(dataset: DatasetType, data: Union[str, Path]):
     return data
 
 
-class GridDataset:
+class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
     """Container holding data associated with a grid."""
 
     _backends: AbstractSet[GridBackendType] = set()
+    # TODO: special treatment of ufuncs and array_function is not yet supported
+    _handled_ufuncs = {}
+    _handled_array_function = {}
 
     def __init__(
         self,
@@ -465,6 +468,64 @@ class GridDataset:
             return np.squeeze(self._data, axis=0)
         else:
             return self._data
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if ufunc in self._handled_ufuncs:
+            return self._handled_ufuncs[ufunc](method, *inputs, **kwargs)
+        elif method == "__call__":
+            out = kwargs.pop("out", ())
+
+            # repack all inputs and use `.data` if its of type GridDataset
+            new_inputs = []
+            for input_ in inputs:
+                if isinstance(input_, self.__class__):
+                    new_inputs.append(input_.data)
+                else:
+                    new_inputs.append(input_)
+
+            new_data = ufunc(*new_inputs, **kwargs)
+            new_data = new_data[np.newaxis] if len(self) == 1 else new_data
+
+            # should only occur if in-place operation are occuring
+            if out and isinstance(out[0], self.__class__):
+                self.data = new_data
+                return self
+            else:
+                return self.__class__(
+                    new_data,
+                    iteration=self.axes["iteration"],
+                    time=self.axes["time"],
+                    grid_axes=self.axes["grid_axes"],
+                    name=self.name,
+                    label=self.label,
+                    unit=self.unit,
+                )
+        else:
+            raise NotImplementedError
+
+    def __array_function__(self, func, types, args, kwargs):
+        if func in self._handled_array_function:
+            return self._handled_array_function[func](*args, **kwargs)
+        else:
+            new_args = []
+            for arg in args:
+                if isinstance(arg, self.__class__):
+                    new_args.append(arg.data)
+                else:
+                    new_args.append(arg)
+
+            new_data = func(*new_args, **kwargs)
+            new_data = new_data[np.newaxis] if len(self) == 1 else new_data
+
+            return self.__class__(
+                new_data,
+                iteration=self.axes["iteration"],
+                time=self.axes["time"],
+                grid_axes=self.axes["grid_axes"],
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+            )
 
     @classmethod
     def add_backend(cls, backend: GridBackendType) -> None:

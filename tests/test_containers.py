@@ -235,6 +235,49 @@ def test_GridDataset_default_init_array():
     np.testing.assert_array_equal(grid.data, arr)
 
 
+def test_GridDataset_basic_numerical_operations():
+    arr = np.random.random_sample((10,))
+    value = np.random.random_sample()
+    grid = GridDataset(arr)
+
+    # ensure a new type is returned
+    assert (grid + value) is not grid
+    assert isinstance((grid + value), GridDataset)
+
+    # different operations
+    np.testing.assert_array_equal(grid + value, arr + value)
+    np.testing.assert_array_equal(grid - value, arr - value)
+    np.testing.assert_array_equal(grid * value, arr * value)
+    np.testing.assert_array_equal(grid / value, arr / value)
+
+
+def test_GridDataset_basic_numerical_operations_in_place():
+    arr = np.arange(10.0)
+    value = 1.0
+    grid = GridDataset(np.copy(arr))
+
+    # pre change test
+    np.testing.assert_array_equal(grid, arr)
+
+    arr += value
+    grid += value
+
+    # post change test
+    np.testing.assert_array_equal(grid, arr)
+
+
+def test_GridDataset_array_function_fft():
+    arr = np.random.random_sample((10,))
+    grid = GridDataset(arr)
+
+    # ensure the right types
+    assert (np.fft.fft(grid)) is not grid
+    assert isinstance(np.fft.fft(grid), GridDataset)
+
+    # check fft
+    np.testing.assert_array_equal(np.fft.fft(grid), np.fft.fft(arr))
+
+
 def test_GridDataset_default_init_array_2d_array():
     arr = np.random.random_sample((10, 5))
     grid = GridDataset(arr)
