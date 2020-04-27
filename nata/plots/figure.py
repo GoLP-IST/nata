@@ -21,7 +21,7 @@ from nata.plots.types import PlotTypes
 
 @dataclass
 class Figure:
-    figsize: Optional[Tuple[Union[int, float]]] = (6, 4)
+    figsize: Optional[Tuple[Union[int, float]]] = None
     nrows: Optional[int] = 1
     ncols: Optional[int] = 1
     style: Optional[str] = "light"
