@@ -109,6 +109,8 @@ def _convert_to_backend(dataset: DatasetType, data: Union[str, Path]):
 
 
 class GridDataset:
+    """Container holding data associated with a grid."""
+
     _backends: AbstractSet[GridBackendType] = set()
 
     def __init__(
@@ -122,6 +124,68 @@ class GridDataset:
         label: str = _extract_from_backend,
         unit: str = _extract_from_backend,
     ):
+        """For initialization of a :class:`.GridDataset`:
+
+        Parameters
+        ----------
+        data: :class:`numpy.ndarray`, :class:`nata.type.GridBackendType`, \
+              :class:`str`, :class:`pathlib.Path`
+            Input data which is used to initialize the grid container:
+
+            * If it is a numpy array or array-like, the first dimension is
+              consumed and is considered to represent time/iteration.
+            * If it is a backend, then it must follow the
+              :class:`nata.types.GridBackendType` Protocol to be recognized
+              as such.
+            * If it is a string, then it will be converted to a path and is
+              equivalent as passing the string as a path.
+            * If it is a path, then it will be used to initialize a backend
+              based on registered backends for :class:`.GridDatasets`. The
+              first matching backend is used and if no valid backend was
+              found, an exception is raised.
+
+        iteration: ``None`` or :class:`nata.types.AxisType`, \
+                   extract from ``data`` if not provided
+            Keyword-only argument which represents the iteration axis for the
+            container. If not provided, it is extracted from ``data``. If
+            ``data`` is a valid backend, an iteration axis is created and
+            otherwise the iteration axis is ``None``.
+
+        time: ``None`` or :class:`nata.types.AxisType`, extract from ``data`` \
+              if not provided
+            Keyword-only argument which represents the time axis for the
+            container. If not provided, it is extracted from ``data``. If
+            ``data`` is a valid backend, an time axis is created and
+            otherwise the time axis is ``None``.
+
+        grid_axes: ``None`` or Sequence of :class:`nata.types.AxisType`,  \
+                   extract from ``data`` if not provided
+            Keyword-only argument which represents a sequence of grid axes
+            for the container. If not provided, it is extracted from
+            ``data``. If ``data`` is a valid backend, a sequence og grid axes
+            is created and otherwise the sequence contains ``None``.
+
+        name: ``str``, extract from ``data`` if not provided
+            Keyword-only argument which represents the name of the grid
+            container. If not possible to extract a valid name from ``data``,
+            a default string ``'unnamed'`` is used.
+
+        label: ``str``, extract from ``data`` if not provided
+            Keyword-only argument which represents the label of the grid
+            container. If not possible to extract a valid label from ``data``,
+            a default string ``'unnamed'`` is used.
+
+        unit: ``str``, extract from ``data`` if not provided
+            Keyword-only argument which represents the unit of the grid
+            container. If not possible to extract a valid unit from ``data``,
+            an empty string is used.
+
+        Raises
+        ------
+        :class:`nata.utils.exceptions.NataInvalidContainer``:
+            If ``data`` is a string or a path and no valid backend is found.
+
+        """
         if isinstance(data, str):
             data = Path(data)
 
@@ -404,6 +468,7 @@ class GridDataset:
 
     @classmethod
     def add_backend(cls, backend: GridBackendType) -> None:
+        """Classmethod to add Backend to GridDatasets"""
         if cls.is_valid_backend(backend):
             cls._backends.add(backend)
         else:
@@ -411,14 +476,17 @@ class GridDataset:
 
     @classmethod
     def remove_backend(cls, backend: GridBackendType) -> None:
+        """Remove a backend which is stored in ``GridDatasets``."""
         cls._backends.remove(backend)
 
     @classmethod
     def is_valid_backend(cls, backend: GridBackendType) -> bool:
+        """Check if a backend is a valid backend for ``GridDatasets``."""
         return isinstance(backend, GridBackendType)
 
     @classmethod
     def get_backends(cls) -> Dict[str, GridBackendType]:
+        """Dictionary of registered backends for :class:`.GridDataset`"""
         backends_dict = {}
         for backend in cls._backends:
             backends_dict[backend.name] = backend
@@ -426,10 +494,12 @@ class GridDataset:
 
     @property
     def backend(self) -> Optional[str]:
+        """Backend associated with instance."""
         return self._backend
 
     @property
     def data(self) -> np.ndarray:
+        """Underlaying numpy array which stores the data for the grid."""
         return self.__array__()
 
     @data.setter
