@@ -1521,7 +1521,7 @@ def test_ParticleDataset_equivalent():
 def test_ParticleDataset_append():
     particles = ParticleDataset(np.arange(10))
     particles.append(ParticleDataset(np.arange(10)))
-    np.testing.assert_almost_equal(
+    np.testing.assert_array_equal(
         particles.quantities["quant0"], [np.arange(10)] * 2
     )
     np.testing.assert_array_equal(particles.num_particles, [10, 10])
