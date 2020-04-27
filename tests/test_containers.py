@@ -64,7 +64,7 @@ def test_GridDataset_type_check():
     assert isinstance(GridDataset, GridDatasetType)
 
 
-@pytest.fixture(name="SampleGridBackend")
+@pytest.fixture(name="SampleGridBackend", scope="module")
 def _dummy_GridBackend():
     class Backend:
         name = "dummy_backend"
