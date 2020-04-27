@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -8,6 +9,7 @@ import numpy as np
 
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
+from nata.utils.cached_property import cached_property
 from nata.utils.container_tools import register_backend
 from nata.utils.zdf import info
 from nata.utils.zdf import read
@@ -44,8 +46,9 @@ class Osiris_zdf_GridFile:
 
         return False
 
-    @property
+    @cached_property
     def _dset_name(self) -> str:
+        logging.info(f"Accessing '{self.location}' for '_dset_name'")
         z_info = info(str(self.location))
         label = z_info.grid.label
         return z_info.grid.name or self.clean(label)
@@ -55,58 +58,67 @@ class Osiris_zdf_GridFile:
         (z_data, z_info) = read(str(self.location))
         return z_data.transpose()
 
-    @property
+    @cached_property
     def dataset_name(self) -> str:
+        logging.info(f"Accessing '{self.location}' for 'dataset_name'")
         z_info = info(str(self.location))
         label = z_info.grid.label
         return z_info.grid.name or self.clean(label)
 
-    @property
+    @cached_property
     def dataset_label(self) -> str:
+        logging.info(f"Accessing '{self.location}' for 'dataset_label'")
         z_info = info(str(self.location))
         return z_info.grid.label
 
-    @property
+    @cached_property
     def ndim(self):
+        logging.info(f"Accessing '{self.location}' for 'ndim'")
         z_info = info(str(self.location))
         return z_info.grid.ndims
 
-    @property
+    @cached_property
     def shape(self):
+        logging.info(f"Accessing '{self.location}' for 'shape'")
         z_info = info(str(self.location))
         nx = []
         for n in z_info.grid.nx:
             nx.append(n.item())
         return tuple(nx)
 
-    @property
+    @cached_property
     def dtype(self):
+        logging.info(f"Accessing '{self.location}' for 'dtype'")
         (z_data, z_info) = read(str(self.location))
         return z_data.dtype
 
-    @property
+    @cached_property
     def dataset_unit(self):
+        logging.info(f"Accessing '{self.location}' for 'dataset_unit'")
         z_info = info(str(self.location))
         return z_info.grid.units
 
-    @property
+    @cached_property
     def axes_min(self):
+        logging.info(f"Accessing '{self.location}' for 'axes_min'")
         min_values = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
             min_values.append(axis.min)
         return np.array(min_values)
 
-    @property
+    @cached_property
     def axes_max(self):
+        logging.info(f"Accessing '{self.location}' for 'axes_max'")
         max_values = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
             max_values.append(axis.max)
         return np.array(max_values)
 
-    @property
+    @cached_property
     def axes_names(self):
+        logging.info(f"Accessing '{self.location}' for 'axes_names'")
         names = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
@@ -114,34 +126,39 @@ class Osiris_zdf_GridFile:
             names.append(axis.name or self.clean(label))
         return np.array(names)
 
-    @property
+    @cached_property
     def axes_labels(self):
+        logging.info(f"Accessing '{self.location}' for 'axes_labels'")
         long_names = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
             long_names.append(axis.label)
         return np.array(long_names)
 
-    @property
+    @cached_property
     def axes_units(self):
+        logging.info(f"Accessing '{self.location}' for 'axes_units'")
         units = []
         z_info = info(str(self.location))
         for axis in z_info.grid.axis:
             units.append(axis.units)
         return np.array(units)
 
-    @property
+    @cached_property
     def iteration(self):
+        logging.info(f"Accessing '{self.location}' for 'iteration'")
         z_info = info(str(self.location))
         return z_info.iteration.n
 
-    @property
+    @cached_property
     def time_step(self):
+        logging.info(f"Accessing '{self.location}' for 'time_step'")
         z_info = info(str(self.location))
         return z_info.iteration.t
 
-    @property
+    @cached_property
     def time_unit(self):
+        logging.info(f"Accessing '{self.location}' for 'time_unit'")
         z_info = info(str(self.location))
         return z_info.iteration.tunits
 
@@ -182,13 +199,15 @@ class Osiris_zdf_ParticleFile:
 
         return False
 
-    @property
+    @cached_property
     def dataset_name(self) -> str:
+        logging.info(f"Accessing '{self.location}' for 'dataset_name'")
         z_info = info(str(self.location))
         return z_info.particles.name
 
-    @property
+    @cached_property
     def num_particles(self) -> int:
+        logging.info(f"Accessing '{self.location}' for 'num_particles'")
         z_info = info(str(self.location))
         return z_info.particles.nparts
 
@@ -204,8 +223,9 @@ class Osiris_zdf_ParticleFile:
 
         return dset
 
-    @property
+    @cached_property
     def quantity_names(self) -> List[str]:
+        logging.info(f"Accessing '{self.location}' for 'quantity_names'")
         z_info = info(str(self.location))
         quantities = []
         for key in z_info.particles.quants:
@@ -215,16 +235,18 @@ class Osiris_zdf_ParticleFile:
 
         return quantities
 
-    @property
+    @cached_property
     def quantity_labels(self) -> List[str]:
+        logging.info(f"Accessing '{self.location}' for 'quantity_labels'")
         z_info = info(str(self.location))
         names = []
         for quant in self.quantity_names:
             names.append(z_info.particles.labels[quant])
         return names
 
-    @property
+    @cached_property
     def quantity_units(self) -> List[str]:
+        logging.info(f"Accessing '{self.location}' for 'quantity_units'")
         z_info = info(str(self.location))
         units = []
         for quant in self.quantity_names:
@@ -232,25 +254,29 @@ class Osiris_zdf_ParticleFile:
 
         return units
 
-    @property
+    @cached_property
     def dtype(self) -> np.dtype:
+        logging.info(f"Accessing '{self.location}' for 'dtype'")
         (z_data, z_info) = read(str(self.location))
         fields = []
         for quant in self.quantity_names:
             fields.append((quant, z_data[quant].dtype))
         return np.dtype(fields)
 
-    @property
+    @cached_property
     def iteration(self) -> int:
+        logging.info(f"Accessing '{self.location}' for 'iteration'")
         z_info = info(str(self.location))
         return z_info.iteration.n
 
-    @property
+    @cached_property
     def time_step(self) -> float:
+        logging.info(f"Accessing '{self.location}' for 'time_step'")
         z_info = info(str(self.location))
         return z_info.iteration.t
 
-    @property
+    @cached_property
     def time_unit(self) -> str:
+        logging.info(f"Accessing '{self.location}' for 'time_unit'")
         z_info = info(str(self.location))
         return z_info.iteration.tunits
