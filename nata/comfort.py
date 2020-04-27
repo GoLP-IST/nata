@@ -115,3 +115,28 @@ def load(
     # TODO: add here a possibility to reduce the data objects fully
     #   - should return on Dataset object if only one object is present
     return collection
+
+
+def activate_logging(loggin_level: str = "info"):
+    import logging
+
+    if loggin_level == "notset":
+        level = logging.NOTSET
+    elif loggin_level == "debug":
+        level = logging.DEBUG
+    elif loggin_level == "info":
+        level = logging.INFO
+    elif loggin_level == "warning":
+        level = logging.WARNING
+    elif loggin_level == "error":
+        level = logging.ERROR
+    elif loggin_level == "critical":
+        level = logging.CRITICAL
+    else:
+        raise ValueError(
+            "Invalid loggin level provided! "
+            + "Allowed are 'notset', 'debug', 'info', 'warning', 'error', "
+            + "and 'critical'!"
+        )
+
+    logging.basicConfig(format="%(levelname)s :: %(message)s", level=level)
