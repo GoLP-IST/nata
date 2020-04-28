@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import List
 from typing import Optional
+from typing import Union
 
 import numpy as np
 
@@ -56,10 +57,81 @@ def plot_grid_dataset(
     dataset: GridDataset,
     fig: Optional[Figure] = None,
     axes: Optional[Axes] = None,
-    style: dict = dict(),
-    interactive: bool = True,
-    n: int = 0,
-):
+    style: Optional[dict] = {},
+    interactive: Optional[bool] = True,
+    n: Optional[int] = 0,
+) -> Union[Figure, None]:
+    """Plots a single/multiple iteration :class:`nata.containers.GridDataset`\
+       using a :class:`nata.plots.types.LinePlot` or\
+       :class:`nata.plots.types.ColorPlot` if the dataset is one- or\
+       two-dimensional, respectively.
+
+        Parameters
+        ----------
+        fig: :class:`nata.plots.Figure`, optional
+            If provided, the plot is drawn on ``fig``. The plot is drawn on
+            ``axes`` if it is a child axes of ``fig``, otherwise a new axes
+            is created on ``fig``. If ``fig`` is not provided, a new
+            :class:`nata.plots.Figure` is created.
+
+        axes: :class:`nata.plots.Axes`, optional
+            If provided, the plot is drawn on ``axes``, which must be an axes
+            of ``fig``. If ``axes`` is not provided or is provided without a
+            corresponding ``fig``, a new :class:`nata.plots.Axes` is created in
+            a new :class:`nata.plots.Figure`.
+
+        style: ``dict``, optional
+            Dictionary that takes a mix of style properties of
+            :class:`nata.plots.Figure`, :class:`nata.plots.Axes` and any plot
+            type (for example :class:`nata.plots.types.LinePlot` or
+            :class:`nata.plots.types.ColorPlot`).
+
+        interactive: ``bool``, optional
+            Controls wether interactive widgets should be shown with the plot
+            to allow for temporal navigation. Only applicable if ``dataset``
+            has multiple iterations.
+
+        n: ``int``, optional
+            Selects the index of the iteration to be shown initially. Only
+            applicable if ``dataset`` has multiple iterations, .
+
+        Returns
+        ------
+        :class:`nata.plots.Figure` or ``None``:
+            Figure with plot built based on ``dataset``. Interactive widgets
+            are shown with the figure if ``dataset`` has multiple iterations,
+            in which case this method returns  ``None``.
+
+        Examples
+        --------
+        To get a plot with default style properties in a new figure, simply
+        call the ``.plot()`` method of the dataset.
+
+        >>> from nata.containers import GridDataset
+        >>> import numpy as np
+        >>> arr = np.arange(10)
+        >>> ds = GridDataset(arr[np.newaxis])
+        >>> fig = ds.plot()
+
+        In case a :class:`nata.plots.Figure` is returned by the method, it can
+        be shown by calling the :func:`nata.plots.Figure.show` method.
+
+        >>> fig.show()
+
+        To draw a new plot on ``fig``, we can pass it as an argument to the
+        ``.plot()`` method. If ``axes`` is provided, the new plot is drawn on
+        the selected axes.
+
+        >>> ds2 = GridDataset(arr[np.newaxis]**2)
+        >>> ds2.plot(fig=fig, axes=fig.axes[0])
+
+        The :func:`nata.plots.Figure._repr_html_` calls the
+        :func:`nata.plots.Figure.show` method, so in a notebook
+        environment the returned figure will be shown by default if ``plot()``
+        is the last method called in a cell.
+
+
+    """
 
     p_plan = PlotPlan(
         dataset=dataset, style=filter_style(dataset.plot_type(), style)

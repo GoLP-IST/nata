@@ -1,8 +1,8 @@
-=========================================
-NATA: scientific visualization made sweet
-=========================================
+==============================================
+ **nata**: scientific visualization made sweet
+==============================================
 
-Nata is a python package for post-processing and visualizing simulation
+nata is a python package for post-processing and visualizing simulation
 output for particle-in-cell codes. It utilizes the numpy interface to provide
 a simple way to read, manipulate, and represent simulation output.
 
@@ -18,7 +18,7 @@ a simple way to read, manipulate, and represent simulation output.
 
    grids/intro
    grids/api
-   grids/plugins
+   grids/plugins/index
 
 .. toctree::
    :caption: Container for particles
