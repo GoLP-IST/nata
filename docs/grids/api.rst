@@ -1,4 +1,4 @@
-The GridDataset container
+GridDataset container
 =========================
 
 .. autoclass:: nata.containers.GridDataset

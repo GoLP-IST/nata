@@ -1,2 +1,2 @@
-Properties of particle containers
+Properties of Particle Containers
 =================================
