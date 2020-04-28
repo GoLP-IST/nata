@@ -8,20 +8,47 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from pkg_resources import resource_filename
 
 from nata.plots.axes import Axes
-from nata.plots.data import PlotData
-from nata.plots.types import PlotTypes
 
 
 @dataclass
 class Figure:
-    figsize: Optional[Tuple[Union[int, float]]] = None
+    """Container of parameters and child objects (including plotting\
+    backend-related objects) relevant to draw a figure.
+
+    Parameters
+    ----------
+    figsize: ``tuple`` of ``float``, optional
+        Tuple containing the width and height of the figure canvas in
+        inches. If not provided, defaults to ``(6,4)``.
+
+    nrows: ``int``, optional
+        Number of rows available for figure axes. If not provided, defaults
+        to ``1``.
+
+    ncols: ``int``, optional
+        Number of columns available for figure axes. If not provided,
+        defaults to ``1``.
+
+    style: ``{'light', 'dark'}``, optional
+        Selection of standard nata style. If not provided, defaults to
+        ``'light'``.
+
+    fname: ``str``, optional
+        Path to file with custom plotting backend parameters.
+
+    rc: ``dict``, optional
+        Dictionary with custom plotting backend parameters. Overrides
+        parameters given in ``fname``.
+
+    """
+
+    figsize: Optional[Tuple[float]] = None
     nrows: Optional[int] = 1
     ncols: Optional[int] = 1
     style: Optional[str] = "light"
@@ -30,8 +57,6 @@ class Figure:
 
     # backend objects
     fig: Any = field(init=False, repr=False, default=None)
-    plt: Any = field(init=False, repr=False, default=None)
-    mpl: Any = field(init=False, repr=False, default=None)
 
     # child axes objects
     _axes: List[Axes] = field(init=False, repr=False, default_factory=list)
@@ -43,8 +68,14 @@ class Figure:
         # open figure object
         self.open()
 
+    def set_style(self):
+        if not self.fname:
+            self.fname = resource_filename(
+                __name__, "styles/" + self.style + ".rc"
+            )
+
+    # TODO: generalize methods for arbitrary backend
     def open(self):
-        # TODO: generalize this for arbitrary backend
         with mpl.rc_context(fname=self.fname, rc=self.rc):
             self.fig = plt.figure(figsize=self.figsize)
 
@@ -61,14 +92,9 @@ class Figure:
         self.close()
         self.open()
 
-    def set_style(self):
-        if not self.fname:
-            self.fname = resource_filename(
-                __name__, "styles/" + self.style + ".rc"
-            )
-
     def show(self):
-        # TODO: generalize this for arbitrary backend
+        """Shows the figure."""
+
         with mpl.rc_context(fname=self.fname, rc=self.rc):
             dummy = plt.figure()
             new_manager = dummy.canvas.manager
@@ -80,8 +106,27 @@ class Figure:
     def _repr_html_(self):
         self.show()
 
-    def save(self, path, dpi=150):
-        # TODO: generalize this for arbitrary backend
+    # TODO: generalize this for arbitrary backend
+    def save(
+        self, path, format: Optional[str] = None, dpi: Optional[float] = 150
+    ):
+        """Saves the figure to a file.
+
+        Parameters
+        ----------
+            path: ``tuple`` of ``float``, optional
+                Path in which to store the file.
+
+            format: ``str``, optional
+                File format, e.g. ``'png'``, ``'pdf'``, ``'svg'``. If not
+                provided, the output format is inferred from the extension of
+                ``path``.
+
+            dpi: ``float``, optional
+                Resolution in dots per inch. If not provided, defaults to
+                ``150``.
+
+        """
         with mpl.rc_context(fname=self.fname, rc=self.rc):
             self.fig.savefig(path, dpi=dpi, bbox_inches="tight")
 
@@ -120,15 +165,10 @@ class Figure:
 
         return axes
 
-    def add_plot(self, axes: Axes, plot: PlotTypes, data: PlotData, **kwargs):
-        p = axes.add_plot(plot=plot, data=data, **kwargs)
-
-        axes.update_plot_options()
-        axes.update()
-
-        return p
-
     def __mul__(self, other):
+        """Combines two figures into one by superimposing the plots in axes with
+        matching indices.
+        """
 
         new = copy(self)
 
@@ -145,6 +185,7 @@ class Figure:
         return new
 
     def __add__(self, other):
+        """Combines two figures into one by adding new axes."""
 
         new = self.copy()
 
@@ -173,6 +214,9 @@ class Figure:
 
     @property
     def axes(self) -> dict:
+        """Dictionary of child `nata.plots.Axes` objects, where the key
+        to each axes is its ``index`` property
+        """
         return {axes.index: axes for axes in self._axes}
 
     @classmethod

@@ -1,4 +1,4 @@
-plot
+Plot
 =======================
 
 .. autofunction:: nata.containers.GridDataset.plot
