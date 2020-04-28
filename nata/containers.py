@@ -515,6 +515,10 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
                     new_args.append(arg)
 
             new_data = func(*new_args, **kwargs)
+            # func can return something which is not an array
+            if not isinstance(new_data, np.ndarray):
+                return new_data
+
             new_data = new_data[np.newaxis] if len(self) == 1 else new_data
 
             return self.__class__(
