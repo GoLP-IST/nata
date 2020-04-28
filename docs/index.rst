@@ -12,6 +12,7 @@ a simple way to read, manipulate, and represent simulation output.
    intro/installing
    intro/contribution
    intro/basic_concepts
+   backends/intro
 
 .. toctree::
    :caption: Container for grids
