@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from logging import info
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -10,6 +11,7 @@ import numpy as np
 
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
+from nata.utils.cached_property import cached_property
 from nata.utils.container_tools import register_backend
 
 
@@ -60,7 +62,7 @@ class Osiris_Hdf5_GridFile:
 
         return False
 
-    @property
+    @cached_property
     def _dset_name(self) -> str:
         with h5.File(self.location, mode="r") as fp:
             short_name = fp.attrs["NAME"].astype(str)[0]
@@ -73,6 +75,7 @@ class Osiris_Hdf5_GridFile:
                 return name_
 
     def get_data(self, indexing=None):
+        info(f"Reading data in '{self.location}'")
         # TODO: apply indexing here
         with h5.File(self.location, mode="r") as fp:
             dset = fp[self._dset_name]
@@ -80,49 +83,57 @@ class Osiris_Hdf5_GridFile:
             dset.read_direct(dataset)
         return dataset.transpose()
 
-    @property
+    @cached_property
     def dataset_name(self) -> str:
+        info(f"Accessing '{self.location}' for 'dataset_name'")
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["NAME"].astype(str)[0]
 
-    @property
+    @cached_property
     def dataset_label(self) -> str:
+        info(f"Accessing '{self.location}' for 'dataset_label'")
         with h5.File(self.location, mode="r") as fp:
             return fp[self._dset_name].attrs["LONG_NAME"].astype(str)[0]
 
-    @property
+    @cached_property
     def ndim(self):
+        info(f"Accessing '{self.location}' for 'ndim'")
         with h5.File(self.location, mode="r") as fp:
             ndim = fp[self._dset_name].ndim
         return ndim
 
-    @property
+    @cached_property
     def shape(self):
+        info(f"Accessing '{self.location}' for 'shape'")
         with h5.File(self.location, mode="r") as fp:
             return fp[self._dset_name].shape[::-1]
 
-    @property
+    @cached_property
     def dtype(self):
+        info(f"Accessing '{self.location}' for 'dtype'")
         with h5.File(self.location, mode="r") as fp:
             dtype = fp[self._dset_name].dtype
         return dtype
 
-    @property
+    @cached_property
     def dataset_unit(self):
+        info(f"Accessing '{self.location}' for 'dataset_unit'")
         with h5.File(self.location, mode="r") as fp:
             units = fp[self._dset_name].attrs["UNITS"].astype(str)[0]
         return units
 
-    @property
+    @cached_property
     def axes_min(self):
+        info(f"Accessing '{self.location}' for 'axes_min'")
         min_ = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 min_.append(fp["AXIS/" + axis][0])
         return np.array(min_)
 
-    @property
+    @cached_property
     def axes_max(self):
+        info(f"Accessing '{self.location}' for 'axes_max'")
         max_ = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
@@ -130,16 +141,18 @@ class Osiris_Hdf5_GridFile:
 
         return np.array(max_)
 
-    @property
+    @cached_property
     def axes_names(self):
+        info(f"Accessing '{self.location}' for 'axes_names'")
         names = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 names.append(fp["AXIS/" + axis].attrs["NAME"].astype(str)[0])
         return np.array(names)
 
-    @property
+    @cached_property
     def axes_labels(self):
+        info(f"Accessing '{self.location}' for 'axes_labels'")
         long_names = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
@@ -148,28 +161,32 @@ class Osiris_Hdf5_GridFile:
                 )
         return np.array(long_names)
 
-    @property
+    @cached_property
     def axes_units(self):
+        info(f"Accessing '{self.location}' for 'axes_units'")
         units = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 units.append(fp["AXIS/" + axis].attrs["UNITS"].astype(str)[0])
         return np.array(units)
 
-    @property
+    @cached_property
     def iteration(self):
+        info(f"Accessing '{self.location}' for 'iteration'")
         with h5.File(self.location, mode="r") as fp:
             time_step = fp.attrs["ITER"].astype(int)[0]
         return time_step
 
-    @property
+    @cached_property
     def time_step(self):
+        info(f"Accessing '{self.location}' for 'time_step'")
         with h5.File(self.location, mode="r") as fp:
             time = fp.attrs["TIME"][0]
         return time
 
-    @property
+    @cached_property
     def time_unit(self):
+        info(f"Accessing '{self.location}' for 'time_unit'")
         with h5.File(self.location, mode="r") as fp:
             time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
         return time_unit
@@ -222,7 +239,7 @@ class Osiris_Dev_Hdf5_GridFile:
 
         return False
 
-    @property
+    @cached_property
     def _dset_name(self) -> str:
         with h5.File(self.location, mode="r") as fp:
             short_name = fp.attrs["NAME"].astype(str)[0]
@@ -236,55 +253,64 @@ class Osiris_Dev_Hdf5_GridFile:
 
     def get_data(self, indexing=None):
         # TODO: apply indexing here
+        info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             dset = fp[self._dset_name]
             dataset = np.zeros(dset.shape, dtype=dset.dtype)
             dset.read_direct(dataset)
         return dataset.transpose()
 
-    @property
+    @cached_property
     def dataset_name(self) -> str:
+        info(f"Accessing '{self.location}' for 'dataset_name'")
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["NAME"].astype(str)[0]
 
-    @property
+    @cached_property
     def dataset_label(self) -> str:
+        info(f"Accessing '{self.location}' for 'dataset_label'")
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["LABEL"].astype(str)[0]
 
-    @property
+    @cached_property
     def ndim(self):
+        info(f"Accessing '{self.location}' for 'ndim'")
         with h5.File(self.location, mode="r") as fp:
             ndim = fp[self._dset_name].ndim
         return ndim
 
-    @property
+    @cached_property
     def shape(self):
+        info(f"Accessing '{self.location}' for 'shape'")
         with h5.File(self.location, mode="r") as fp:
             return fp[self._dset_name].shape[::-1]
 
-    @property
+    @cached_property
     def dtype(self):
+        info(f"Accessing '{self.location}' for 'dtype'")
         with h5.File(self.location, mode="r") as fp:
             dtype = fp[self._dset_name].dtype
         return dtype
 
-    @property
+    @cached_property
     def dataset_unit(self):
+        info(f"Accessing '{self.location}' for 'dataset_unit'")
         with h5.File(self.location, mode="r") as fp:
             units = fp.attrs["UNITS"].astype(str)[0]
         return units
 
-    @property
+    @cached_property
     def axes_min(self):
+        info(f"Accessing '{self.location}' for 'axes_min'")
         min_ = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 min_.append(fp["AXIS/" + axis][0])
         return np.array(min_)
 
-    @property
+    @cached_property
     def axes_max(self):
+        info(f"Accessing '{self.location}' for 'axes_max'")
         max_ = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
@@ -292,16 +318,18 @@ class Osiris_Dev_Hdf5_GridFile:
 
         return np.array(max_)
 
-    @property
+    @cached_property
     def axes_names(self):
+        info(f"Accessing '{self.location}' for 'axes_names'")
         names = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 names.append(fp["AXIS/" + axis].attrs["NAME"].astype(str)[0])
         return np.array(names)
 
-    @property
+    @cached_property
     def axes_labels(self):
+        info(f"Accessing '{self.location}' for 'axes_labels'")
         long_names = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
@@ -310,28 +338,32 @@ class Osiris_Dev_Hdf5_GridFile:
                 )
         return np.array(long_names)
 
-    @property
+    @cached_property
     def axes_units(self):
+        info(f"Accessing '{self.location}' for 'axes_units'")
         units = []
         with h5.File(self.location, mode="r") as fp:
             for axis in fp["AXIS"]:
                 units.append(fp["AXIS/" + axis].attrs["UNITS"].astype(str)[0])
         return np.array(units)
 
-    @property
+    @cached_property
     def iteration(self):
+        info(f"Accessing '{self.location}' for 'iteration'")
         with h5.File(self.location, mode="r") as fp:
             time_step = fp.attrs["ITER"].astype(int)[0]
         return time_step
 
-    @property
+    @cached_property
     def time_step(self):
+        info(f"Accessing '{self.location}' for 'time_step'")
         with h5.File(self.location, mode="r") as fp:
             time = fp.attrs["TIME"][0]
         return time
 
-    @property
+    @cached_property
     def time_unit(self):
+        info(f"Accessing '{self.location}' for 'time_unit'")
         with h5.File(self.location, mode="r") as fp:
             time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
         return time_unit
@@ -373,19 +405,22 @@ class Osiris_Hdf5_ParticleFile:
 
         return False
 
-    @property
+    @cached_property
     def dataset_name(self) -> str:
+        info(f"Accessing '{self.location}' for 'dataset_name'")
         with h5.File(self.location, mode="r") as fp:
             dataset_name = fp.attrs["NAME"].astype(str)[0]
         return dataset_name
 
-    @property
+    @cached_property
     def num_particles(self) -> int:
+        info(f"Accessing '{self.location}' for 'num_particles'")
         with h5.File(self.location, mode="r") as fp:
             num_particles: int = fp["q"].shape[0]
         return num_particles
 
     def get_data(self, indexing=None, fields=None) -> np.ndarray:
+        info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             if fields is None:
                 # create a structured array
@@ -402,8 +437,9 @@ class Osiris_Hdf5_ParticleFile:
 
         return dset
 
-    @property
+    @cached_property
     def quantity_names(self) -> List[str]:
+        info(f"Accessing '{self.location}' for 'quantity_names'")
         quantities = []
 
         with h5.File(self.location, mode="r") as fp:
@@ -415,8 +451,9 @@ class Osiris_Hdf5_ParticleFile:
 
         return quantities
 
-    @property
+    @cached_property
     def quantity_labels(self) -> List[str]:
+        info(f"Accessing '{self.location}' for 'quantity_labels'")
         names = []
         with h5.File(self.location, mode="r") as fp:
             for quant in self.quantity_names:
@@ -424,8 +461,9 @@ class Osiris_Hdf5_ParticleFile:
                 names.append(name)
         return names
 
-    @property
+    @cached_property
     def quantity_units(self) -> List[str]:
+        info(f"Accessing '{self.location}' for 'quantity_units'")
         units = []
         with h5.File(self.location, mode="r") as fp:
             for quant in self.quantity_names:
@@ -433,28 +471,32 @@ class Osiris_Hdf5_ParticleFile:
 
         return units
 
-    @property
+    @cached_property
     def dtype(self) -> np.dtype:
+        info(f"Accessing '{self.location}' for 'dtype'")
         fields = []
         with h5.File(self.location, mode="r") as fp:
             for quant in self.quantity_names:
                 fields.append((quant, fp[quant].dtype))
         return np.dtype(fields)
 
-    @property
+    @cached_property
     def iteration(self) -> int:
+        info(f"Accessing '{self.location}' for 'iteration'")
         with h5.File(self.location, mode="r") as fp:
             iteration = fp.attrs["ITER"][0]
         return iteration
 
-    @property
+    @cached_property
     def time_step(self) -> float:
+        info(f"Accessing '{self.location}' for 'time_step'")
         with h5.File(self.location, mode="r") as fp:
             time_step = fp.attrs["TIME"][0]
         return time_step
 
-    @property
+    @cached_property
     def time_unit(self) -> str:
+        info(f"Accessing '{self.location}' for 'time_unit'")
         with h5.File(self.location, mode="r") as fp:
             time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
         return time_unit
@@ -496,17 +538,20 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
         return False
 
-    @property
+    @cached_property
     def dataset_name(self) -> str:
+        info(f"Accessing '{self.location}' for 'dataset_name'")
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["NAME"].astype(str)[0]
 
-    @property
+    @cached_property
     def num_particles(self) -> int:
+        info(f"Accessing '{self.location}' for 'num_particles'")
         with h5.File(self.location, mode="r") as fp:
             return fp["q"].shape[0]
 
     def get_data(self, indexing=None, fields=None) -> np.ndarray:
+        info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             if fields is None:
                 # create a structured array
@@ -523,8 +568,9 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
         return dset
 
-    @property
+    @cached_property
     def quantity_names(self) -> List[str]:
+        info(f"Accessing '{self.location}' for 'quantity_names'")
         quantities = []
 
         with h5.File(self.location, mode="r") as fp:
@@ -536,8 +582,9 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
         return quantities
 
-    @property
+    @cached_property
     def quantity_labels(self) -> List[str]:
+        info(f"Accessing '{self.location}' for 'quantity_labels'")
         ordered_quants = self.quantities
         labels = []
 
@@ -553,8 +600,9 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
         return labels
 
-    @property
+    @cached_property
     def quantity_units(self) -> List[str]:
+        info(f"Accessing '{self.location}' for 'quantity_units'")
         ordered_quants = self.quantities
         units = []
 
@@ -570,25 +618,29 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
         return units
 
-    @property
+    @cached_property
     def dtype(self) -> np.dtype:
+        info(f"Accessing '{self.location}' for 'dtype'")
         fields = []
         with h5.File(self.location, mode="r") as fp:
             for quant in self.quantities:
                 fields.append((quant, fp[quant].dtype))
         return np.dtype(fields)
 
-    @property
+    @cached_property
     def iteration(self) -> int:
+        info(f"Accessing '{self.location}' for 'iteration'")
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["ITER"][0]
 
-    @property
+    @cached_property
     def time_step(self) -> float:
+        info(f"Accessing '{self.location}' for 'time_step'")
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["TIME"][0]
 
-    @property
+    @cached_property
     def time_unit(self) -> str:
+        info(f"Accessing '{self.location}' for 'time_unit'")
         with h5.File(self.location, mode="r") as fp:
             return fp.attrs["TIME UNITS"].astype(str)[0]

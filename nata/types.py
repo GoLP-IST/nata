@@ -81,6 +81,9 @@ class GridBackendType(BackendType, Protocol):
     dtype: np.dtype
     ndim: int
 
+
+@runtime_checkable
+class GridDataReader(GridBackendType, Protocol):
     def get_data(
         self, indexing=Optional[Union[int, slice, Tuple[slice, int]]]
     ) -> np.ndarray:
@@ -102,6 +105,9 @@ class ParticleBackendType(BackendType, Protocol):
 
     dtype: np.dtype
 
+
+@runtime_checkable
+class ParticleDataReader(ParticleBackendType, Protocol):
     def get_data(
         self,
         indexing=Optional[Union[int, slice, Tuple[slice, int]]],
