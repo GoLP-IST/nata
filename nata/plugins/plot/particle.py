@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from logging import warning
 from typing import List
 from typing import Optional
+from warnings import warn
 
 import numpy as np
 
@@ -164,7 +164,8 @@ def plot_particle_dataset(
             else:
                 return f_plan[n].build()
         else:
-            warning(
+            # TODO: remove last line from warn
+            warn(
                 f"Plotting only iteration with index n={str(n)}."
                 + " Interactive plots of multiple iteration datasets are not"
                 + " supported outside notebook environments."
