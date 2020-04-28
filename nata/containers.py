@@ -84,7 +84,7 @@ def _transform_particle_data_array(data: np.ndarray):
             data = data[(np.newaxis,) * 3]
         elif data.ndim == 1:
             data = data[np.newaxis, ..., np.newaxis]
-        else:
+        elif data.ndim == 2:
             data = data[..., np.newaxis]
 
         field_names = [f"quant{i}" for i in range(data.shape[-1])]

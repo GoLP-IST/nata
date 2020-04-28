@@ -60,6 +60,87 @@ def plot_particle_dataset(
     interactive: bool = True,
     n: int = 0,
 ):
+    """Plots a single/multiple iteration :class:`nata.containers.ParticleDataset`\
+       using a :class:`nata.plots.types.ScatterPlot`.
+
+        Parameters
+        ----------
+        quants: ``list``
+            List of the names of particle quantities that should be represented
+            in the figure. The first two (compulsory) quantities are
+            represented in the horizontal and vertical axes, respectively. The
+            third quantity (optional) is represented in colors, in which case
+            a colorbar is added to the figure by default.
+
+        fig: :class:`nata.plots.Figure`, optional
+            If provided, the plot is drawn on ``fig``. The plot is drawn on
+            ``axes`` if it is a child axes of ``fig``, otherwise a new axes
+            is created on ``fig``. If ``fig`` is not provided, a new
+            :class:`nata.plots.Figure` is created.
+
+        axes: :class:`nata.plots.Axes`, optional
+            If provided, the plot is drawn on ``axes``, which must be an axes
+            of ``fig``. If ``axes`` is not provided or is provided without a
+            corresponding ``fig``, a new :class:`nata.plots.Axes` is created in
+            a new :class:`nata.plots.Figure`.
+
+        style: ``dict``, optional
+            Dictionary that takes a mix of style properties of
+            :class:`nata.plots.Figure`, :class:`nata.plots.Axes` and any plot
+            type (see :class:`nata.plots.types.ScatterPlot`).
+
+        interactive: ``bool``, optional
+            Controls wether interactive widgets should be shown with the plot
+            to allow for temporal navigation. Only applicable if ``dataset``
+            has multiple iterations.
+
+        n: ``int``, optional
+            Selects the index of the iteration to be shown initially. Only
+            applicable if ``dataset`` has multiple iterations, .
+
+        Returns
+        ------
+        :class:`nata.plots.Figure` or ``None``:
+            Figure with plot built based on ``dataset``. Interactive widgets
+            are shown with the figure if ``dataset`` has multiple iterations,
+            in which case this method returns  ``None``.
+
+        Examples
+        --------
+        To get a plot with default style properties in a new figure, simply
+        call the ``.plot()`` method selecting the particle quantities that
+        should be shown.
+
+        >>> from nata.containers import ParticleDataset
+        >>> import numpy as np
+        >>> arr = np.arange(30).reshape(1,10,3)
+        >>> ds = ParticleDataset(arr, quants=["quant0", "quant1"])
+        >>> fig = ds.plot()
+
+        In case a :class:`nata.plots.Figure` is returned by the method, it can
+        be shown by calling the :func:`nata.plots.Figure.show` method.
+
+        >>> fig.show()
+
+        To draw a new plot on ``fig``, we can pass it as an argument to the
+        ``.plot()`` method. If ``axes`` is provided, the new plot is drawn on
+        the selected axes. In this example we overlay a
+        :class:`nata.plots.types.LinePlot` created from a
+        :class:`nata.containers.GridDataset` on the
+        :class:`nata.plots.types.ScatterPlot` previously created.
+
+        >>> from nata.containers import GridDataset
+        >>> arr2 = np.arange(10)
+        >>> ds2 = GridDataset(arr2[np.newaxis])
+        >>> ds2.plot(fig=fig, axes=fig.axes[0])
+
+        The :func:`nata.plots.Figure._repr_html_` calls the
+        :func:`nata.plots.Figure.show` method, so in a notebook
+        environment the returned figure will be shown by default if ``plot()``
+        is the last method called in a cell.
+
+
+    """
 
     p_plan = PlotPlan(
         dataset=dataset,
