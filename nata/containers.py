@@ -15,6 +15,7 @@ from numpy.lib import recfunctions as rfn
 
 from .axes import Axis
 from .axes import GridAxis
+from .types import ArrayLike
 from .types import AxisType
 from .types import DatasetType
 from .types import GridAxisType
@@ -106,6 +107,60 @@ def _convert_to_backend(dataset: DatasetType, data: Union[str, Path]):
             raise NataInvalidContainer(f"No valid backend found for '{data}'")
 
     return data
+
+
+def _axis_type_reduction(value):
+    if value is not None and not isinstance(value, (AxisType, np.ndarray)):
+        return np.asanyarray(value)
+    else:
+        return value
+
+
+def _value_to_axis_transformation(value, name_and_label, unit, none_value):
+    requires_new_axis = False
+
+    if value is None:
+        requires_new_axis = True
+        value = Axis(
+            none_value, name=name_and_label, label=name_and_label, unit=unit
+        )
+    elif isinstance(value, np.ndarray):
+        value = Axis(
+            value, name=name_and_label, label=name_and_label, unit=unit
+        )
+
+    return value, requires_new_axis
+
+
+def _grid_axis_transformation(axes, temporal_steps, axes_cells):
+    if axes is None:
+        axes = []
+        for i, cells in enumerate(axes_cells):
+            data = [np.arange(cells)] * temporal_steps
+            axes.append(
+                GridAxis(data, name=f"axis{i}", label=f"axis{i}", unit="")
+            )
+    else:
+        for i, axis in enumerate(axes):
+            if isinstance(axis, GridAxisType):
+                continue
+            else:
+                axis = np.asanyarray(axis)
+                if temporal_steps == 1:
+                    axis = axis[np.newaxis]
+
+                if (temporal_steps, axes_cells[i]) != axis.shape:
+                    raise ValueError("Dimension for axis do not match!")
+
+                axes[i] = GridAxis(
+                    axis,
+                    name=f"axis{i}",
+                    label=f"axis{i}",
+                    unit="",
+                    axis_type="custom",
+                )
+
+    return axes
 
 
 class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
@@ -530,6 +585,78 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
                 label=self.label,
                 unit=self.unit,
             )
+
+    # TODO: allow for dictionaries for time, iteration, and grid_axes, e.g.:
+    #       time={
+    #           "value": [0, 1, 2],
+    #           "name":  "some_time",
+    #           "label": "some_time_label",
+    #           "unit":  "some_time_unit"
+    #       }
+    @classmethod
+    def from_array(
+        cls,
+        array: ArrayLike,
+        name: str = "unnamed",
+        label: str = "unnamed",
+        unit: str = "",
+        time: Optional[Union[AxisType, ArrayLike]] = None,
+        iteration: Optional[Union[AxisType, ArrayLike]] = None,
+        grid_axes: Optional[Sequence[Union[GridAxisType, ArrayLike]]] = None,
+    ):
+        data = np.asanyarray(array)
+
+        # XOR of time and iteration
+        # -> use others values
+        if (time is None and iteration is not None) or (
+            time is not None and iteration is None
+        ):
+            if time is None:
+                time = iteration
+            else:
+                iteration = time
+
+        time = _axis_type_reduction(time)
+        time, add_temporal_axis = _value_to_axis_transformation(
+            time, "time", "", 0.0
+        )
+
+        iteration = _axis_type_reduction(iteration)
+        iteration, add_temporal_axis = _value_to_axis_transformation(
+            iteration, "iteration", "", 0
+        )
+
+        if add_temporal_axis:
+            data = data[np.newaxis]
+
+        # now we can check that
+        if not (len(data) == len(time) == len(iteration)):
+            raise ValueError(
+                f"Creating an '{cls.__name__}' from array failed! "
+                + "Temporal dimension mismatch for data, time, and iteration"
+            )
+
+        temporal_steps, *shape_grid_axes = data.shape
+
+        grid_axes = _grid_axis_transformation(
+            grid_axes, temporal_steps, shape_grid_axes
+        )
+
+        if any(len(data) != len(axis) for axis in grid_axes):
+            raise ValueError(
+                f"Creating an '{cls.__name__}' from array failed! "
+                + "Temporal dimension mismatch for data and grid_axes"
+            )
+
+        return cls(
+            data,
+            iteration=iteration,
+            time=time,
+            grid_axes=grid_axes,
+            name=name,
+            label=label,
+            unit=unit,
+        )
 
     @classmethod
     def add_backend(cls, backend: GridBackendType) -> None:
