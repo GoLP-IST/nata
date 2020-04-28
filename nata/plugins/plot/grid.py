@@ -83,7 +83,7 @@ def plot_grid_dataset(
         style: ``dict``, optional
             Dictionary that takes a mix of style properties of
             :class:`nata.plots.Figure`, :class:`nata.plots.Axes` and any plot
-            type (for example :class:`nata.plots.types.LinePlot` or
+            type (see :class:`nata.plots.types.LinePlot` or
             :class:`nata.plots.types.ColorPlot`).
 
         interactive: ``bool``, optional

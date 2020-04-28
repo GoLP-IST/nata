@@ -1,9 +1,7 @@
-GridDataset plugins
+ParticleDataset plugins
 =======================
 
 .. toctree::
    :caption: Available plugins
 
-   lineout
-   fft
    plot

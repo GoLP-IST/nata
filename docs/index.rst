@@ -14,13 +14,14 @@ a simple way to read, manipulate, and represent simulation output.
    intro/basic_concepts
 
 .. toctree::
-   :caption: Container for grids
+   :caption: Grid Containers
 
    grids/intro
    grids/api
    grids/plugins/index
 
 .. toctree::
-   :caption: Container for particles
+   :caption: Particle Containers
 
    particles/intro
+   particles/plugins/index
