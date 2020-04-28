@@ -1,4 +1,4 @@
 lineout
 =======================
 
-.. autofunction:: nata.plugins.grid.lineout.lineout
+.. autofunction:: nata.containers.GridDataset.lineout

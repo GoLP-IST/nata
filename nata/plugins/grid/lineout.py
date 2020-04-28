@@ -8,37 +8,38 @@ from nata.plugins.register import register_container_plugin
 
 
 @register_container_plugin(GridDataset, name="lineout")
-def lineout(
+def lineout_grid_dataset(
     dataset: GridDataset, fixed: Union[str, int], value: float,
 ) -> GridDataset:
-    """Take a lineout across a two-dimensional, single/multiple iteration \
-       :class:`GridDataset`:
+    """Takes a lineout across a two-dimensional, single/multiple iteration\
+       :class:`nata.containers.GridDataset`:
 
         Parameters
         ----------
-        fixed: :class:`str` or :class:`int`
+
+        fixed: :class:``str`` or :class:``int``
             Selection of the axes along which the taken lineout is constant.
 
-            * if it is a string, then it must match the `name` property of an \
-            existing grid axis in `dataset`.
-            * if it is an integer, then it must match the index of a grid axis \
-            in `dataset` (i.e. `0` or `1`).
+            * if it is a string, then it must match the ``name`` property of an
+              existing grid axis in ``dataset``.
+            * if it is an integer, then it must match the index of a grid axis
+              in ``dataset`` (i.e. `0` or `1`).
 
         value: scalar
-            Value between the minimum and maximum of the axes selected through \
+            Value between the minimum and maximum of the axes selected through
             ``fixed`` over which the lineout is taken.
 
         Returns
         ------
-        :class:`GridDataset`:
-            One-dimensional :class:`GridDataset`.
+        :class:`nata.containers.GridDataset`:
+            One-dimensional :class:`nata.containers.GridDataset`.
 
         Examples
         --------
         The following example shows how to obtain a lineout from a
-        two-dimensional `GridDataset`. Since no axes are attributed to the
-        dataset in this example, they are automatically generated with no
-        names, and `fixed` must be an integer.
+        two-dimensional :class:`nata.containers.GridDataset`. Since no axes are
+        attributed to the dataset in this example, they are automatically
+        generated with no names, and ``fixed`` must be an integer.
 
         >>> from nata.containers import GridDataset
         >>> import numpy as np
