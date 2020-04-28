@@ -21,7 +21,7 @@ from nata.plots.types import PlotTypes
 
 @dataclass
 class Figure:
-    figsize: Optional[Tuple[Union[int, float]]] = (6, 4)
+    figsize: Optional[Tuple[Union[int, float]]] = None
     nrows: Optional[int] = 1
     ncols: Optional[int] = 1
     style: Optional[str] = "light"
@@ -47,6 +47,12 @@ class Figure:
         # TODO: generalize this for arbitrary backend
         with mpl.rc_context(fname=self.fname, rc=self.rc):
             self.fig = plt.figure(figsize=self.figsize)
+
+            if self.figsize is None:
+                size = self.fig.get_size_inches()
+                self.fig.set_size_inches(
+                    size[0] * self.ncols, size[1] * self.nrows
+                )
 
     def close(self):
         plt.close(self.fig)
@@ -86,7 +92,7 @@ class Figure:
         new = copy(self)
         new.open()
 
-        for axes in new._axes.values():
+        for axes in new._axes:
             axes.fig = new
 
         return new
@@ -100,7 +106,13 @@ class Figure:
             # TODO: really?
             self.nrows += 1
 
-            for axes in self._axes.values():
+            if self.figsize is None:
+                size = self.fig.get_size_inches()
+                self.fig.set_size_inches(
+                    size[0], size[1] * self.nrows / (self.nrows - 1)
+                )
+
+            for axes in self._axes:
                 axes.redo_plots()
 
         axes = Axes(fig=self, index=new_index, **style)
