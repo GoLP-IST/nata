@@ -22,11 +22,12 @@ def fft_grid_dataset(
 
         Parameters
         ----------
-        type: {'abs', 'real', 'imag', 'full'}, optional
+        type: ``{'abs', 'real', 'imag', 'full'}``, optional
             Defines the component of the FFT selected for output. Available
-            values are  `'abs'` (default), `'real'`, `'imag'` and `'full'`,
-            which correspond to the absolute value, real component, imaginary
-            component and full (complex) result of the FFT, respectively.
+            values are  ``'abs'`` (default), ``'real'``, ``'imag'`` and
+            ``'full'``, which correspond to the absolute value, real component,
+            imaginary component and full (complex) result of the FFT,
+            respectively.
 
         Returns
         ------

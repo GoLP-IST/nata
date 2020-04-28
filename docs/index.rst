@@ -25,3 +25,9 @@ a simple way to read, manipulate, and represent simulation output.
 
    particles/intro
    particles/plugins/index
+
+.. toctree::
+   :caption: Plots
+
+   plots/intro
+   plots/api/index
