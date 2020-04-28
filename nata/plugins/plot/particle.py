@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import List
 from typing import Optional
+from warnings import warn
 
 import numpy as np
 
@@ -156,8 +157,20 @@ def plot_particle_dataset(
         fig=fig, axes=[a_plan], style=filter_style(Figure, style)
     )
 
-    if len(dataset) > 1 and inside_notebook() and interactive:
-        f_plan.build_interactive(n)
+    if len(dataset) > 1:
+        if inside_notebook():
+            if interactive:
+                f_plan.build_interactive(n)
+            else:
+                return f_plan[n].build()
+        else:
+            # TODO: remove last line from warn
+            warn(
+                f"Plotting only iteration with index n={str(n)}."
+                + " Interactive plots of multiple iteration datasets are not"
+                + " supported outside notebook environments."
+            )
+            return f_plan[n].build()
 
     else:
         return f_plan.build()

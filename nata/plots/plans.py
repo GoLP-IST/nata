@@ -4,6 +4,7 @@ from dataclasses import field
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 import numpy as np
 
@@ -49,6 +50,20 @@ class FigurePlan:
             for d in a.datasets:
                 ds.append(d)
         return ds
+
+    def __getitem__(self, key: Union[int, slice]):
+        axes = []
+        for a in self.axes:
+            plots = []
+            for p in a.plots:
+                plots.append(
+                    PlotPlan(
+                        dataset=p.dataset[key], quants=p.quants, style=p.style,
+                    )
+                )
+            axes.append(AxesPlan(plots=plots, axes=a.axes, style=a.style,))
+
+        return self.__class__(axes=axes, fig=self.fig, style=self.style,)
 
     def build(self) -> Figure:
         fig = self.fig if self.fig is not None else Figure(**self.style)

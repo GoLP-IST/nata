@@ -1360,6 +1360,105 @@ def test_GridDataset_repr_backend(SampleGridBackend: GridBackendType):
     )
 
 
+def test_GridDataset_from_array_default_option():
+    arr = np.random.random_sample((2, 3, 4))
+    grid = GridDataset.from_array(arr)
+
+    assert isinstance(grid, GridDataset)
+
+    # check for dataset naming
+    assert grid.name == "unnamed"
+    assert grid.label == "unnamed"
+    assert grid.unit == ""
+
+    # check props
+    assert len(grid) == 1
+    assert grid.shape == arr.shape
+    assert grid.dtype == arr.dtype
+    assert grid.ndim == arr.ndim
+    assert grid.grid_shape == arr.shape
+    assert np.array_equal(grid, arr)
+
+    # time axis
+    assert grid.axes["time"] is not None
+    assert isinstance(grid.axes["time"], AxisType)
+    assert grid.axes["time"].name == "time"
+    assert grid.axes["time"].label == "time"
+    assert grid.axes["time"].unit == ""
+    assert np.array_equal(grid.axes["time"].data, 0.0)
+
+    # iteration axis
+    assert grid.axes["iteration"] is not None
+    assert isinstance(grid.axes["iteration"], AxisType)
+    assert grid.axes["iteration"].name == "iteration"
+    assert grid.axes["iteration"].label == "iteration"
+    assert grid.axes["iteration"].unit == ""
+    assert np.array_equal(grid.axes["iteration"].data, 0)
+
+    # grid axes
+    assert isinstance(grid.axes["grid_axes"], list)
+    assert all(axis is not None for axis in grid.axes["grid_axes"])
+    assert all(isinstance(axis, AxisType) for axis in grid.axes["grid_axes"])
+    assert len(grid.axes["grid_axes"]) == len(arr.shape)
+    for i, (axis, arr_len) in enumerate(zip(grid.axes["grid_axes"], arr.shape)):
+        assert axis.name == f"axis{i}"
+        assert axis.label == f"axis{i}"
+        assert axis.unit == ""
+        assert len(axis) == 1
+        np.testing.assert_array_equal(axis, np.arange(arr_len))
+
+    np.testing.assert_array_equal(grid, arr)
+
+
+def test_GridDataset_from_array_with_arraylike_for_time():
+    arr = np.random.random_sample((2, 3, 4))
+    time_param = [1.0, 2.0]
+    grid = GridDataset.from_array(arr, time=time_param)
+
+    assert (
+        len(grid.axes["iteration"])
+        == len(grid.axes["time"])
+        == len(grid.axes["grid_axes"][0])
+        == len(grid.axes["grid_axes"][1])
+    )
+    np.testing.assert_array_equal(grid.axes["iteration"], time_param)
+    np.testing.assert_array_equal(grid.axes["time"], time_param)
+
+    np.testing.assert_array_equal(grid, arr)
+
+
+def test_GridDataset_from_array_with_arraylike_for_iteration():
+    arr = np.random.random_sample((2, 3, 4))
+    iteration_param = [1.0, 2.0]
+    grid = GridDataset.from_array(arr, iteration=iteration_param)
+
+    assert (
+        len(grid.axes["iteration"])
+        == len(grid.axes["time"])
+        == len(grid.axes["grid_axes"][0])
+        == len(grid.axes["grid_axes"][1])
+    )
+    np.testing.assert_array_equal(grid.axes["iteration"], iteration_param)
+    np.testing.assert_array_equal(grid.axes["time"], iteration_param)
+
+    np.testing.assert_array_equal(grid, arr)
+
+
+def test_GridDataset_from_array_with_grid_axis():
+    arr = np.random.random_sample((2, 3, 4))
+    grid_axes = [np.arange(2), np.arange(3), np.arange(4)]
+    grid = GridDataset.from_array(arr, grid_axes=grid_axes)
+
+    for i, (given_, expected) in enumerate(
+        zip(grid.axes["grid_axes"], grid_axes)
+    ):
+        assert given_.name == f"axis{i}"
+        assert given_.label == f"axis{i}"
+        assert given_.unit == ""
+        assert given_.axis_type == "custom"
+        np.testing.assert_array_equal(given_, expected)
+
+
 def test_ParticleDatset_type_check():
     assert isinstance(ParticleDataset, ParticleDatasetType)
 
