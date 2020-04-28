@@ -1556,6 +1556,18 @@ def test_ParticleDataset_getitem():
                 dtype=np.dtype({"names": ["quant0"], "formats": [int]}),
             ),
         ),
+        (
+            np.array([[[0, 1, 2]]], dtype=int),
+            np.array(
+                [[(0, 1, 2)]],
+                dtype=np.dtype(
+                    {
+                        "names": ["quant0", "quant1", "quant2"],
+                        "formats": [int, int, int],
+                    }
+                ),
+            ),
+        ),
     ],
 )
 def test_transform_particle_data_array(arr, expected_data):
@@ -1564,6 +1576,7 @@ def test_transform_particle_data_array(arr, expected_data):
     assert transformed_arr.ndim == 2
     assert transformed_arr.ndim == expected_data.ndim
     assert transformed_arr.shape == expected_data.shape
+    assert transformed_arr.dtype.fields == expected_data.dtype.fields
 
     np.testing.assert_array_equal(transformed_arr, expected_data)
 
