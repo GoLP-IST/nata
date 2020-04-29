@@ -11,6 +11,7 @@ import numpy as np
 
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
+from nata.utils.backends import sort_particle_quantities
 from nata.utils.cached_property import cached_property
 from nata.utils.container_tools import register_backend
 
@@ -449,7 +450,7 @@ class Osiris_Hdf5_ParticleFile:
                 if isinstance(item, h5.Dataset):
                     quantities.append(key)
 
-        return quantities
+        return sort_particle_quantities(quantities, ["x", "p"])
 
     @cached_property
     def quantity_labels(self) -> List[str]:
@@ -558,7 +559,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
                 dset = np.empty(self.num_particles, dtype=self.dtype)
 
                 # fill the array
-                for quant in self.quantities:
+                for quant in self.quantity_names:
                     dset[quant] = fp[quant]
             else:
                 if indexing is None:
@@ -580,12 +581,12 @@ class Osiris_Dev_Hdf5_ParticleFile:
                 if isinstance(item, h5.Dataset):
                     quantities.append(key)
 
-        return quantities
+        return sort_particle_quantities(quantities, ["x", "p"])
 
     @cached_property
     def quantity_labels(self) -> List[str]:
         info(f"Accessing '{self.location}' for 'quantity_labels'")
-        ordered_quants = self.quantities
+        ordered_quants = self.quantity_names
         labels = []
 
         with h5.File(self.location, mode="r") as fp:
@@ -603,7 +604,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
     @cached_property
     def quantity_units(self) -> List[str]:
         info(f"Accessing '{self.location}' for 'quantity_units'")
-        ordered_quants = self.quantities
+        ordered_quants = self.quantity_names
         units = []
 
         with h5.File(self.location, mode="r") as fp:
@@ -623,7 +624,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
         info(f"Accessing '{self.location}' for 'dtype'")
         fields = []
         with h5.File(self.location, mode="r") as fp:
-            for quant in self.quantities:
+            for quant in self.quantity_names:
                 fields.append((quant, fp[quant].dtype))
         return np.dtype(fields)
 
