@@ -42,7 +42,7 @@ class LinePlot(BasePlot):
 
     ls: Optional[str] = None
     lw: Optional[float] = 1
-    c: Optional[str] = None
+    color: Optional[str] = None
     alpha: Optional[float] = None
     marker: Optional[str] = None
     ms: Optional[float] = None
@@ -67,10 +67,10 @@ class LinePlot(BasePlot):
         return self.data.get_label(units=False)
 
     def _xunits(self):
-        return f"${self.data.axes[0].units}$"
+        return f"${self.data.axes[0].units}$" if self.data.axes[0].units else ""
 
     def _yunits(self):
-        return f"${self.data.units}$"
+        return f"${self.data.units}$" if self.data.units else ""
 
     def build_canvas(self):
         # get plot axes and data
