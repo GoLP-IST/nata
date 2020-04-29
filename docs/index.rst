@@ -12,7 +12,6 @@ a simple way to read, manipulate, and represent simulation output.
    intro/installing
    intro/contribution
    intro/basic_concepts
-   backends/intro
 
 .. toctree::
    :caption: Grid Containers
@@ -26,3 +25,10 @@ a simple way to read, manipulate, and represent simulation output.
 
    particles/intro
    particles/plugins/index
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

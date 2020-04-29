@@ -1,2 +1,0 @@
-Backend: reading simulation output
-==================================
