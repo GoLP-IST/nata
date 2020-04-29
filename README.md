@@ -1,5 +1,5 @@
 <div>
-  <img src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png?token=AAKKMGXZXXRCACBKWRAZDFC6WLTBO" alt="nata logo" width=320 align="right"/>
+  <img src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png?token=AAKKMGXZXXRCACBKWRAZDFC6WLTBO" alt="nata logo" width=460 align="right"/>
   <h1 style="text-align:left">Python visualization and post-processing tool for particle-in-cell codes</h1>
 </div>
 
