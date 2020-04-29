@@ -21,7 +21,7 @@ class LinePlot(BasePlot):
     lw: ``float``, optional
         Line width in points. If not provided, defaults to ``1``.
 
-    c: ``str``, optional
+    color: ``str``, optional
         Color of the line. See :mod:`matplotlib.colors` for available options.
 
     alpha: ``float``, optional
@@ -83,7 +83,7 @@ class LinePlot(BasePlot):
             y,
             ls=self.ls,
             lw=self.lw,
-            c=self.c,
+            c=self.color,
             alpha=self.alpha,
             marker=self.marker,
             ms=self.ms,
@@ -96,7 +96,7 @@ class LinePlot(BasePlot):
         return [
             "ls",
             "lw",
-            "c",
+            "color",
             "alpha",
             "marker",
             "ms",
