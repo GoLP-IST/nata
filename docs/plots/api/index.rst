@@ -1,4 +1,4 @@
-Reference / API
+Plots Reference / API
 =======================
 
 .. toctree::
