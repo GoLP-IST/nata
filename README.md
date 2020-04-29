@@ -1,9 +1,11 @@
-<img align="center">
-     src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png?token=AAKKMGXZXXRCACBKWRAZDFC6WLTBO"
-     alt="nata logo"
-     width=460
- />
-<h1 align="center">Python visualization and post-processing tool </br> for particle-in-cell codes</h1>
+<p align="center">
+     <img 
+          src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png?token=AAKKMGXZXXRCACBKWRAZDFC6WLTBO" 
+          alt="nata logo" 
+          width=460
+     />
+</p>
+<h2 align="center">Python visualization and post-processing tool for particle-in-cell codes</h1>
 
 **Nata** is a python package for post-processing and visualizing simulation
 output for particle-in-cell codes. It utilizes the numpy interface to provide
