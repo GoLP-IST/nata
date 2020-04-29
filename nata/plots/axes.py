@@ -188,10 +188,13 @@ class Axes:
             xlabels = [p._default_xlabel(units=False) for p in self.plots]
 
             if len(set(units)) == 1 and len(set(xlabels)) == 1:
-                self.xlabel = set(xlabels).pop() + " [" + set(units).pop() + "]"
+                self.xlabel = set(xlabels).pop()
+                if set(units).pop():
+                    self.xlabel += " [" + set(units).pop() + "]"
             elif len(set(units)) == 1:
                 xlabels = [p._default_xlabel(units=False) for p in self.plots]
-                self.xlabel = ", ".join(xlabels) + " [" + set(units).pop() + "]"
+                if set(units).pop():
+                    self.xlabel += " [" + set(units).pop() + "]"
             else:
                 xlabels = [p._default_xlabel(units=True) for p in self.plots]
                 self.xlabel = ", ".join(xlabels)
@@ -201,10 +204,14 @@ class Axes:
             ylabels = [p._default_ylabel(units=False) for p in self.plots]
 
             if len(set(units)) == 1 and len(set(ylabels)) == 1:
-                self.ylabel = set(ylabels).pop() + " [" + set(units).pop() + "]"
+                self.ylabel = set(ylabels).pop()
+                if set(units).pop():
+                    self.ylabel += " [" + set(units).pop() + "]"
             elif len(set(units)) == 1:
                 ylabels = [p._default_ylabel(units=False) for p in self.plots]
-                self.ylabel = ", ".join(ylabels) + " [" + set(units).pop() + "]"
+                self.ylabel = ", ".join(ylabels)
+                if set(units).pop():
+                    self.ylabel += " [" + set(units).pop() + "]"
             else:
                 ylabels = [p._default_ylabel(units=True) for p in self.plots]
                 self.ylabel = ", ".join(ylabels)
