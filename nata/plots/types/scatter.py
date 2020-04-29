@@ -15,7 +15,7 @@ class ScatterPlot(BasePlot):
     Parameters
     ----------
     s: ``float``, optional
-        Marker size in in points**2.
+        Marker size in in points**2. If not provided, defaults to ``0.1``
 
     c: ``str``, optional
         Color of the markers. See :mod:`matplotlib.colors` for available
@@ -59,7 +59,7 @@ class ScatterPlot(BasePlot):
 
     """
 
-    s: Optional[float] = None
+    s: Optional[float] = 0.1
     c: Optional[str] = None
     marker: Optional[str] = None
     alpha: Optional[float] = None
