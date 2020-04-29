@@ -15,8 +15,56 @@ from nata.plots.types import PlotTypes
 
 @dataclass
 class Axes:
+    """Container of parameters and parent and child objects (including\
+    plotting backend-related objects) relevant to draw a figure axes.
+
+    Parameters
+    ----------
+    xlim: ``tuple``, optional
+        Limits of the horizontal axis in the format ``(min,max)``. If not
+        provided, it is inferred from the dataset(s) represented in the axes.
+
+    ylim: ``tuple``, optional
+        Same as ``xlim`` for the vertical axis.
+
+    xlabel: ``str``, optional
+        Label of the horizontal axis. If not provided, it is inferred from the
+        dataset(s) represented in the axes.
+
+    ylabel: ``str``, optional
+        Same as ``xlabel`` for the vertical axis.
+
+    xscale: ``{'linear','log', 'symlog'}``, optional
+        Scale of the horizontal axes. If not provided, defaults to
+        ``'linear'``.
+
+    yscale: ``{'linear','log', 'symlog'}``, optional
+        Same as ``xscale`` for the vertical axis.
+
+    title: ``str``, optional
+        Axes title. If not provided, it is inferred from the dataset(s)
+        represented in the axes.
+
+    legend_show: ``bool``, optional
+        Controls the visibility of the axes legend, when applicable. If not
+        provided, defaults to ``True``.
+
+    legend_loc: ``str``, optional
+        Controls the position of the axes legend, when applicable. See
+        :meth:`matplotlib.axes.Axes.legend` for available options. If not
+        provided, defaults to ``'upper right'``.
+
+    legend_frameon: ``bool``, optional
+        Controls the visibility of the axes legend frame. If not provided,
+        defaults to ``False``.
+
+    cb_show: ``bool``, optional
+        Controls the visibility of the axes colorbar, when applicable. If not
+        provided, defaults to ``True``.
+
+    """
+
     # style properties
-    index: Optional[int] = 0
     xlim: Optional[tuple] = None
     ylim: Optional[tuple] = None
     xlabel: Optional[str] = None
@@ -29,6 +77,9 @@ class Axes:
     legend_loc: Optional[str] = "upper right"
     legend_frameon: Optional[bool] = False
     cb_show: Optional[bool] = True
+
+    # other parameters
+    index: Optional[int] = 0
 
     # flags for automatic style properties
     xlim_auto: bool = field(init=False, default=None)
