@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import List
 from typing import Optional
 from warnings import warn
 
@@ -17,27 +16,6 @@ from nata.plots.plans import PlotPlan
 from nata.plots.types import DefaultParticlePlotType
 from nata.plugins.register import register_container_plugin
 from nata.utils.env import inside_notebook
-
-
-@register_container_plugin(ParticleDataset, name="filter_quantities")
-def filter_particle_filter_quantities(
-    dataset: ParticleDataset, quants: List[str] = []
-):
-
-    quantities = {}
-    for quant in quants:
-        quantities[quant] = (
-            dataset.quantities[quant]
-            if quant in dataset.quantities.keys()
-            else None
-        )
-
-    return ParticleDataset(
-        iteration=dataset.axes["iteration"],
-        time=dataset.axes["time"],
-        name=dataset.name,
-        quantities=quantities,
-    )
 
 
 @register_container_plugin(ParticleDataset, name="plot_data")

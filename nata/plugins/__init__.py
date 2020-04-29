@@ -1,3 +1,4 @@
 # -*- coding: utf-8 -*-
-from .grid import *
+from .grids import *
+from .particles import *
 from .plot import *
