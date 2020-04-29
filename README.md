@@ -5,7 +5,7 @@
           width=460
      />
 </p>
-<h2 align="center" style="margin-top:0px;">Python visualization and post-processing tool for particle-in-cell codes</h1>
+<h2 align="center">Python visualization and post-processing tool for particle-in-cell codes</h1>
 
 **Nata** is a python package for post-processing and visualizing simulation
 output for particle-in-cell codes. It utilizes the numpy interface to provide
