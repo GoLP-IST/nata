@@ -2,7 +2,6 @@
 from dataclasses import dataclass
 from typing import List
 from typing import Optional
-from typing import Union
 
 import matplotlib.colors as clr
 import numpy as np
@@ -12,11 +11,45 @@ from nata.plots.types import BasePlot
 
 @dataclass
 class ColorPlot(BasePlot):
-    vmin: Optional[Union[int, float]] = None
-    vmax: Optional[Union[int, float]] = None
+    """Color plot class.
+
+    Parameters
+    ----------
+    vmin: ``float``, optional
+        Minimum of the colorbar axis. If not  provided, it is inferred from
+        the dataset represented in the plot.
+
+    vmax: ``float``, optional
+        Same as ``vmin`` for the maximum of the colorbar axis.
+
+    cb_title: ``str``, optional
+        Colorbar title. If not provided, it is inferred from the dataset
+        represented in the plot.
+
+    cb_scale: ``{'linear','log', 'symlog'}``, optional
+        Scale of the colorbar. If not provided, defaults to ``'linear'``.
+
+    cb_map: ``str``, optional
+        Colormap used to represent the data. See
+        :func:`matplotlib.pyplot.colormaps` for available options. If not
+        provided, defaults to ``rainbow``.
+
+    cb_linthresh: ``float``, optional
+        Range within which the colorbar axis is linear. Applicable only when
+        ``cb_scale`` is set to ``'symlog'``. If not provided, defaults to
+        ``1e-5``.
+
+    interpolation: ``str``, optional
+        Interpolation method used. See :func:`matplotlib.pyplot.imshow` for
+        available options. If not provided, defaults to ``none``.
+
+    """
+
+    vmin: Optional[float] = None
+    vmax: Optional[float] = None
     cb_map: Optional[str] = "rainbow"
     cb_scale: Optional[str] = "linear"
-    cb_linthresh: Optional[Union[int, float]] = 1e-5
+    cb_linthresh: Optional[float] = 1e-5
     cb_title: Optional[str] = None
     interpolation: Optional[str] = "none"
 

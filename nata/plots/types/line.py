@@ -10,8 +10,7 @@ from nata.plots.types import BasePlot
 
 @dataclass
 class LinePlot(BasePlot):
-    """Container of parameters and parent and child objects (including\
-    plotting backend-related objects) relevant to draw a line plot.
+    """Line plot class.
 
     Parameters
     ----------

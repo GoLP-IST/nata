@@ -12,9 +12,7 @@ from nata.plots.data import PlotData
 
 @dataclass
 class BasePlot:
-    """Container of parameters and parent and child objects (including\
-    plotting backend-related objects) relevant to draw a plot that are
-    common to all plot types.
+    """Base class for plot types.
 
     Parameters
     ----------
