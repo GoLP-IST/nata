@@ -20,7 +20,7 @@ command inside your terminal
 pip install nata
 ```
 
-It is intended to be used inside a [jupyter](https://jupyter.org/) together
+It is intended to be used inside a [jupyter notebook](https://jupyter.org/) together
 with [ipywidgets](https://github.com/jupyter-widgets/ipywidgets). Hence, you
 might need to run after the installation
 
@@ -42,9 +42,9 @@ for further details.
 ## Contributing to nata
 
 Any type of contribution to nata is appreciated. If you have any issues,
-please report them [here](https://github.com/GoLP-IST/nata/issues). But if
+please report them [by adding an issue on GitHub](https://github.com/GoLP-IST/nata/issues). But if
 you wish to directly contribute to nata, we recommend to setup a local
-development environment.
+development environment. Follow the instruction below for more details.
 
 ### Getting the source code
 
