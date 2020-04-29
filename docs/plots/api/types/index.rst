@@ -7,3 +7,4 @@ Plot Types
    base
    line
    color
+   scatter
