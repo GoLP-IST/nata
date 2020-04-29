@@ -104,6 +104,7 @@ class Figure:
             plt.show()
 
     def _repr_html_(self):
+        """Calls :meth:`nata.plots.Figure.show`."""
         self.show()
 
     # TODO: generalize this for arbitrary backend
