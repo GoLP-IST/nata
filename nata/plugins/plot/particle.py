@@ -19,21 +19,41 @@ from nata.plugins.register import register_container_plugin
 from nata.utils.env import inside_notebook
 
 
-@register_container_plugin(ParticleDataset, name="plot_data")
-def particle_plot_data(
+@register_container_plugin(ParticleDataset, name="filter_quantities")
+def filter_particle_filter_quantities(
     dataset: ParticleDataset, quants: List[str] = []
-) -> PlotData:
+):
+
+    quantities = {}
+    for quant in quants:
+        quantities[quant] = (
+            dataset.quantities[quant]
+            if quant in dataset.quantities.keys()
+            else None
+        )
+
+    return ParticleDataset(
+        iteration=dataset.axes["iteration"],
+        time=dataset.axes["time"],
+        name=dataset.name,
+        quantities=quantities,
+    )
+
+
+@register_container_plugin(ParticleDataset, name="plot_data")
+def particle_plot_data(dataset: ParticleDataset) -> PlotData:
     a = []
     d = []
 
-    for quant in quants:
-        q = dataset.quantities[quant]
-        new_a = PlotDataAxis(name=q.name, label=q.label, units=q.unit)
+    for quant in dataset.quantities.values():
+        new_a = PlotDataAxis(
+            name=quant.name, label=quant.label, units=quant.unit
+        )
 
         a.append(new_a)
-        d.append(np.array(q))
+        d.append(np.array(quant))
 
-    p_d = PlotData(
+    return PlotData(
         name=dataset.name,
         label=dataset.name,
         units="",
@@ -42,8 +62,6 @@ def particle_plot_data(
         time_units=dataset.axes["time"].unit,
         axes=a,
     )
-
-    return p_d
 
 
 @register_container_plugin(ParticleDataset, name="plot_type")
@@ -54,7 +72,6 @@ def particle_plot_type(dataset: ParticleDataset) -> PlotData:
 @register_container_plugin(ParticleDataset, name="plot")
 def plot_particle_dataset(
     dataset: ParticleDataset,
-    quants: List[str] = [],
     fig: Optional[Figure] = None,
     axes: Optional[Axes] = None,
     style: dict = dict(),
@@ -144,9 +161,7 @@ def plot_particle_dataset(
     """
 
     p_plan = PlotPlan(
-        dataset=dataset,
-        quants=quants,
-        style=filter_style(dataset.plot_type(), style),
+        dataset=dataset, style=filter_style(dataset.plot_type(), style),
     )
 
     a_plan = AxesPlan(
