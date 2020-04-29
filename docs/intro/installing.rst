@@ -1,8 +1,8 @@
 Installing nata
 ===============
 
-Nata is available on PyPI. You can install running the following command
-inside your terminal
+Nata is available on PyPI. You can install it by running the following
+command inside your terminal
 
 .. code:: bash
 
