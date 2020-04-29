@@ -35,6 +35,7 @@ release = "0.0.1"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
     "sphinx_rtd_theme",
     "recommonmark",
 ]
@@ -71,3 +72,5 @@ html_theme_options = {
 
 autoclass_content = "both"
 autodoc_typehints = "none"
+
+intersphinx_mapping = {"matplotlib": ("https://matplotlib.org", None)}
