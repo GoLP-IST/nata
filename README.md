@@ -5,7 +5,6 @@
           width=460
      />
 </p>
-<h2 align="center">Python visualization and post-processing tool for particle-in-cell codes</h1>
 
 **Nata** is a python package for post-processing and visualizing simulation
 output for particle-in-cell codes. It utilizes the numpy interface to provide
@@ -20,7 +19,7 @@ command inside your terminal
 pip install nata
 ```
 
-It is intended to be used inside a [jupyter notebook](https://jupyter.org/) together
+It can be used inside an IPython shell or [jupyter notebook](https://jupyter.org/) together
 with [ipywidgets](https://github.com/jupyter-widgets/ipywidgets). Hence, you
 might need to run after the installation
 
