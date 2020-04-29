@@ -603,6 +603,54 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         iteration: Optional[Union[AxisType, ArrayLike]] = None,
         grid_axes: Optional[Sequence[Union[GridAxisType, ArrayLike]]] = None,
     ):
+        """Initialize GridDataset from an array.
+
+        As in general, :class:`.GridDataset` container provide a rich-API,
+        :meth:`.GridDataset.from_array` allows to create naively a object
+        with the source data coming from a numpy array and pre-defined objects
+        for the axes.
+
+        Parameters
+        ----------
+        array : array-like object
+            Input data, in any form that can be converted to an numpy array
+            or a numpy array itself. The array dimension correspond the grid
+            dimension if no temporal information is provided. Otherwise, the
+            first dimension is consumed.
+
+        name : :obj:`str`, default value: ``"unnamed"``
+            Name of the grid container and expected to be identifiable.
+
+        label : :obj:`str`, default value: ``"unnamed"``
+            Label of the grid container with a descriptive meaning. It is not
+            expected to be identifiable.
+
+        unit : :obj:`str`, default value: ``""``
+            Unit of the grid container.
+
+        time : array-like, axis object, optional
+            Time axis of the grid container. If an array-like object is
+            provided, an axis object is created underneath. In addition, an
+            axis object can be provided which has to fulfill the
+            :py:class:`nata.types.AxisType` protocol. If nothing is provided
+            (default option), a time axis with the single value ``0.0`` is
+            created.
+
+        iteration : array-like, axis object, optional
+            Iteration axis of the grid container. If an array-like object is
+            provided, an axis object is created underneath. In addition, an
+            axis object can be provided which has to fulfill the
+            :py:class:`nata.types.AxisType` protocol. If nothing is provided
+            (default option), a iteration axis with a single value ``0`` is
+            created.
+
+        grid_axes : sequence of array like objects and/or grid axis objects, \
+                    optional
+            Sequence characterizing each grid axis. The length of the
+            sequence has to correspond to the dimension of the array. In the
+            absence of temporal axes, the length corresponds to the array
+            dimension otherwise the first axes of the array is consumed.
+        """
         data = np.asanyarray(array)
 
         # XOR of time and iteration
