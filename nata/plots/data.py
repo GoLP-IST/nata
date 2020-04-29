@@ -2,7 +2,6 @@
 from dataclasses import dataclass
 from typing import List
 from typing import Optional
-from typing import Union
 
 import numpy as np
 
@@ -38,7 +37,7 @@ class PlotData:
     name: str = ""
     label: Optional[str] = None
     units: Optional[str] = None
-    time: Optional[Union[float, int]] = None
+    time: Optional[float] = None
     time_units: Optional[str] = None
 
     def get_label(self, units=True) -> str:

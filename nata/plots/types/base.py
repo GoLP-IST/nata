@@ -12,6 +12,17 @@ from nata.plots.data import PlotData
 
 @dataclass
 class BasePlot:
+    """Base class for plot types.
+
+    Parameters
+    ----------
+    label: ``str``, optional
+        Label of plot, used to identify the plot in the parent
+        :class:`nata.plots.Axes` object legend. If not provided, it is inferred
+        from the child dataset object.
+
+    """
+
     # style properties
     label: Optional[str] = None
 

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import List
 from typing import Optional
 from warnings import warn
 
@@ -20,20 +19,19 @@ from nata.utils.env import inside_notebook
 
 
 @register_container_plugin(ParticleDataset, name="plot_data")
-def particle_plot_data(
-    dataset: ParticleDataset, quants: List[str] = []
-) -> PlotData:
+def particle_plot_data(dataset: ParticleDataset) -> PlotData:
     a = []
     d = []
 
-    for quant in quants:
-        q = dataset.quantities[quant]
-        new_a = PlotDataAxis(name=q.name, label=q.label, units=q.unit)
+    for quant in dataset.quantities.values():
+        new_a = PlotDataAxis(
+            name=quant.name, label=quant.label, units=quant.unit
+        )
 
         a.append(new_a)
-        d.append(np.array(q))
+        d.append(np.array(quant))
 
-    p_d = PlotData(
+    return PlotData(
         name=dataset.name,
         label=dataset.name,
         units="",
@@ -42,8 +40,6 @@ def particle_plot_data(
         time_units=dataset.axes["time"].unit,
         axes=a,
     )
-
-    return p_d
 
 
 @register_container_plugin(ParticleDataset, name="plot_type")
@@ -54,7 +50,6 @@ def particle_plot_type(dataset: ParticleDataset) -> PlotData:
 @register_container_plugin(ParticleDataset, name="plot")
 def plot_particle_dataset(
     dataset: ParticleDataset,
-    quants: List[str] = [],
     fig: Optional[Figure] = None,
     axes: Optional[Axes] = None,
     style: dict = dict(),
@@ -66,13 +61,6 @@ def plot_particle_dataset(
 
         Parameters
         ----------
-        quants: ``list``
-            List of the names of particle quantities that should be represented
-            in the figure. The first two (compulsory) quantities are
-            represented in the horizontal and vertical axes, respectively. The
-            third quantity (optional) is represented in colors, in which case
-            a colorbar is added to the figure by default.
-
         fig: :class:`nata.plots.Figure`, optional
             If provided, the plot is drawn on ``fig``. The plot is drawn on
             ``axes`` if it is a child axes of ``fig``, otherwise a new axes
@@ -109,44 +97,26 @@ def plot_particle_dataset(
         Examples
         --------
         To get a plot with default style properties in a new figure, simply
-        call the ``.plot()`` method selecting the particle quantities that
-        should be shown.
+        call the ``.plot()`` method. The first two quantities in the dataset
+        ``quantities`` dictionary will be represented in the horizontal and
+        vertical plot axes, respectively. If a third quantity is available, it
+        will be represented in colors.
 
         >>> from nata.containers import ParticleDataset
         >>> import numpy as np
         >>> arr = np.arange(30).reshape(1,10,3)
-        >>> ds = ParticleDataset(arr, quants=["quant0", "quant1"])
+        >>> ds = ParticleDataset("path/to/file")
         >>> fig = ds.plot()
 
-        In case a :class:`nata.plots.Figure` is returned by the method, it can
-        be shown by calling the :func:`nata.plots.Figure.show` method.
+        The list of quantities in the dataset can be filtered with the
+        :meth:`nata.containers.ParticleDataset.filter` method.
 
-        >>> fig.show()
-
-        To draw a new plot on ``fig``, we can pass it as an argument to the
-        ``.plot()`` method. If ``axes`` is provided, the new plot is drawn on
-        the selected axes. In this example we overlay a
-        :class:`nata.plots.types.LinePlot` created from a
-        :class:`nata.containers.GridDataset` on the
-        :class:`nata.plots.types.ScatterPlot` previously created.
-
-        >>> from nata.containers import GridDataset
-        >>> arr2 = np.arange(10)
-        >>> ds2 = GridDataset(arr2[np.newaxis])
-        >>> ds2.plot(fig=fig, axes=fig.axes[0])
-
-        The :func:`nata.plots.Figure._repr_html_` calls the
-        :func:`nata.plots.Figure.show` method, so in a notebook
-        environment the returned figure will be shown by default if ``plot()``
-        is the last method called in a cell.
-
+        >>> fig = ds.filter(quantities=["x1", "p1", "ene"]).plot()
 
     """
 
     p_plan = PlotPlan(
-        dataset=dataset,
-        quants=quants,
-        style=filter_style(dataset.plot_type(), style),
+        dataset=dataset, style=filter_style(dataset.plot_type(), style),
     )
 
     a_plan = AxesPlan(

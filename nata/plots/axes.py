@@ -15,8 +15,61 @@ from nata.plots.types import PlotTypes
 
 @dataclass
 class Axes:
+    """Container of parameters and parent and child objects (including\
+    plotting backend-related objects) relevant to draw a figure axes.
+
+    Parameters
+    ----------
+    xlim: ``tuple``, optional
+        Limits of the horizontal axis in the format ``(min,max)``. If not
+        provided, it is inferred from the dataset(s) represented in the axes.
+
+    ylim: ``tuple``, optional
+        Same as ``xlim`` for the vertical axis.
+
+    xlabel: ``str``, optional
+        Label of the horizontal axis. If not provided, it is inferred from the
+        dataset(s) represented in the axes.
+
+    ylabel: ``str``, optional
+        Same as ``xlabel`` for the vertical axis.
+
+    xscale: ``{'linear','log', 'symlog'}``, optional
+        Scale of the horizontal axes. If not provided, defaults to
+        ``'linear'``.
+
+    yscale: ``{'linear','log', 'symlog'}``, optional
+        Same as ``xscale`` for the vertical axis.
+
+    title: ``str``, optional
+        Axes title. If not provided, it is inferred from the dataset(s)
+        represented in the axes.
+
+    legend_show: ``bool``, optional
+        Controls the visibility of the axes legend, when applicable. If not
+        provided, defaults to ``True``.
+
+    legend_loc: ``str``, optional
+        Controls the position of the axes legend, when applicable. See
+        :meth:`matplotlib.axes.Axes.legend` for available options. If not
+        provided, defaults to ``'upper right'``.
+
+    legend_frameon: ``bool``, optional
+        Controls the visibility of the axes legend frame. If not provided,
+        defaults to ``False``.
+
+    cb_show: ``bool``, optional
+        Controls the visibility of the axes colorbar, when applicable. If not
+        provided, defaults to ``True``.
+
+    index: ``int``, optional
+        Position of the axes in the parent figure. Must be between ``0`` and
+        ``N-1``, where ``N`` is the number of child axes objects in the parent
+        figure. Increases along rows before columns.
+
+    """
+
     # style properties
-    index: Optional[int] = 0
     xlim: Optional[tuple] = None
     ylim: Optional[tuple] = None
     xlabel: Optional[str] = None
@@ -29,6 +82,9 @@ class Axes:
     legend_loc: Optional[str] = "upper right"
     legend_frameon: Optional[bool] = False
     cb_show: Optional[bool] = True
+
+    # other parameters
+    index: Optional[int] = 0
 
     # flags for automatic style properties
     xlim_auto: bool = field(init=False, default=None)
@@ -132,10 +188,13 @@ class Axes:
             xlabels = [p._default_xlabel(units=False) for p in self.plots]
 
             if len(set(units)) == 1 and len(set(xlabels)) == 1:
-                self.xlabel = set(xlabels).pop() + " [" + set(units).pop() + "]"
+                self.xlabel = set(xlabels).pop()
+                if set(units).pop():
+                    self.xlabel += " [" + set(units).pop() + "]"
             elif len(set(units)) == 1:
                 xlabels = [p._default_xlabel(units=False) for p in self.plots]
-                self.xlabel = ", ".join(xlabels) + " [" + set(units).pop() + "]"
+                if set(units).pop():
+                    self.xlabel += " [" + set(units).pop() + "]"
             else:
                 xlabels = [p._default_xlabel(units=True) for p in self.plots]
                 self.xlabel = ", ".join(xlabels)
@@ -145,10 +204,14 @@ class Axes:
             ylabels = [p._default_ylabel(units=False) for p in self.plots]
 
             if len(set(units)) == 1 and len(set(ylabels)) == 1:
-                self.ylabel = set(ylabels).pop() + " [" + set(units).pop() + "]"
+                self.ylabel = set(ylabels).pop()
+                if set(units).pop():
+                    self.ylabel += " [" + set(units).pop() + "]"
             elif len(set(units)) == 1:
                 ylabels = [p._default_ylabel(units=False) for p in self.plots]
-                self.ylabel = ", ".join(ylabels) + " [" + set(units).pop() + "]"
+                self.ylabel = ", ".join(ylabels)
+                if set(units).pop():
+                    self.ylabel += " [" + set(units).pop() + "]"
             else:
                 ylabels = [p._default_ylabel(units=True) for p in self.plots]
                 self.ylabel = ", ".join(ylabels)

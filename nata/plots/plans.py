@@ -19,7 +19,6 @@ from nata.plots.figure import Figure
 @dataclass
 class PlotPlan:
     dataset: GridDataset = object()
-    quants: Optional[List[str]] = field(default_factory=list)
     style: Optional[Dict] = field(default_factory=dict)
 
 
@@ -56,11 +55,7 @@ class FigurePlan:
         for a in self.axes:
             plots = []
             for p in a.plots:
-                plots.append(
-                    PlotPlan(
-                        dataset=p.dataset[key], quants=p.quants, style=p.style,
-                    )
-                )
+                plots.append(PlotPlan(dataset=p.dataset[key], style=p.style,))
             axes.append(AxesPlan(plots=plots, axes=a.axes, style=a.style,))
 
         return self.__class__(axes=axes, fig=self.fig, style=self.style,)
@@ -73,7 +68,7 @@ class FigurePlan:
 
             for p in a.plots:
                 plot_type = p.dataset.plot_type()
-                plot_data = p.dataset.plot_data(quants=p.quants)
+                plot_data = p.dataset.plot_data()
                 axes.add_plot(
                     plot_type=plot_type, data=plot_data, style=p.style
                 )
@@ -147,11 +142,7 @@ class FigurePlan:
             for a in self.axes:
                 a_p = []
                 for p in a.plots:
-                    a_p.append(
-                        PlotPlan(
-                            dataset=p.dataset[n], quants=p.quants, style=p.style
-                        )
-                    )
+                    a_p.append(PlotPlan(dataset=p.dataset[n], style=p.style))
 
                 f_a.append(AxesPlan(axes=None, plots=a_p, style=a.style))
 

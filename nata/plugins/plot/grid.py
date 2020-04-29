@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import List
 from typing import Optional
 from typing import Union
 from warnings import warn
@@ -21,7 +20,7 @@ from nata.utils.env import inside_notebook
 
 
 @register_container_plugin(GridDataset, name="plot_data")
-def grid_plot_data(dataset: GridDataset, quants: List[str] = []) -> PlotData:
+def grid_plot_data(dataset: GridDataset) -> PlotData:
 
     a = []
 
@@ -111,7 +110,7 @@ def plot_grid_dataset(
         >>> from nata.containers import GridDataset
         >>> import numpy as np
         >>> arr = np.arange(10)
-        >>> ds = GridDataset(arr[np.newaxis])
+        >>> ds = GridDataset.from_array(arr)
         >>> fig = ds.plot()
 
         In case a :class:`nata.plots.Figure` is returned by the method, it can
@@ -123,13 +122,8 @@ def plot_grid_dataset(
         ``.plot()`` method. If ``axes`` is provided, the new plot is drawn on
         the selected axes.
 
-        >>> ds2 = GridDataset(arr[np.newaxis]**2)
-        >>> ds2.plot(fig=fig, axes=fig.axes[0])
-
-        The :func:`nata.plots.Figure._repr_html_` calls the
-        :func:`nata.plots.Figure.show` method, so in a notebook
-        environment the returned figure will be shown by default if ``plot()``
-        is the last method called in a cell.
+        >>> ds2 = GridDataset.from_array(arr**2)
+        >>> fig = ds2.plot(fig=fig, axes=fig.axes[0])
 
 
     """
