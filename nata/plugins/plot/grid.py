@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import List
 from typing import Optional
 from typing import Union
 from warnings import warn
@@ -21,7 +20,7 @@ from nata.utils.env import inside_notebook
 
 
 @register_container_plugin(GridDataset, name="plot_data")
-def grid_plot_data(dataset: GridDataset, quants: List[str] = []) -> PlotData:
+def grid_plot_data(dataset: GridDataset) -> PlotData:
 
     a = []
 
