@@ -1,7 +1,10 @@
-<div>
-  <img src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png?token=AAKKMGXZXXRCACBKWRAZDFC6WLTBO" alt="nata logo" width=320 align="right"/>
-  <h1 style="text-align:left">Python visualization and post-processing tool for particle-in-cell codes</h1>
-</div>
+<p align="center">
+     <img 
+          src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png?token=AAKKMGXZXXRCACBKWRAZDFC6WLTBO" 
+          alt="nata logo" 
+          width=460
+     />
+</p>
 
 **Nata** is a python package for post-processing and visualizing simulation
 output for particle-in-cell codes. It utilizes the numpy interface to provide
@@ -16,7 +19,7 @@ command inside your terminal
 pip install nata
 ```
 
-It is intended to be used inside a [jupyter](https://jupyter.org/) together
+It can be used inside an IPython shell or [jupyter notebook](https://jupyter.org/) together
 with [ipywidgets](https://github.com/jupyter-widgets/ipywidgets). Hence, you
 might need to run after the installation
 
@@ -38,9 +41,9 @@ for further details.
 ## Contributing to nata
 
 Any type of contribution to nata is appreciated. If you have any issues,
-please report them [here](https://github.com/GoLP-IST/nata/issues). But if
+please report them [by adding an issue on GitHub](https://github.com/GoLP-IST/nata/issues). But if
 you wish to directly contribute to nata, we recommend to setup a local
-development environment.
+development environment. Follow the instruction below for more details.
 
 ### Getting the source code
 
