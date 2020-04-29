@@ -62,6 +62,11 @@ class Axes:
         Controls the visibility of the axes colorbar, when applicable. If not
         provided, defaults to ``True``.
 
+    index: ``int``, optional
+        Position of the axes in the parent figure. Must be between ``0`` and
+        ``N-1``, where ``N`` is the number of child axes objects in the parent
+        figure. Increases along rows before columns.
+
     """
 
     # style properties
