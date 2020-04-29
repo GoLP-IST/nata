@@ -31,3 +31,10 @@ a simple way to read, manipulate, and represent simulation output.
 
    plots/intro
    plots/api/index
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
