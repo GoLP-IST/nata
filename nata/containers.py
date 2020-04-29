@@ -1245,7 +1245,10 @@ class ParticleDataset:
                 num_particles = data.shape[1]
 
         else:
-            num_particles = next(iter(quantities.values())).shape[-1]
+            q = next(iter(quantities.values()))
+            num_particles = np.full(
+                shape=len(q), fill_value=q.num_particles, dtype=int
+            )
 
         self._quantities = quantities
         self._num_particles = Axis(
