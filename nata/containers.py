@@ -242,7 +242,6 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         ------
         :class:`nata.utils.exceptions.NataInvalidContainer``:
             If ``data`` is a string or a path and no valid backend is found.
-
         """
         if isinstance(data, str):
             data = Path(data)
