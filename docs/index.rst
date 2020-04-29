@@ -25,3 +25,10 @@ a simple way to read, manipulate, and represent simulation output.
 
    particles/intro
    particles/plugins/index
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
