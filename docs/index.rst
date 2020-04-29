@@ -37,4 +37,8 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`
+<<<<<<< HEAD
 * :ref:`search`
+=======
+* :ref:`search`
+>>>>>>> 287865c... Merge recent changes on golp/master
