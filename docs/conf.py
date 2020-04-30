@@ -24,7 +24,7 @@ copyright = "2020, Anton Helm"
 author = "Anton Helm"
 
 # The full version, including alpha/beta/rc tags
-release = "0.0.1"
+release = "0.0.2"
 
 
 # -- General configuration ---------------------------------------------------

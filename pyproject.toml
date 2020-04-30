@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nata"
-version = "0.0.1"
+version = "0.0.2"
 description = "Post-processing and visualization for PIC codes"
 authors = [
   "Anton Helm <anton.helm@tecnico.ulisboa.pt>"
