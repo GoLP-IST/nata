@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-from typing import Dict
 from typing import Optional
 
 import numpy as np
 
 from nata.containers import DatasetCollection
-from nata.containers import ParticleDataset
 from nata.plots.axes import Axes
 from nata.plots.figure import Figure
 from nata.plots.helpers import filter_style
@@ -21,7 +19,6 @@ def plot_collection(
     collection: DatasetCollection,
     order: Optional[list] = list(),
     styles: Optional[dict] = dict(),
-    quants: Optional[Dict[str, list]] = list(),
     interactive: bool = True,
     n: int = 0,
 ) -> Figure:
@@ -49,17 +46,8 @@ def plot_collection(
             styles[dataset.name] if dataset.name in styles.keys() else None
         )
 
-        if isinstance(dataset, ParticleDataset):
-            if dataset.name not in quants.keys():
-                raise ValueError("quants not passed!")
-            i_quants = quants[dataset.name]
-        else:
-            i_quants = None
-
         p_plan = PlotPlan(
-            dataset=dataset,
-            quants=i_quants,
-            style=filter_style(dataset.plot_type(), i_style),
+            dataset=dataset, style=filter_style(dataset.plot_type(), i_style),
         )
 
         a_plan = AxesPlan(
