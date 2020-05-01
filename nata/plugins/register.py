@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
 from functools import wraps
-from inspect import isclass, isfunction, getfullargspec
+from inspect import getfullargspec
+from inspect import isclass
+from inspect import isfunction
 from typing import Optional
 
 
@@ -28,7 +31,7 @@ def _parse_register_args(callable_or_container, **kwargs):
 def register_container_plugin(
     callable_or_container=None, container=None, name: Optional[str] = None
 ):
-    """Register a plugin for a container"""
+    """Decorator for registering a plugin for a container."""
     arguments = _parse_register_args(
         callable_or_container, container=container, name=name
     )
@@ -53,7 +56,7 @@ def register_container_plugin(
     return decorator
 
 
-## TODO: following example breaks currently -- bug OR feature :)
+# TODO: following example breaks currently -- bug OR feature :)
 # @register_container_plugin(name="not_so_different")
 # def really_some_different_function(dataset: nata.GridDataset):
 #     print(f"inside `really_some_different_function` -> {dataset.name}")

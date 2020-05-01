@@ -8,6 +8,7 @@ a simple way to read, manipulate, and represent simulation output.
 
 .. toctree::
    :caption: Introduction
+   :maxdepth: 2
 
    intro/installing
    intro/contribution
@@ -15,6 +16,7 @@ a simple way to read, manipulate, and represent simulation output.
 
 .. toctree::
    :caption: Grid Containers
+   :maxdepth: 2
 
    grids/intro
    grids/api
@@ -22,12 +24,14 @@ a simple way to read, manipulate, and represent simulation output.
 
 .. toctree::
    :caption: Particle Containers
+   :maxdepth: 2
 
    particles/intro
    particles/plugins/index
 
 .. toctree::
    :caption: Plots
+   :maxdepth: 2
 
    plots/intro
    plots/api/index
