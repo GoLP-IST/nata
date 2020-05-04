@@ -7,6 +7,7 @@
 </p>
 
 <p align="center">
+<a href="https://pypi.org/project/nata/"><img alt="PyPI" src="https://img.shields.io/pypi/v/nata"></a>
 <a href='https://nata.readthedocs.io/en/master/?badge=master'>
     <img src='https://readthedocs.org/projects/nata/badge/?version=master' alt='Documentation Status' />
 </a>
