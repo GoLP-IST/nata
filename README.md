@@ -6,6 +6,13 @@
      />
 </p>
 
+<p align="center">
+<a href='https://nata.readthedocs.io/en/master/?badge=master'>
+    <img src='https://readthedocs.org/projects/nata/badge/?version=master' alt='Documentation Status' />
+</a>
+</p>
+
+
 **Nata** is a python package for post-processing and visualizing simulation
 output for particle-in-cell codes. It utilizes the numpy interface to provide
 a simple way to read, manipulate, and represent simulation output.
