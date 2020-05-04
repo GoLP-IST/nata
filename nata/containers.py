@@ -1428,6 +1428,8 @@ class DatasetCollection:
         elif isinstance(obj, (str, Path)):
             self._append_file(obj)
 
+        elif isinstance(obj, (GridDataset, ParticleDataset)):
+            self.store[obj.name] = obj
         else:
             raise ValueError(
                 f"Can not append object of type '{type(obj)}' to collection"
