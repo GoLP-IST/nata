@@ -192,6 +192,12 @@ class Figure:
 
         new.nrows = ceil((len(new._axes) + len(other._axes)) / new.ncols)
 
+        if new.figsize is None:
+            size = new.fig.get_size_inches()
+            new.fig.set_size_inches(
+                size[0], size[1] * new.nrows / (new.nrows - 1)
+            )
+
         for axes in new._axes:
             axes.redo_plots()
 
