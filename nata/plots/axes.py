@@ -193,6 +193,7 @@ class Axes:
                     self.xlabel += " [" + set(units).pop() + "]"
             elif len(set(units)) == 1:
                 xlabels = [p._default_xlabel(units=False) for p in self.plots]
+                self.xlabel = ", ".join(xlabels)
                 if set(units).pop():
                     self.xlabel += " [" + set(units).pop() + "]"
             else:
