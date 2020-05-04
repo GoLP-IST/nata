@@ -94,7 +94,7 @@ def lineout_grid_dataset(
 
     return GridDataset(
         lo_data if len(dataset) > 1 else lo_data[np.newaxis],
-        name=dataset.name,
+        name=f"{dataset.name}_lineout",
         label=dataset.label,
         unit=dataset.unit,
         grid_axes=[lo_axis],

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from dataclasses import dataclass
+from typing import List
 from typing import Optional
 
 import matplotlib.colors as clr
@@ -141,3 +142,18 @@ class ScatterPlot(BasePlot):
 
         if self.has_cb:
             self.axes.init_colorbar(plot=self)
+
+    @classmethod
+    def style_attrs(cls) -> List[str]:
+        return [
+            "s",
+            "c",
+            "marker",
+            "alpha",
+            "vmin",
+            "vmax",
+            "cb_map",
+            "cb_scale",
+            "cb_linthresh",
+            "cb_title",
+        ] + BasePlot.style_attrs()
