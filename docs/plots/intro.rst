@@ -31,7 +31,7 @@ the :meth:`nata.plots.Figure.show` method in order to show a
 :class:`nata.plots.Figure` object in a jupyter notebook if ``.plot()`` is the
 last instruction in the cell.
 
-Costumizing plots
+Customizing plots
 -----------------
 
 A big effort is continuously put into **nata** to produce out-of-the-box nearly
@@ -52,7 +52,7 @@ axes scale and label and the line color of our plot in ``style`` altogether:
    )
 
 All style parameters that are by default inferred from the represented
-dataset(s) are overriden if specified in ``style``.
+dataset(s) are overridden if specified in ``style``.
 
 Naturally, plot type specific style parameters will only be applicable if that
 plot type is drawn in the current call. A list of all available style parameters
