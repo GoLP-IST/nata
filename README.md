@@ -1,7 +1,7 @@
 <p align="center">
-     <img 
-          src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png?token=AAKKMGXZXXRCACBKWRAZDFC6WLTBO" 
-          alt="nata logo" 
+     <img
+          src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png"
+          alt="nata logo"
           width=460
      />
 </p>
