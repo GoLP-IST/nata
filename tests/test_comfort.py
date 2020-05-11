@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 import pytest
 
 from nata import comfort
-from nata.comfort import _FileList, load
+from nata.comfort import _FileList
+from nata.comfort import load
 
 
 @pytest.fixture(name="filelist", scope="function")
@@ -52,9 +54,9 @@ def test_FileList_singleFile_entry(filelist):
     basepath = filelist
     path_entry = _FileList(basepath / "root_file.txt")
     assert path_entry.entrypoint == basepath / "root_file.txt"
-    assert path_entry.recursive == True
+    assert path_entry.recursive is True
     assert path_entry.search_pattern == "*"
-    assert path_entry.is_single_file == True
+    assert path_entry.is_single_file is True
     assert all(p == (basepath / "root_file.txt") for p in path_entry.paths)
     assert path_entry.parent_directory == basepath
 
@@ -66,7 +68,7 @@ def test_FileList_wildCards_recursive(filelist):
 
     assert wildcard_file.entrypoint == basepath
     assert wildcard_file.parent_directory == basepath
-    assert wildcard_file.recursive == True
+    assert wildcard_file.recursive is True
     assert wildcard_file.search_pattern == "second_*"
     for fp in wildcard_file.paths:
         assert fp.name in expected_files
@@ -83,7 +85,7 @@ def test_FileList_wildCards_nonrecursive(filelist):
 
     assert wildcard_file.entrypoint == basepath / "first" / "second"
     assert wildcard_file.parent_directory == basepath / "first" / "second"
-    assert wildcard_file.recursive == False
+    assert wildcard_file.recursive is False
     for fp in wildcard_file.paths:
         assert fp.name in expected_files
         expected_files.remove(fp.name)

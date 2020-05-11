@@ -1,29 +1,26 @@
 # -*- coding: utf-8 -*-
-# flake8: noqa
-
 """
 Copyright (C) 2017 Instituto Superior Tecnico
 
 This file is part of the ZPIC Educational code suite
 
-The ZPIC Educational code suite is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
+The ZPIC Educational code suite is free software: you can redistribute it
+and/or modify it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the License,
+or (at your option) any later version.
 
-The ZPIC Educational code suite is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
+The ZPIC Educational code suite is distributed in the hope that it will be
+useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero
+General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
-along with the ZPIC Educational code suite. If not, see <http://www.gnu.org/licenses/>.
+along with the ZPIC Educational code suite. If not, see
+<http://www.gnu.org/licenses/>.
 """
 
-#!/usr/bin/python
 import sys
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -147,7 +144,6 @@ class ZDFfile:
         return fstring
 
     def record_type(self, typeTag):
-        version = typeTag & 0x0000FFFF
         typeID = typeTag & 0xFFFF0000
 
         types = {
@@ -338,9 +334,9 @@ class ZDFfile:
 
         return info
 
-    # -----------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Read particle info
-    # -----------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def read_part_info(self, rec=False):
         if rec is False:
@@ -353,7 +349,8 @@ class ZDFfile:
         version = rec.version()
         if version > max_version:
             print(
-                "(*error*) ZDF: Particles info version is higher than supported.",
+                "(*error*) ZDF: Particles info version "
+                + "is higher than supported.",
                 file=sys.stderr,
             )
             print(
@@ -448,9 +445,9 @@ class ZDFfile:
 
         return info
 
-    # -----------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Read dataset
-    # -----------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def read_dataset(self, rec=False):
 
@@ -459,9 +456,8 @@ class ZDFfile:
 
         if self.record_type(rec.id) != "dataset":
             print(
-                "(*error*) ZDF: Expected dataset record but found {} instead.".format(
-                    self.record_type(rec.id)
-                ),
+                "(*error*) ZDF: Expected dataset record but found "
+                + "{} instead.".format(self.record_type(rec.id)),
                 file=sys.stderr,
             )
             return False
@@ -482,12 +478,6 @@ class ZDFfile:
             )
             return False
 
-        # Version 0x0001 includes id tag
-        if version >= 1:
-            id = self.__read_uint32()
-        else:
-            id = 0
-
         data_type = self.__read_int32()
         ndims = self.__read_uint32()
         nx = self.__read_uint64_arr(ndims)
@@ -495,9 +485,9 @@ class ZDFfile:
 
         return data
 
-    # -----------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Read chunked dataset
-    # -----------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def read_cdset(self, rec=False, pos=0):
 
@@ -506,9 +496,8 @@ class ZDFfile:
 
         if self.record_type(rec.id) != "cdset_start":
             print(
-                "(*error*) ZDF: Expected cdset_start record but found {} instead.".format(
-                    self.record_type(rec.id)
-                ),
+                "(*error*) ZDF: Expected cdset_start record but found "
+                + "{} instead.".format(self.record_type(rec.id)),
                 file=sys.stderr,
             )
             return False
@@ -520,7 +509,8 @@ class ZDFfile:
         version = rec.id & 0x0000FFFF
         if version > max_version:
             print(
-                "(*error*) ZDF: Chunked dataset version is higher than supported.",
+                "(*error*) ZDF: Chunked dataset version is higher "
+                + "than supported.",
                 file=sys.stderr,
             )
             print(
@@ -533,8 +523,6 @@ class ZDFfile:
         data_type = self.__read_int32()
         ndims = self.__read_uint32()
         nx = self.__read_uint64_arr(ndims)
-
-        size = np.prod(nx)
 
         # Create numpy array
         dt = {
@@ -567,8 +555,6 @@ class ZDFfile:
             name = rec.name
 
             if name == chunk_name:
-                chunk_id = self.__read_uint32()
-
                 count = self.__read_int64_arr(ndims)
                 start = self.__read_int64_arr(ndims)
                 stride = self.__read_int64_arr(ndims)
@@ -593,7 +579,8 @@ class ZDFfile:
 
                 self.__record_skip(rec)
 
-        # If requested, position file pointer at the end of the cdset_start record
+        # If requested, position file pointer at the end of the cdset_start
+        # record
         if pos == 1:
             self.__file.seek(cdset_start_end)
 
@@ -697,7 +684,8 @@ class ZDFfile:
                     )
                 )
 
-            # Particle data can be either a standard dataset or a chunked dataset
+            # Particle data can be either a standard dataset or a chunked
+            # dataset
             type_id = self.record_type(rec.id)
             if type_id == "dataset":
                 data[q] = self.read_dataset(rec=rec)
@@ -707,9 +695,8 @@ class ZDFfile:
                 data[q] = self.read_cdset(rec=rec, pos=1)
             else:
                 print(
-                    "(*error*) Unable to read particle data, {} record found".format(
-                        type_id
-                    ),
+                    "(*error*) Unable to read particle data, "
+                    + "{} record found".format(type_id),
                     file=sys.stderr,
                 )
                 data[q] = None
