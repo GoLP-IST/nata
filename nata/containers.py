@@ -748,7 +748,7 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             raise ValueError(
                 f"Shapes inconsistent {self.shape} -> {value.shape}"
             )
-        self._data = value
+        self._data = value if len(self) != 1 else value[np.newaxis]
         self._dtype = value.dtype
 
     @property

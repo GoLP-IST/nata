@@ -319,6 +319,20 @@ def test_GridDataset_default_Sequence(data, expected_array):
 
 
 def test_GridDataset_change_data():
+    # re-set the data with itself
+    data = np.random.random_sample((1, 10))
+    grid = GridDataset(data)
+
+    assert len(grid) == 1
+    assert grid.shape == (10,)
+    np.testing.assert_array_equal(grid, np.squeeze(data, axis=0))
+
+    grid.data = grid.data
+    assert len(grid) == 1
+    assert grid.shape == (10,)
+    np.testing.assert_array_equal(grid, np.squeeze(data, axis=0))
+
+    # len(ds) == 10
     grid = GridDataset(np.random.random_sample((10,)))
 
     new = np.random.random_sample(grid.shape)
