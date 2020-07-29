@@ -618,6 +618,8 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
             order = []
             for quant in unordered_quants:
+                if quant == "tag":
+                    continue
                 order.append(ordered_quants.index(quant))
 
             units = [unordered_units[i] for i in order]
