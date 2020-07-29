@@ -417,7 +417,7 @@ class Osiris_Hdf5_ParticleFile:
     def num_particles(self) -> int:
         info(f"Accessing '{self.location}' for 'num_particles'")
         with h5.File(self.location, mode="r") as fp:
-            num_particles: int = fp["q"].shape[0]
+            num_particles = fp["q"].shape[0] if fp["q"].shape else 0
         return num_particles
 
     def get_data(self, indexing=None, fields=None) -> np.ndarray:
@@ -432,7 +432,10 @@ class Osiris_Hdf5_ParticleFile:
                     dset[quant] = fp[quant]
             else:
                 if indexing is None:
-                    dset = fp[fields][:]
+                    if fp[fields].shape:
+                        dset = fp[fields][:]
+                    else:
+                        dset = np.empty(0, dtype=self.dtype[fields])
                 else:
                     dset = fp[fields][indexing]
 
@@ -595,6 +598,8 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
             order = []
             for quant in unordered_quants:
+                if quant == "tag":
+                    continue
                 order.append(ordered_quants.index(quant))
 
             labels = [unordered_labels[i] for i in order]
