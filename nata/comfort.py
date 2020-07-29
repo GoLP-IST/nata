@@ -2,18 +2,20 @@
 import pathlib
 from typing import Union
 
-import attr
-
 from nata.containers import DatasetCollection
 
 
-@attr.s
 class _FileList:
-    _entrypoint: pathlib.Path = attr.ib(converter=pathlib.Path)
-    _recursive: bool = attr.ib(default=True)
-    _search_pattern: str = attr.ib(init=False)
+    def __init__(
+        self, entrypoint: Union[str, pathlib.Path], recursive: bool = True
+    ):
+        self._entrypoint = (
+            pathlib.Path(entrypoint)
+            if not isinstance(entrypoint, pathlib.Path)
+            else entrypoint
+        )
+        self._recursive = recursive
 
-    def __attrs_post_init__(self) -> None:
         if not self._entrypoint.exists():
             if not self._entrypoint.parent.exists():
                 raise ValueError("Passed a non-existing path!")
