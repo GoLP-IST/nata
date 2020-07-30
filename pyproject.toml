@@ -46,7 +46,7 @@ recommonmark = {version = "^0.6.0", optional = true}
 jupyterlab = {version = "^2.1.2", optional = true}
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.3.5"
+pytest = ">5.0"
 pytest-cov = "^2.8.1"
 pre-commit = "^2.0.1"
 tox = "^3.14.3"
