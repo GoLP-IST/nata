@@ -521,3 +521,9 @@ Number = Union[float, int]
 #: Type which can be supplied to `numpy.array` and the resulting output is an
 #: array
 ArrayLike = Union[np.ndarray, Sequence[Number]]
+
+#: Type for basic indexing
+BasicIndexing = Union[int, slice, Tuple[Union[slice, int], ...]]
+
+#: Type for file location
+FileLocation = Union[Path, str]
