@@ -29,17 +29,24 @@ class Axes:
 
     xlabel: ``str``, optional
         Label of the horizontal axis. If not provided, it is inferred from the
-        dataset(s) represented in the axes.
+        dataset(s) represented in the axis.
 
     ylabel: ``str``, optional
         Same as ``xlabel`` for the vertical axis.
 
     xscale: ``{'linear','log', 'symlog'}``, optional
-        Scale of the horizontal axes. If not provided, defaults to
-        ``'linear'``.
+        Scale of the horizontal axis. If not provided, defaults to
+        ``'linear'``. If set to ``'symlog'``, ``linthreshx`` is required.
 
     yscale: ``{'linear','log', 'symlog'}``, optional
         Same as ``xscale`` for the vertical axis.
+
+    linthreshx: ``float``, optional
+        Range within which the horizontal axis is linear. Applicable only when
+        ``xscale`` is set to ``'symlog'``.
+
+    linthreshy: ``float``, optional
+        Same as ``linthreshx`` for the vertical axis.
 
     title: ``str``, optional
         Axes title. If not provided, it is inferred from the dataset(s)
@@ -77,6 +84,8 @@ class Axes:
     title: Optional[str] = None
     xscale: Optional[str] = "linear"
     yscale: Optional[str] = "linear"
+    linthreshx: Optional[float] = None
+    linthreshy: Optional[float] = None
     aspect: Optional[str] = "auto"
     legend_show: Optional[bool] = True
     legend_loc: Optional[str] = "upper right"
@@ -135,8 +144,15 @@ class Axes:
         with mpl.rc_context(fname=self.fig.fname, rc=self.fig.rc):
             ax = self.ax
 
-            ax.set_xscale(self.xscale)
-            ax.set_yscale(self.yscale)
+            if self.xscale == "symlog" and self.linthreshx is not None:
+                ax.set_xscale(self.xscale, linthreshx=self.linthreshx)
+            else:
+                ax.set_xscale(self.xscale)
+
+            if self.yscale == "symlog" and self.linthreshy is not None:
+                ax.set_yscale(self.yscale, linthreshy=self.linthreshy)
+            else:
+                ax.set_yscale(self.yscale)
 
             if self.xlim[0] != self.xlim[1]:
                 ax.set_xlim(self.xlim)
@@ -292,6 +308,8 @@ class Axes:
             "title",
             "xscale",
             "yscale",
+            "linthreshx",
+            "linthreshy",
             "aspect",
             "legend_show",
             "legend_loc",
