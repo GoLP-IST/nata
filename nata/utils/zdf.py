@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# flake8: noqa
 """
 Copyright (C) 2017 Instituto Superior Tecnico
 
@@ -478,6 +479,12 @@ class ZDFfile:
             )
             return False
 
+        # Version 0x0001 includes id tag
+        if version >= 1:
+            id = self.__read_uint32()
+        else:
+            id = 0
+
         data_type = self.__read_int32()
         ndims = self.__read_uint32()
         nx = self.__read_uint64_arr(ndims)
@@ -555,6 +562,7 @@ class ZDFfile:
             name = rec.name
 
             if name == chunk_name:
+                chunk_id = self.__read_uint32()
                 count = self.__read_int64_arr(ndims)
                 start = self.__read_int64_arr(ndims)
                 stride = self.__read_int64_arr(ndims)
