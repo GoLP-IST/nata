@@ -58,7 +58,7 @@ def filter_particle_dataset(
 
     if mask is not None:
         for name, quant in quants.items():
-            quants[name].data.mask = np.invert(mask)
+            quants[name].data[~mask] = np.ma.masked
 
     return ParticleDataset(
         iteration=dataset_c.axes["iteration"],
