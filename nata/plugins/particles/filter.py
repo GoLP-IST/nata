@@ -21,12 +21,18 @@ def filter_particle_dataset(
 
         Parameters
         ----------
-        mask: ``np.ndarray``
+        mask: ``np.ndarray``, optional
             Array of booleans indicating the particles to be filtered. Particles
             with ``True`` (``False``) mask entries are selected (hidden). The
             shape of ``mask`` must match that of each particle quantity.
 
-        quantities: ``list``
+        slicing: ``slice``, optional
+            Slice of particles to be filtered. Acts only on particle indices
+            and not on time, as time slicing should be done on the dataset.
+            When provided together with the ``mask argument``, slicing is done
+            on the masked array.
+
+        quantities: ``list``, optional
             List of quantities to be filtered, ordered by the way they should be
             sorted in the returned dataset.
 
@@ -63,7 +69,6 @@ def filter_particle_dataset(
             quants[name].data[~mask] = np.ma.masked
 
     if slicing is not None:
-        # allow particle index slicing only for now
         if len(quant) > 1:
             slicing = (slice(None), slicing)
 
