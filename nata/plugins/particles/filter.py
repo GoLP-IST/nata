@@ -56,19 +56,44 @@ def filter_particle_dataset(
     dataset_c = deepcopy(dataset)
 
     if quantities is not None:
+        if not isinstance(quantities, list) or not all(
+            isinstance(quant, str) for quant in quantities
+        ):
+            raise TypeError(f"'quantities' must be a list of strings.")
+
         quants = {
             quant: dataset_c.quantities[quant]
             for quant in quantities
-            if quant in dataset_c.quantities
+            if quant in dataset_c.quantities.keys()
         }
+
+        if not bool(quants):
+            raise ValueError(
+                f"None of the quantities in 'quantities' were found in the "
+                + "dataset."
+            )
+
     else:
         quants = dataset_c.quantities
 
     if mask is not None:
+        if not isinstance(mask, np.ndarray) or not mask.dtype == bool:
+            raise TypeError(f"'mask' must be an 'np.ndarray' of dtype 'bool'.")
+
+        quant = next(iter(quants.values()))
+        if quant.data.shape != mask.shape:
+            raise ValueError(
+                f"'mask.shape' ({mask.shape}) does not match the shape of "
+                + "each quantity ({quant.data.shape})."
+            )
+
         for name, quant in quants.items():
             quants[name].data[~mask] = np.ma.masked
 
     if slicing is not None:
+        if not isinstance(slicing, slice):
+            raise TypeError(f"'slicing' must be of type 'slice'.")
+
         if len(quant) > 1:
             slicing = (slice(None), slicing)
 
