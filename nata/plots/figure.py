@@ -129,6 +129,7 @@ class Figure:
 
         """
         with mpl.rc_context(fname=self.fname, rc=self.rc):
+            self.fig.tight_layout()
             self.fig.savefig(path, dpi=dpi, bbox_inches="tight")
 
     def copy(self):

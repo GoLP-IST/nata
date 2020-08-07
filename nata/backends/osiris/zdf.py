@@ -212,14 +212,20 @@ class Osiris_zdf_ParticleFile:
         return z_info.particles.nparts
 
     def get_data(self, indexing=None, fields=None) -> np.ndarray:
+        logging.info(f"Reading data in '{self.location}'")
         (z_data, z_info) = read(str(self.location))
+        if fields is None:
+            # create a structured array
+            dset = np.empty(self.num_particles, dtype=self.dtype)
 
-        # create a structured array
-        dset = np.zeros(self.num_particles, dtype=self.dtype)
-
-        # fill the array
-        for quant in self.quantity_names:
-            dset[quant] = z_data[quant]
+            # fill the array
+            for quant in self.quantity_names:
+                dset[quant] = z_data[quant]
+        else:
+            if indexing is None:
+                dset = z_data[fields][:]
+            else:
+                dset = z_data[fields][indexing]
 
         return dset
 
@@ -241,7 +247,7 @@ class Osiris_zdf_ParticleFile:
         z_info = info(str(self.location))
         names = []
         for quant in self.quantity_names:
-            names.append(z_info.particles.labels[quant])
+            names.append(z_info.particles.qlabels[quant])
         return names
 
     @cached_property
@@ -250,7 +256,7 @@ class Osiris_zdf_ParticleFile:
         z_info = info(str(self.location))
         units = []
         for quant in self.quantity_names:
-            units.append(z_info.particles.units[quant])
+            units.append(z_info.particles.qunits[quant])
 
         return units
 
@@ -261,6 +267,7 @@ class Osiris_zdf_ParticleFile:
         fields = []
         for quant in self.quantity_names:
             fields.append((quant, z_data[quant].dtype))
+
         return np.dtype(fields)
 
     @cached_property

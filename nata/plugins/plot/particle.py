@@ -29,7 +29,7 @@ def particle_plot_data(dataset: ParticleDataset) -> PlotData:
         )
 
         a.append(new_a)
-        d.append(np.array(quant))
+        d.append(quant.data)
 
     return PlotData(
         name=dataset.name,
