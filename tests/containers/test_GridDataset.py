@@ -1016,3 +1016,15 @@ def test_GridDataset_change_unit():
 def test_GridDataset_repr():
     """Check repr is correct"""
     pass  # TODO
+
+
+@pytest.mark.skip
+def test_GridDataset_from_path():
+    """Init GridDataset from path"""
+    pass  # TODO
+
+
+@pytest.mark.skip
+def test_GridDataset_from_array():
+    """Init GridDataset from array"""
+    pass  # TODO
