@@ -35,7 +35,22 @@ _extract_from_backend = object()
 _extract_from_data = object()
 
 
-def _separation_newaxis(key, two_types=True):
+def _separation_newaxis(key: Any, two_types: bool = True):
+    """Helper function for separator of newaxis
+
+    It is used in particular when ``np.newaxis`` is encountered as a key
+    argument to ``__getitem__`` call.
+
+    Parameters
+    ----------
+    key: Any
+        Key provided to a ``__getitem__`` call.
+
+    two_types: ``bool``
+        Used to distinguish between different axes. Needed if key would
+        reference spatial and temporal axes, then a seperation is needed.
+
+    """
     if two_types:
         # find last occupance of newaxis
         for i, k in enumerate(key):
