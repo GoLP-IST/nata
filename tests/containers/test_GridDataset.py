@@ -1028,3 +1028,47 @@ def test_GridDataset_from_path():
 def test_GridDataset_from_array():
     """Init GridDataset from array"""
     pass  # TODO
+
+
+def test_GridDataset_basic_numerical_operations_scalar():
+    """Check basic numerical operation for GridDataset"""
+    arr = np.random.random_sample((4, 3, 5))
+    value = float(np.random.random_sample())
+    grid = GridDataset(arr[np.newaxis])
+
+    # ensure a new object is returned
+    assert (grid + value) is not grid
+    assert isinstance((grid + value), GridDataset)
+
+    np.testing.assert_array_equal(grid + value, arr + value)
+    np.testing.assert_array_equal(grid - value, arr - value)
+    np.testing.assert_array_equal(grid * value, arr * value)
+    np.testing.assert_array_equal(grid / value, arr / value)
+    np.testing.assert_array_equal(grid ** value, arr ** value)
+
+
+def test_GridDataset_basic_numerical_operations_matrix():
+    """Check basic numerical operation using other GridDataset"""
+    arr1 = np.random.random_sample((4, 3, 5))
+    grid1 = GridDataset(arr1[np.newaxis])
+    arr2 = np.random.random_sample((4, 3, 5))
+    grid2 = GridDataset(arr2[np.newaxis])
+
+    # ensure a new object is returned
+    assert (grid1 + grid2) is not grid1
+    assert isinstance((grid1 + grid2), GridDataset)
+
+    # operation keep shape
+    assert (grid1 + grid2).shape == grid1.shape
+
+    np.testing.assert_array_equal(grid1 + grid2, arr1 + arr2)
+    np.testing.assert_array_equal(grid1 - grid2, arr1 - arr2)
+    np.testing.assert_array_equal(grid1 * grid2, arr1 * arr2)
+    np.testing.assert_array_equal(grid1 / grid2, arr1 / arr2)
+    np.testing.assert_array_equal(grid1 ** grid2, arr1 ** arr2)
+
+
+@pytest.mark.skip
+def test_GridDataset_basic_numerical_operation_in_place():
+    """Check if basic numerical operation can be applied in place"""
+    pass  # TODO
