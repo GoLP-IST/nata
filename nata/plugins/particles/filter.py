@@ -94,7 +94,7 @@ def filter_particle_dataset(
         if not isinstance(slicing, slice):
             raise TypeError(f"'slicing' must be of type 'slice'.")
 
-        if len(quant) > 1:
+        if len(dataset_c) > 1:
             slicing = (slice(None), slicing)
 
         quants = {
