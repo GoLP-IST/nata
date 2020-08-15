@@ -1192,6 +1192,11 @@ class ParticleDataset:
         if data.dtype != object:
             data = _transform_particle_data_array(data)
 
+        if data.dtype == object:
+            self._backend = data.item().name
+        else:
+            self._backend = None
+
         if name is _extract_from_backend:
             if data.dtype == object:
                 name = data.item().dataset_name
@@ -1322,6 +1327,11 @@ class ParticleDataset:
     @property
     def num_particles(self) -> AxisType:
         return self._num_particles
+
+    @property
+    def backend(self) -> Optional[str]:
+        """Backend associated with instance."""
+        return self._backend
 
     @classmethod
     def add_backend(cls, backend: ParticleBackendType) -> None:
