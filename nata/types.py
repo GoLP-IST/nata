@@ -203,7 +203,8 @@ class ParticleBackendType(BackendType, Protocol):
     #: Unit for time. Can be an arbitrary string, e.g. ``"1 / \\omega_p"``.
     time_unit: str
 
-    #: Data type object of the grid array.
+    #: Structured type of the underlaying particle backend. Field names
+    #: correspond to quantity names, and the type corresponds to the array type.
     dtype: np.dtype
 
 
