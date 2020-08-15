@@ -251,6 +251,9 @@ class DatasetType(Protocol):
     #: Storage of available backends for a dataset.
     _backends: AbstractSet[BackendType]
 
+    #: Name of associated backend.
+    backend: Optional[str]
+
     @classmethod
     def add_backend(cls, backend: BackendType) -> None:
         """Attach a new backend to backend store.
