@@ -241,7 +241,7 @@ def test_GridDataset_grid_shape_from_Backend(TestGridBackend):
 def test_GridDataset_grid_ndim_from_Backend(TestGridBackend):
     """Tests propagation of ndim from backend to dataset"""
     ds = GridDataset("TestGridBackend_location")
-    assert ds.grid_nim == TestGridBackend.ndim
+    assert ds.grid_ndim == TestGridBackend.ndim
 
 
 def test_GridDataset_array_props_from_Backend(TestGridBackend):
