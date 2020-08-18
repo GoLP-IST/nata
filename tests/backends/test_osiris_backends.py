@@ -60,11 +60,13 @@ def test_ParticleDatasets_backends_are_registered():
 
 @pytest.fixture(name="os_hdf5_grid_444_file")
 def _generate_valid_Osiris_Hdf5_GridFile(tmp_path):
+    """Fixture for valid HDF5 file for Osiris_Hdf5_GridFile backend"""
     file_ = tmp_path / "os_hdf5_grid_444_file.h5"
 
     with h5.File(file_, mode="w") as fp:
         fp.attrs["NAME"] = np.array([b"test ds"], dtype="|S256")
         fp.attrs["TYPE"] = np.array([b"grid"], dtype="|S4")
+        # osiris stores data like a fortran array
         data = np.asfortranarray(np.arange(24).reshape((2, 3, 4)))
         fp.create_dataset("test ds", data=data)
 
@@ -72,4 +74,12 @@ def _generate_valid_Osiris_Hdf5_GridFile(tmp_path):
 
 
 def test_Osiris_Hdf5_GridFile_check_is_valid_backend(os_hdf5_grid_444_file):
+    """Check 'Osiris_Hdf5_GridFile' is a valid backend exclusively"""
     assert Osiris_Hdf5_GridFile.is_valid_backend(os_hdf5_grid_444_file) is True
+
+    # backend are registered automatically for GridDatasets
+    for (name, backend) in GridDataset.get_backends().items():
+        if name == Osiris_Hdf5_GridFile.name:
+            continue
+
+        assert backend.is_valid_backend(os_hdf5_grid_444_file) is False
