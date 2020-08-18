@@ -10,6 +10,7 @@ import numpy as np
 
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
+from nata.types import FileLocation
 from nata.utils.backends import sort_particle_quantities
 from nata.utils.cached_property import cached_property
 from nata.utils.container_tools import register_backend
@@ -67,7 +68,7 @@ class Osiris_Hdf5_GridFile:
             self._time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
 
     @staticmethod
-    def is_valid_backend(path: Union[Path, str]) -> bool:
+    def is_valid_backend(path: FileLocation) -> bool:
         if isinstance(path, str):
             path = Path(path)
 
@@ -170,13 +171,13 @@ class Osiris_Dev_Hdf5_GridFile:
     name = "osiris_dev_grid_hdf5"
     location: Optional[Path] = None
 
-    def __init__(self, location: Union[str, Path]) -> None:
+    def __init__(self, location: FileLocation) -> None:
         self.location = (
             location if isinstance(location, Path) else Path(location)
         )
 
     @staticmethod
-    def is_valid_backend(path: Union[Path, str]) -> bool:
+    def is_valid_backend(path: FileLocation) -> bool:
         if isinstance(path, str):
             path = Path(path)
 
@@ -349,7 +350,7 @@ class Osiris_Hdf5_ParticleFile:
         )
 
     @staticmethod
-    def is_valid_backend(path: Union[Path, str]) -> bool:
+    def is_valid_backend(path: FileLocation) -> bool:
         if isinstance(path, str):
             path = Path(path)
 
@@ -485,7 +486,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
         )
 
     @staticmethod
-    def is_valid_backend(file_path: Union[Path, str]) -> bool:
+    def is_valid_backend(file_path: FileLocation) -> bool:
         if isinstance(file_path, str):
             file_path = Path(file_path)
 
