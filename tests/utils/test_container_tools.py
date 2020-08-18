@@ -11,6 +11,7 @@ from nata.utils.container_tools import register_backend
 def test_register_backend_check_registration():
     class SimpleDataset:
         _backends = set()
+        backend = None
 
         @classmethod
         def add_backend(cls, backend: BackendType) -> None:
@@ -61,6 +62,7 @@ def test_register_backend_raise_invalid_container():
 def test_register_backend_raise_invalid_backend_for_container():
     class SimpleDataset:
         _backends = set()
+        backend = None
 
         @classmethod
         def add_backend(cls, backend: BackendType) -> None:

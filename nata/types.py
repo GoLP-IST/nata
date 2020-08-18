@@ -203,7 +203,8 @@ class ParticleBackendType(BackendType, Protocol):
     #: Unit for time. Can be an arbitrary string, e.g. ``"1 / \\omega_p"``.
     time_unit: str
 
-    #: Data type object of the grid array.
+    #: Structured type of the underlaying particle backend. Field names
+    #: correspond to quantity names, and the type corresponds to the array type.
     dtype: np.dtype
 
 
@@ -249,6 +250,9 @@ class DatasetType(Protocol):
 
     #: Storage of available backends for a dataset.
     _backends: AbstractSet[BackendType]
+
+    #: Name of associated backend.
+    backend: Optional[str]
 
     @classmethod
     def add_backend(cls, backend: BackendType) -> None:
@@ -521,3 +525,9 @@ Number = Union[float, int]
 #: Type which can be supplied to `numpy.array` and the resulting output is an
 #: array
 ArrayLike = Union[np.ndarray, Sequence[Number]]
+
+#: Type for basic indexing
+BasicIndexing = Union[int, slice, Tuple[Union[slice, int], ...]]
+
+#: Type for file location
+FileLocation = Union[Path, str]

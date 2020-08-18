@@ -2,6 +2,7 @@
 from pathlib import Path
 from typing import Any
 from typing import Dict
+from typing import Optional
 from typing import Set
 
 import numpy as np
@@ -226,6 +227,10 @@ def _ValidDatasetType():
 
         def equivalent(self, other: Any) -> bool:
             raise NotImplementedError("Should never be called")
+
+        @property
+        def backend(self) -> Optional[str]:
+            return None
 
     return ValidDatasetType
 

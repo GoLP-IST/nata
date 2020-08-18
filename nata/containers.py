@@ -35,7 +35,22 @@ _extract_from_backend = object()
 _extract_from_data = object()
 
 
-def _separation_newaxis(key, two_types=True):
+def _separation_newaxis(key: Any, two_types: bool = True):
+    """Helper function for separator of newaxis
+
+    It is used in particular when ``np.newaxis`` is encountered as a key
+    argument to ``__getitem__`` call.
+
+    Parameters
+    ----------
+    key: Any
+        Key provided to a ``__getitem__`` call.
+
+    two_types: ``bool``
+        Used to distinguish between different axes. Needed if key would
+        reference spatial and temporal axes, then a seperation is needed.
+
+    """
     if two_types:
         # find last occupance of newaxis
         for i, k in enumerate(key):
@@ -1177,6 +1192,11 @@ class ParticleDataset:
         if data.dtype != object:
             data = _transform_particle_data_array(data)
 
+        if data.dtype == object:
+            self._backend = data.item().name
+        else:
+            self._backend = None
+
         if name is _extract_from_backend:
             if data.dtype == object:
                 name = data.item().dataset_name
@@ -1307,6 +1327,11 @@ class ParticleDataset:
     @property
     def num_particles(self) -> AxisType:
         return self._num_particles
+
+    @property
+    def backend(self) -> Optional[str]:
+        """Backend associated with instance."""
+        return self._backend
 
     @classmethod
     def add_backend(cls, backend: ParticleBackendType) -> None:
