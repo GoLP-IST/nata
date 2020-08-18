@@ -58,9 +58,10 @@ def test_ParticleDatasets_backends_are_registered():
     assert backends[Osiris_zdf_ParticleFile.name] is Osiris_zdf_ParticleFile
 
 
-@pytest.fixture(name="os_hdf5_grid_444_file")
-def _generate_valid_Osiris_Hdf5_GridFile(tmp_path):
+@pytest.fixture(name="os_hdf5_grid_444_file", scope="session")
+def _generate_valid_Osiris_Hdf5_GridFile(tmp_path_factory):
     """Fixture for valid HDF5 file for Osiris_Hdf5_GridFile backend"""
+    tmp_path = tmp_path_factory.mktemp("os_hdf5_grid_444_fixture")
     file_ = tmp_path / "os_hdf5_grid_444_file.h5"
     dtype = np.dtype("f4")
 
