@@ -176,23 +176,19 @@ class Osiris_Dev_Hdf5_GridFile:
         )
 
     @staticmethod
-    def is_valid_backend(file_path: Union[Path, str]) -> bool:
-        if isinstance(file_path, str):
-            file_path = Path(file_path)
+    def is_valid_backend(path: Union[Path, str]) -> bool:
+        if isinstance(path, str):
+            path = Path(path)
 
-        if not isinstance(file_path, Path):
+        if (
+            not isinstance(path, Path)
+            or not path.is_file()
+            or not path.suffix == ".h5"
+            or not h5.is_hdf5(path)
+        ):
             return False
 
-        if not file_path.is_file():
-            return False
-
-        if not file_path.suffix == ".h5":
-            return False
-
-        if not h5.is_hdf5(file_path):
-            return False
-
-        with h5.File(file_path, mode="r") as f:
+        with h5.File(path, mode="r") as f:
             if (
                 ("NAME" in f.attrs)
                 and ("TYPE" in f.attrs)
