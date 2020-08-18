@@ -160,3 +160,18 @@ def test_Osiris_Hdf5_GridFile_time_props(os_hdf5_grid_444_file):
     backend = Osiris_Hdf5_GridFile(os_hdf5_grid_444_file)
     np.testing.assert_allclose(backend.time_step, -321.9)
     assert backend.time_unit == "time unit"
+
+
+@pytest.mark.wip
+def test_Osiris_Hdf5_GridFile_reading_data(os_hdf5_grid_444_file):
+    backend = Osiris_Hdf5_GridFile(os_hdf5_grid_444_file)
+    full_array = np.arange(24, dtype="f4").reshape((2, 3, 4))
+
+    # full array
+    np.testing.assert_array_equal(backend.get_data(), full_array)
+
+    # subarray
+    index = np.s_[1, :2, ::2]
+    np.testing.assert_array_equal(
+        backend.get_data(indexing=index), full_array[index]
+    )
