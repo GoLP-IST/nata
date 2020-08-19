@@ -263,8 +263,8 @@ def test_Osiris_Dev_Hdf5_GridFile_reading_data(os_hdf5_grid_dev_file):
     # full array
     np.testing.assert_array_equal(backend.get_data(), full_array)
 
-    # # subarray
-    # index = np.s_[1, :2, ::2]
-    # np.testing.assert_array_equal(
-    #     backend.get_data(indexing=index), full_array[index]
-    # )
+    # subarray
+    index = np.s_[1, :2, ::2]
+    np.testing.assert_array_equal(
+        backend.get_data(indexing=index), full_array[index]
+    )

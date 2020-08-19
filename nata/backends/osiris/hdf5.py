@@ -251,12 +251,12 @@ class Osiris_Dev_Hdf5_GridFile:
         return False
 
     def get_data(self, indexing=None):
-        # TODO: apply indexing here
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
-            dset = fp[self._dset_name]
-            dataset = np.zeros(dset.shape, dtype=dset.dtype)
-            dset.read_direct(dataset)
+            if indexing:
+                dataset = fp[self._dset_name][indexing[::-1]]
+            else:
+                dataset = fp[self._dset_name][:]
         return dataset.transpose()
 
     @property
