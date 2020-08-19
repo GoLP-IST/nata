@@ -94,6 +94,7 @@ def test_Osiris_Hdf5_GridFile_check_is_valid_backend(os_hdf5_grid_444_file):
 
 @pytest.mark.wip
 def test_Osiris_Hdf5_GridFile_dataset_props(os_hdf5_grid_444_file):
+    """Check 'Osiris_Hdf5_GridFile' dataset properties"""
     backend = Osiris_Hdf5_GridFile(os_hdf5_grid_444_file)
     # TODO: check if dataset name is valid identifier
     assert backend.dataset_name == "test ds"
@@ -107,6 +108,7 @@ def test_Osiris_Hdf5_GridFile_dataset_props(os_hdf5_grid_444_file):
 
 @pytest.mark.wip
 def test_Osiris_Hdf5_GridFile_grid_axes_props(os_hdf5_grid_444_file):
+    """Check 'Osiris_Hdf5_GridFile' extraction of axes properties"""
     backend = Osiris_Hdf5_GridFile(os_hdf5_grid_444_file)
     # TODO: check if axis names are valid identifier
     expected_names = ("axis1 name", "axis2 name", "axis3 name")
@@ -123,12 +125,14 @@ def test_Osiris_Hdf5_GridFile_grid_axes_props(os_hdf5_grid_444_file):
 
 @pytest.mark.wip
 def test_Osiris_Hdf5_GridFile_iteration_props(os_hdf5_grid_444_file):
+    """Check 'Osiris_Hdf5_GridFile' extraction of iteration"""
     backend = Osiris_Hdf5_GridFile(os_hdf5_grid_444_file)
     assert backend.iteration == 12345
 
 
 @pytest.mark.wip
 def test_Osiris_Hdf5_GridFile_time_props(os_hdf5_grid_444_file):
+    """Check 'Osiris_Hdf5_GridFile' extraction of time props"""
     backend = Osiris_Hdf5_GridFile(os_hdf5_grid_444_file)
     np.testing.assert_allclose(backend.time_step, -321.9)
     assert backend.time_unit == "time unit"
@@ -136,6 +140,7 @@ def test_Osiris_Hdf5_GridFile_time_props(os_hdf5_grid_444_file):
 
 @pytest.mark.wip
 def test_Osiris_Hdf5_GridFile_reading_data(os_hdf5_grid_444_file):
+    """Check 'Osiris_Hdf5_GridFile' reading array correctly"""
     backend = Osiris_Hdf5_GridFile(os_hdf5_grid_444_file)
     full_array = np.arange(24, dtype="f4").reshape((2, 3, 4))
 
@@ -215,6 +220,7 @@ def test_Osiris_Dev_Hdf5_GridFile_check_is_valid_backend(os_hdf5_grid_dev_file):
 
 @pytest.mark.wip
 def test_Osiris_Dev_Hdf5_GridFile_dataset_props(os_hdf5_grid_dev_file):
+    """Check 'Osiris_Dev_Hdf5_GridFile' dataset properties"""
     backend = Osiris_Dev_Hdf5_GridFile(os_hdf5_grid_dev_file)
     # TODO: check if dataset name is valid identifier
     assert backend.dataset_name == "test ds"
@@ -228,6 +234,7 @@ def test_Osiris_Dev_Hdf5_GridFile_dataset_props(os_hdf5_grid_dev_file):
 
 @pytest.mark.wip
 def test_Osiris_Dev_Hdf5_GridFile_grid_axes_props(os_hdf5_grid_dev_file):
+    """Check 'Osiris_Dev_Hdf5_GridFile' extraction of axes properties"""
     backend = Osiris_Dev_Hdf5_GridFile(os_hdf5_grid_dev_file)
     # TODO: check if axis names are valid identifier
     expected_names = ("axis1 name", "axis2 name", "axis3 name")
@@ -244,12 +251,14 @@ def test_Osiris_Dev_Hdf5_GridFile_grid_axes_props(os_hdf5_grid_dev_file):
 
 @pytest.mark.wip
 def test_Osiris_Dev_Hdf5_GridFile_iteration_props(os_hdf5_grid_dev_file):
+    """Check 'Osiris_Dev_Hdf5_GridFile' extraction of iteration"""
     backend = Osiris_Dev_Hdf5_GridFile(os_hdf5_grid_dev_file)
     assert backend.iteration == 12345
 
 
 @pytest.mark.wip
 def test_Osiris_Dev_Hdf5_GridFile_time_props(os_hdf5_grid_dev_file):
+    """Check 'Osiris_Dev_Hdf5_GridFile' extraction of time props"""
     backend = Osiris_Dev_Hdf5_GridFile(os_hdf5_grid_dev_file)
     np.testing.assert_allclose(backend.time_step, -321.9)
     assert backend.time_unit == "time unit"
@@ -257,6 +266,7 @@ def test_Osiris_Dev_Hdf5_GridFile_time_props(os_hdf5_grid_dev_file):
 
 @pytest.mark.wip
 def test_Osiris_Dev_Hdf5_GridFile_reading_data(os_hdf5_grid_dev_file):
+    """Check 'Osiris_Dev_Hdf5_GridFile' reading array correctly"""
     backend = Osiris_Dev_Hdf5_GridFile(os_hdf5_grid_dev_file)
     full_array = np.arange(24, dtype="f4").reshape((2, 3, 4))
 
