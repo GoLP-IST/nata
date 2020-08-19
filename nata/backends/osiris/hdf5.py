@@ -176,6 +176,47 @@ class Osiris_Dev_Hdf5_GridFile:
             location if isinstance(location, Path) else Path(location)
         )
 
+        info(f"Obtaining backend props for '{self.location}'")
+        with h5.File(self.location, mode="r") as fp:
+            short_name = fp.attrs["NAME"].astype(str)[0]
+            if short_name in fp:
+                self._dset_name = short_name
+
+            name_ = short_name.split()[-1]
+            name_ = name_.replace("_", "")
+            if name_ in fp:
+                self._dset_name = name_
+
+            self._dataset_name = fp.attrs["NAME"].astype(str)[0]
+            self._dataset_label = fp.attrs["LABEL"].astype(str)[0]
+            self._dataset_unit = fp.attrs["UNITS"].astype(str)[0]
+            self._ndim = fp[self._dset_name].ndim
+            self._shape = fp[self._dset_name].shape[::-1]
+            self._dtype = fp[self._dset_name].dtype
+
+            min_, max_ = [], []
+            axes_names, axes_labels, axes_units = [], [], []
+            for ax in fp["AXIS"]:
+                min_.append(fp["AXIS/" + ax][0])
+                max_.append(fp["AXIS/" + ax][1])
+                axes_names.append(fp["AXIS/" + ax].attrs["NAME"].astype(str)[0])
+                axes_labels.append(
+                    fp["AXIS/" + ax].attrs["LONG_NAME"].astype(str)[0]
+                )
+                axes_units.append(
+                    fp["AXIS/" + ax].attrs["UNITS"].astype(str)[0]
+                )
+
+            self._axes_min = np.array(min_)
+            self._axes_max = np.array(max_)
+            self._axes_names = np.array(axes_names)
+            self._axes_labels = np.array(axes_labels)
+            self._axes_units = np.array(axes_units)
+
+            self._iteration = fp.attrs["ITER"].astype(int)[0]
+            self._time_step = fp.attrs["TIME"][0]
+            self._time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
+
     @staticmethod
     def is_valid_backend(path: FileLocation) -> bool:
         if isinstance(path, str):
@@ -209,18 +250,6 @@ class Osiris_Dev_Hdf5_GridFile:
 
         return False
 
-    @cached_property
-    def _dset_name(self) -> str:
-        with h5.File(self.location, mode="r") as fp:
-            short_name = fp.attrs["NAME"].astype(str)[0]
-            if short_name in fp:
-                return short_name
-
-            name_ = short_name.split()[-1]
-            name_ = name_.replace("_", "")
-            if name_ in fp:
-                return name_
-
     def get_data(self, indexing=None):
         # TODO: apply indexing here
         info(f"Reading data in '{self.location}'")
@@ -230,113 +259,61 @@ class Osiris_Dev_Hdf5_GridFile:
             dset.read_direct(dataset)
         return dataset.transpose()
 
-    @cached_property
+    @property
     def dataset_name(self) -> str:
-        info(f"Accessing '{self.location}' for 'dataset_name'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp.attrs["NAME"].astype(str)[0]
+        return self._dataset_name
 
-    @cached_property
+    @property
     def dataset_label(self) -> str:
-        info(f"Accessing '{self.location}' for 'dataset_label'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp.attrs["LABEL"].astype(str)[0]
+        return self._dataset_label
 
-    @cached_property
-    def ndim(self):
-        info(f"Accessing '{self.location}' for 'ndim'")
-        with h5.File(self.location, mode="r") as fp:
-            ndim = fp[self._dset_name].ndim
-        return ndim
-
-    @cached_property
-    def shape(self):
-        info(f"Accessing '{self.location}' for 'shape'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp[self._dset_name].shape[::-1]
-
-    @cached_property
-    def dtype(self):
-        info(f"Accessing '{self.location}' for 'dtype'")
-        with h5.File(self.location, mode="r") as fp:
-            dtype = fp[self._dset_name].dtype
-        return dtype
-
-    @cached_property
+    @property
     def dataset_unit(self):
-        info(f"Accessing '{self.location}' for 'dataset_unit'")
-        with h5.File(self.location, mode="r") as fp:
-            units = fp.attrs["UNITS"].astype(str)[0]
-        return units
+        return self._dataset_unit
 
-    @cached_property
+    @property
+    def ndim(self) -> int:
+        return self._ndim
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
     def axes_min(self):
-        info(f"Accessing '{self.location}' for 'axes_min'")
-        min_ = []
-        with h5.File(self.location, mode="r") as fp:
-            for axis in fp["AXIS"]:
-                min_.append(fp["AXIS/" + axis][0])
-        return np.array(min_)
+        return self._axes_min
 
-    @cached_property
+    @property
     def axes_max(self):
-        info(f"Accessing '{self.location}' for 'axes_max'")
-        max_ = []
-        with h5.File(self.location, mode="r") as fp:
-            for axis in fp["AXIS"]:
-                max_.append(fp["AXIS/" + axis][1])
+        return self._axes_max
 
-        return np.array(max_)
-
-    @cached_property
+    @property
     def axes_names(self):
-        info(f"Accessing '{self.location}' for 'axes_names'")
-        names = []
-        with h5.File(self.location, mode="r") as fp:
-            for axis in fp["AXIS"]:
-                names.append(fp["AXIS/" + axis].attrs["NAME"].astype(str)[0])
-        return np.array(names)
+        return self._axes_names
 
-    @cached_property
+    @property
     def axes_labels(self):
-        info(f"Accessing '{self.location}' for 'axes_labels'")
-        long_names = []
-        with h5.File(self.location, mode="r") as fp:
-            for axis in fp["AXIS"]:
-                long_names.append(
-                    fp["AXIS/" + axis].attrs["LONG_NAME"].astype(str)[0]
-                )
-        return np.array(long_names)
+        return self._axes_labels
 
-    @cached_property
+    @property
     def axes_units(self):
-        info(f"Accessing '{self.location}' for 'axes_units'")
-        units = []
-        with h5.File(self.location, mode="r") as fp:
-            for axis in fp["AXIS"]:
-                units.append(fp["AXIS/" + axis].attrs["UNITS"].astype(str)[0])
-        return np.array(units)
+        return self._axes_units
 
-    @cached_property
+    @property
     def iteration(self):
-        info(f"Accessing '{self.location}' for 'iteration'")
-        with h5.File(self.location, mode="r") as fp:
-            time_step = fp.attrs["ITER"].astype(int)[0]
-        return time_step
+        return self._iteration
 
-    @cached_property
+    @property
     def time_step(self):
-        info(f"Accessing '{self.location}' for 'time_step'")
-        with h5.File(self.location, mode="r") as fp:
-            time = fp.attrs["TIME"][0]
-        return time
+        return self._time_step
 
-    @cached_property
+    @property
     def time_unit(self):
-        info(f"Accessing '{self.location}' for 'time_unit'")
-        with h5.File(self.location, mode="r") as fp:
-            time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
-        return time_unit
+        return self._time_unit
 
 
 @register_backend(ParticleDataset)
