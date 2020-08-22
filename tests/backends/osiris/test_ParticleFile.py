@@ -37,10 +37,16 @@ def test_ParticleDatasets_backends_are_registered():
 def _generate_valid_Osiris_Hdf5_ParticleFile(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("os_hdf5_grid_444_fixture")
     file_ = tmp_path / "os_hdf5_particle_444_file.h5"
+    dtype = np.dtype("f4")
 
     with h5.File(file_, mode="w") as fp:
         # root attrs
+        fp.attrs["NAME"] = np.array([b"test ds"], dtype="|S256")
         fp.attrs["TYPE"] = np.array([b"particles"], dtype="|S9")
+
+        # charge
+        data_q = np.arange(13, dtype=dtype)
+        fp.create_dataset("q", data=data_q)
 
     return file_
 
@@ -61,3 +67,11 @@ def test_Osiris_Hdf5_ParticleFile_check_is_valid_backend(
             continue
 
         assert backend.is_valid_backend(os_hdf5_particle_444_file) is False
+
+
+@pytest.mark.wip
+def test_Osiris_Hdf5_ParticleFile_dataset_props(os_hdf5_particle_444_file):
+    """Check 'Osiris_Hdf5_ParticleFile' dataset properties"""
+    backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
+    assert backend.dataset_name == "test ds"
+    assert backend.num_particles == 13
