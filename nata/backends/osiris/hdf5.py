@@ -331,16 +331,12 @@ class Osiris_Hdf5_ParticleFile:
         if isinstance(path, str):
             path = Path(path)
 
-        if not isinstance(path, Path):
-            return False
-
-        if not path.is_file():
-            return False
-
-        if not path.suffix == ".h5":
-            return False
-
-        if not h5.is_hdf5(path):
+        if (
+            not isinstance(path, Path)
+            or not path.is_file()
+            or not path.suffix == ".h5"
+            or not h5.is_hdf5(path)
+        ):
             return False
 
         with h5.File(path, mode="r") as f:
