@@ -161,7 +161,7 @@ class GridBackendType(BackendType, Protocol):
 class GridDataReader(GridBackendType, Protocol):
     """Extended backend which handles grid data reading"""
 
-    def get_data(self, indexing=Optional[BasicIndexing]) -> np.ndarray:
+    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray:
         """Routine for reading underlaying grid data.
 
         Parameters
@@ -228,8 +228,8 @@ class ParticleDataReader(ParticleBackendType, Protocol):
 
     def get_data(
         self,
-        indexing=Optional[BasicIndex],
-        fields=Optional[Union[str, Sequence[str]]],
+        indexing: Optional[BasicIndex] = None,
+        fields: Optional[Union[str, Sequence[str]]] = None,
     ) -> np.ndarray:
         """Routine for reading underlaying grid data.
 
