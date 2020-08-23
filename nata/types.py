@@ -48,6 +48,23 @@ def is_basic_indexing(key: Any):
     return False
 
 
+#: Scalars and numbers
+Number = Union[float, int]
+
+#: Type which can be supplied to `numpy.array` and the resulting output is an
+#: array
+ArrayLike = Union[np.ndarray, Sequence[Number]]
+
+#: Type for basic indexing
+BasicIndex = Union[int, slice]
+
+#: Type for basic indexing
+BasicIndexing = Union[BasicIndex, Tuple[BasicIndex, ...]]
+
+#: Type for file location
+FileLocation = Union[Path, str]
+
+
 @runtime_checkable
 class BackendType(Protocol):
     """General type for retreiving data.
@@ -144,10 +161,7 @@ class GridBackendType(BackendType, Protocol):
 class GridDataReader(GridBackendType, Protocol):
     """Extended backend which handles grid data reading"""
 
-    def get_data(
-        self,
-        indexing=Optional[Union[int, slice, Tuple[Union[slice, int], ...]]],
-    ) -> np.ndarray:
+    def get_data(self, indexing=Optional[BasicIndexing]) -> np.ndarray:
         """Routine for reading underlaying grid data.
 
         Parameters
@@ -214,7 +228,7 @@ class ParticleDataReader(ParticleBackendType, Protocol):
 
     def get_data(
         self,
-        indexing=Optional[Union[int, slice, Tuple[slice, int]]],
+        indexing=Optional[BasicIndex],
         fields=Optional[Union[str, Sequence[str]]],
     ) -> np.ndarray:
         """Routine for reading underlaying grid data.
@@ -517,17 +531,3 @@ class ParticleDatasetType(DatasetType, Protocol):
     #: Axes for `ParticleDatasetType`. It is a dictionary of type
     #: `ParticleDatasetAxes`.
     axes: ParticleDatasetAxes
-
-
-#: Scalars and numbers
-Number = Union[float, int]
-
-#: Type which can be supplied to `numpy.array` and the resulting output is an
-#: array
-ArrayLike = Union[np.ndarray, Sequence[Number]]
-
-#: Type for basic indexing
-BasicIndexing = Union[int, slice, Tuple[Union[slice, int], ...]]
-
-#: Type for file location
-FileLocation = Union[Path, str]
