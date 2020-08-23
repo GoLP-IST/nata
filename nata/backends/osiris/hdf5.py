@@ -3,6 +3,7 @@ from logging import info
 from pathlib import Path
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Union
 
 import h5py as h5
@@ -10,6 +11,8 @@ import numpy as np
 
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
+from nata.types import BasicIndex
+from nata.types import BasicIndexing
 from nata.types import FileLocation
 from nata.utils.backends import sort_particle_quantities
 from nata.utils.container_tools import register_backend
@@ -99,7 +102,7 @@ class Osiris_Hdf5_GridFile:
 
         return False
 
-    def get_data(self, indexing=None):
+    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             if indexing:
@@ -249,7 +252,7 @@ class Osiris_Dev_Hdf5_GridFile:
 
         return False
 
-    def get_data(self, indexing=None):
+    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             if indexing:
@@ -415,7 +418,11 @@ class Osiris_Hdf5_ParticleFile:
 
         return False
 
-    def get_data(self, indexing=None, fields=None) -> np.ndarray:
+    def get_data(
+        self,
+        indexing: Optional[BasicIndex] = None,
+        fields: Optional[Union[str, Sequence[str]]] = None,
+    ) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             if fields is None:
@@ -534,7 +541,11 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
         return False
 
-    def get_data(self, indexing=None, fields=None) -> np.ndarray:
+    def get_data(
+        self,
+        indexing: Optional[BasicIndex] = None,
+        fields: Optional[Union[str, Sequence[str]]] = None,
+    ) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             if fields is None:
