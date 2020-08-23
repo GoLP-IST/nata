@@ -341,9 +341,7 @@ class Osiris_Hdf5_ParticleFile:
 
         with h5.File(path, mode="r") as f:
             if ("TYPE" in f.attrs) and ("LABELS" not in f.attrs):
-                type_ = f.attrs["TYPE"].astype(str)[0]
-
-                if type_ == "particles":
+                if f.attrs["TYPE"].astype(str)[0] == "particles":
                     return True
 
         return False
