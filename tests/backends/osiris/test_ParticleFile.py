@@ -43,6 +43,9 @@ def _generate_valid_Osiris_Hdf5_ParticleFile(tmp_path_factory):
         # root attrs
         fp.attrs["NAME"] = np.array([b"test ds"], dtype="|S256")
         fp.attrs["TYPE"] = np.array([b"particles"], dtype="|S9")
+        fp.attrs["ITER"] = np.array([12345], dtype="i4")
+        fp.attrs["TIME"] = np.array([-321.9], dtype="f4")
+        fp.attrs["TIME UNITS"] = np.array([b"time unit"], dtype="|S256")
 
         # charge
         data_q = np.arange(13, dtype=dtype)
@@ -107,3 +110,18 @@ def test_Osiris_Hdf5_ParticleFile_quantity_props(os_hdf5_particle_444_file):
     np.testing.assert_array_equal(backend.quantity_names, expected_names)
     np.testing.assert_array_equal(backend.quantity_labels, expected_labels)
     np.testing.assert_array_equal(backend.quantity_units, expected_units)
+
+
+@pytest.mark.wip
+def test_Osiris_Hdf5_ParticleFile_iteration_props(os_hdf5_particle_444_file):
+    """Check 'Osiris_Hdf5_ParticleFile' extraction of iteration"""
+    backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
+    assert backend.iteration == 12345
+
+
+@pytest.mark.wip
+def test_Osiris_Hdf5_ParticleFile_time_props(os_hdf5_particle_444_file):
+    """Check 'Osiris_Hdf5_ParticleFile' extraction of time props"""
+    backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
+    np.testing.assert_allclose(backend.time_step, -321.9)
+    assert backend.time_unit == "time unit"
