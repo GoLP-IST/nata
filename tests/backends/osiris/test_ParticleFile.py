@@ -46,7 +46,25 @@ def _generate_valid_Osiris_Hdf5_ParticleFile(tmp_path_factory):
 
         # charge
         data_q = np.arange(13, dtype=dtype)
-        fp.create_dataset("q", data=data_q)
+        q = fp.create_dataset("q", data=data_q)
+        q.attrs["LONG_NAME"] = np.array([b"q label"], dtype="|S256")
+        q.attrs["UNITS"] = np.array([b"q unit"], dtype="|S256")
+
+        # quant 1
+        data_quant1 = np.arange(13, dtype=dtype) - 10
+        quant1 = fp.create_dataset("quant1", data=data_quant1)
+        quant1.attrs["LONG_NAME"] = np.array([b"quant1 label"], dtype="|S256")
+        quant1.attrs["UNITS"] = np.array([b"quant1 unit"], dtype="|S256")
+
+        # quant 2
+        data_quant2 = np.arange(13, dtype=dtype) - 10
+        quant2 = fp.create_dataset("quant2", data=data_quant2)
+        quant2.attrs["LONG_NAME"] = np.array([b"quant2 label"], dtype="|S256")
+        quant2.attrs["UNITS"] = np.array([b"quant2 unit"], dtype="|S256")
+
+        # tags
+        tags = np.arange(13 * 2, dtype="i4").reshape((13, 2))
+        fp.create_dataset("tag", data=tags)
 
     return file_
 
@@ -75,3 +93,17 @@ def test_Osiris_Hdf5_ParticleFile_dataset_props(os_hdf5_particle_444_file):
     backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
     assert backend.dataset_name == "test ds"
     assert backend.num_particles == 13
+
+
+@pytest.mark.wip
+def test_Osiris_Hdf5_ParticleFile_quantity_props(os_hdf5_particle_444_file):
+    """Check 'Osiris_Hdf5_ParticleFile' quantity properties"""
+    backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
+    # TODO: check if quantity names are valid identifier
+    expected_names = ("q", "quant1", "quant2")
+    expected_labels = ("q label", "quant1 label", "quant2 label")
+    expected_units = ("q unit", "quant1 unit", "quant2 unit")
+
+    np.testing.assert_array_equal(backend.quantity_names, expected_names)
+    np.testing.assert_array_equal(backend.quantity_labels, expected_labels)
+    np.testing.assert_array_equal(backend.quantity_units, expected_units)
