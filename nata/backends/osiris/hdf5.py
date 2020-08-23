@@ -12,7 +12,6 @@ from nata.containers import GridDataset
 from nata.containers import ParticleDataset
 from nata.types import FileLocation
 from nata.utils.backends import sort_particle_quantities
-from nata.utils.cached_property import cached_property
 from nata.utils.container_tools import register_backend
 
 
@@ -448,6 +447,73 @@ class Osiris_Dev_Hdf5_ParticleFile:
             location if isinstance(location, Path) else Path(location)
         )
 
+        info(f"Obtaining backend props for '{self.location}'")
+        with h5.File(self.location, mode="r") as fp:
+            self._dataset_name = fp.attrs["NAME"].astype(str)[0]
+            self._num_particles = fp["q"].shape[0] if fp["q"].shape else 0
+
+            # quantaties
+            unordered_names = list(fp.attrs["QUANTS"].astype(str))
+            unordered_labels = list(fp.attrs["LABELS"].astype(str))
+            unordered_units = list(fp.attrs["UNITS"].astype(str))
+
+            clean_names = [name for name in unordered_names if name != "tag"]
+            clean_names = sort_particle_quantities(clean_names, ("x", "p"))
+
+            clean_labels = [
+                unordered_labels[unordered_names.index(s)] for s in clean_names
+            ]
+            clean_units = [
+                unordered_units[unordered_names.index(s)] for s in clean_names
+            ]
+            dtype = [(name, fp[name].dtype) for name in clean_names]
+
+            self._quantity_names = clean_names
+            self._quantity_labels = clean_labels
+            self._quantity_units = clean_units
+            self._dtype = np.dtype(dtype)
+
+            # temporal information
+            self._iteration = fp.attrs["ITER"][0]
+            self._time_step = fp.attrs["TIME"][0]
+            self._time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
+
+    @property
+    def dataset_name(self) -> str:
+        return self._dataset_name
+
+    @property
+    def num_particles(self) -> int:
+        return self._num_particles
+
+    @property
+    def quantity_names(self) -> List[str]:
+        return self._quantity_names
+
+    @property
+    def quantity_labels(self) -> List[str]:
+        return self._quantity_labels
+
+    @property
+    def quantity_units(self) -> List[str]:
+        return self._quantity_units
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._dtype
+
+    @property
+    def iteration(self) -> int:
+        return self._iteration
+
+    @property
+    def time_step(self) -> float:
+        return self._time_step
+
+    @property
+    def time_unit(self) -> str:
+        return self._time_unit
+
     @staticmethod
     def is_valid_backend(path: FileLocation) -> bool:
         if isinstance(path, str):
@@ -468,18 +534,6 @@ class Osiris_Dev_Hdf5_ParticleFile:
 
         return False
 
-    @cached_property
-    def dataset_name(self) -> str:
-        info(f"Accessing '{self.location}' for 'dataset_name'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp.attrs["NAME"].astype(str)[0]
-
-    @cached_property
-    def num_particles(self) -> int:
-        info(f"Accessing '{self.location}' for 'num_particles'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp["q"].shape[0]
-
     def get_data(self, indexing=None, fields=None) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
@@ -497,84 +551,3 @@ class Osiris_Dev_Hdf5_ParticleFile:
                     dset = fp[fields][indexing]
 
         return dset
-
-    @cached_property
-    def quantity_names(self) -> List[str]:
-        info(f"Accessing '{self.location}' for 'quantity_names'")
-        quantities = []
-
-        with h5.File(self.location, mode="r") as fp:
-            for key, item in fp.items():
-                if key == "tag":
-                    continue
-                if isinstance(item, h5.Dataset):
-                    quantities.append(key)
-
-        return sort_particle_quantities(quantities, ["x", "p"])
-
-    @cached_property
-    def quantity_labels(self) -> List[str]:
-        info(f"Accessing '{self.location}' for 'quantity_labels'")
-        ordered_quants = self.quantity_names
-        labels = []
-
-        with h5.File(self.location, mode="r") as fp:
-            unordered_labels = fp.attrs["LABELS"].astype(str)
-            unordered_quants = fp.attrs["QUANTS"].astype(str)
-
-            order = []
-            for quant in unordered_quants:
-                if quant == "tag":
-                    continue
-                order.append(ordered_quants.index(quant))
-
-            labels = [unordered_labels[i] for i in order]
-
-        return labels
-
-    @cached_property
-    def quantity_units(self) -> List[str]:
-        info(f"Accessing '{self.location}' for 'quantity_units'")
-        ordered_quants = self.quantity_names
-        units = []
-
-        with h5.File(self.location, mode="r") as fp:
-            unordered_units = fp.attrs["UNITS"].astype(str)
-            unordered_quants = fp.attrs["QUANTS"].astype(str)
-
-            order = []
-            for quant in unordered_quants:
-                if quant == "tag":
-                    continue
-                order.append(ordered_quants.index(quant))
-
-            units = [unordered_units[i] for i in order]
-
-        return units
-
-    @cached_property
-    def dtype(self) -> np.dtype:
-        info(f"Accessing '{self.location}' for 'dtype'")
-        fields = []
-        with h5.File(self.location, mode="r") as fp:
-            for quant in self.quantity_names:
-                fields.append((quant, fp[quant].dtype))
-        return np.dtype(fields)
-
-    @cached_property
-    def iteration(self) -> int:
-        info(f"Accessing '{self.location}' for 'iteration'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp.attrs["ITER"][0]
-
-    @cached_property
-    def time_step(self) -> float:
-        info(f"Accessing '{self.location}' for 'time_step'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp.attrs["TIME"][0]
-
-    @cached_property
-    def time_unit(self) -> str:
-        info(f"Accessing '{self.location}' for 'time_unit'")
-        with h5.File(self.location, mode="r") as fp:
-            return fp.attrs["TIME UNITS"].astype(str)[0]
