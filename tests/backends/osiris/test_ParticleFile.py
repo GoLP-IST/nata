@@ -96,6 +96,9 @@ def test_Osiris_Hdf5_ParticleFile_dataset_props(os_hdf5_particle_444_file):
     backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
     assert backend.dataset_name == "test ds"
     assert backend.num_particles == 13
+    assert backend.dtype == np.dtype(
+        [(s, "f4") for s in ("q", "quant1", "quant2")]
+    )
 
 
 @pytest.mark.wip
