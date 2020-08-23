@@ -390,7 +390,7 @@ class Osiris_Hdf5_ParticleFile:
 
     @property
     def time_step(self) -> float:
-        return self._time_steps
+        return self._time_step
 
     @property
     def time_unit(self) -> str:
