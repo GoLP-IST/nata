@@ -326,6 +326,76 @@ class Osiris_Hdf5_ParticleFile:
             location if isinstance(location, Path) else Path(location)
         )
 
+        info(f"Obtaining backend props for '{self.location}'")
+        with h5.File(self.location, mode="r") as fp:
+            self._dataset_name = fp.attrs["NAME"].astype(str)[0]
+            self._num_particles = fp["q"].shape[0] if fp["q"].shape else 0
+
+            # find first all quantaties - with their names
+            names = []
+            for key, item in fp.items():
+                if key == "tag":
+                    continue
+
+                if isinstance(item, h5.Dataset):
+                    names.append(key)
+
+            self._quantity_names = sort_particle_quantities(names, ("x", "p"))
+
+            # iterate over all the sorted names and fill other props
+            labels = []
+            units = []
+            dtype = []
+            for name in self._quantity_names:
+                labels.append(fp[name].attrs["LONG_NAME"].astype(str)[0])
+                units.append(fp[name].attrs["UNITS"].astype(str)[0])
+                dtype.append((name, fp[name].dtype))
+
+            self._quantity_labels = labels
+            self._quantity_units = units
+            self._dtype = np.dtype(dtype)
+
+            # temporal information
+            self._iteration = fp.attrs["ITER"][0]
+            self._time_step = fp.attrs["TIME"][0]
+            self._time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
+
+    @property
+    def dataset_name(self) -> str:
+        return self._dataset_name
+
+    @property
+    def num_particles(self) -> int:
+        return self._num_particles
+
+    @property
+    def quantity_names(self) -> List[str]:
+        return self._quantity_names
+
+    @property
+    def quantity_labels(self) -> List[str]:
+        return self._quantity_labels
+
+    @property
+    def quantity_units(self) -> List[str]:
+        return self._quantity_units
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._dtype
+
+    @property
+    def iteration(self) -> int:
+        return self._iteration
+
+    @property
+    def time_step(self) -> float:
+        return self._time_steps
+
+    @property
+    def time_unit(self) -> str:
+        return self._time_unit
+
     @staticmethod
     def is_valid_backend(path: FileLocation) -> bool:
         if isinstance(path, str):
@@ -345,20 +415,6 @@ class Osiris_Hdf5_ParticleFile:
                     return True
 
         return False
-
-    @cached_property
-    def dataset_name(self) -> str:
-        info(f"Accessing '{self.location}' for 'dataset_name'")
-        with h5.File(self.location, mode="r") as fp:
-            dataset_name = fp.attrs["NAME"].astype(str)[0]
-        return dataset_name
-
-    @cached_property
-    def num_particles(self) -> int:
-        info(f"Accessing '{self.location}' for 'num_particles'")
-        with h5.File(self.location, mode="r") as fp:
-            num_particles = fp["q"].shape[0] if fp["q"].shape else 0
-        return num_particles
 
     def get_data(self, indexing=None, fields=None) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
@@ -380,70 +436,6 @@ class Osiris_Hdf5_ParticleFile:
                     dset = fp[fields][indexing]
 
         return dset
-
-    @cached_property
-    def quantity_names(self) -> List[str]:
-        info(f"Accessing '{self.location}' for 'quantity_names'")
-        quantities = []
-
-        with h5.File(self.location, mode="r") as fp:
-            for key, item in fp.items():
-                if key == "tag":
-                    continue
-                if isinstance(item, h5.Dataset):
-                    quantities.append(key)
-
-        return sort_particle_quantities(quantities, ["x", "p"])
-
-    @cached_property
-    def quantity_labels(self) -> List[str]:
-        info(f"Accessing '{self.location}' for 'quantity_labels'")
-        names = []
-        with h5.File(self.location, mode="r") as fp:
-            for quant in self.quantity_names:
-                name: str = fp[quant].attrs["LONG_NAME"].astype(str)[0]
-                names.append(name)
-        return names
-
-    @cached_property
-    def quantity_units(self) -> List[str]:
-        info(f"Accessing '{self.location}' for 'quantity_units'")
-        units = []
-        with h5.File(self.location, mode="r") as fp:
-            for quant in self.quantity_names:
-                units.append(fp[quant].attrs["UNITS"].astype(str)[0])
-
-        return units
-
-    @cached_property
-    def dtype(self) -> np.dtype:
-        info(f"Accessing '{self.location}' for 'dtype'")
-        fields = []
-        with h5.File(self.location, mode="r") as fp:
-            for quant in self.quantity_names:
-                fields.append((quant, fp[quant].dtype))
-        return np.dtype(fields)
-
-    @cached_property
-    def iteration(self) -> int:
-        info(f"Accessing '{self.location}' for 'iteration'")
-        with h5.File(self.location, mode="r") as fp:
-            iteration = fp.attrs["ITER"][0]
-        return iteration
-
-    @cached_property
-    def time_step(self) -> float:
-        info(f"Accessing '{self.location}' for 'time_step'")
-        with h5.File(self.location, mode="r") as fp:
-            time_step = fp.attrs["TIME"][0]
-        return time_step
-
-    @cached_property
-    def time_unit(self) -> str:
-        info(f"Accessing '{self.location}' for 'time_unit'")
-        with h5.File(self.location, mode="r") as fp:
-            time_unit = fp.attrs["TIME UNITS"].astype(str)[0]
-        return time_unit
 
 
 @register_backend(ParticleDataset)
