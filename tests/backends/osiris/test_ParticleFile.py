@@ -35,7 +35,7 @@ def test_ParticleDatasets_backends_are_registered():
 
 @pytest.fixture(name="os_hdf5_particle_444_file", scope="session")
 def _generate_valid_Osiris_Hdf5_ParticleFile(tmp_path_factory):
-    tmp_path = tmp_path_factory.mktemp("os_hdf5_grid_444_fixture")
+    tmp_path = tmp_path_factory.mktemp("os_hdf5_particle_444_fixture")
     file_ = tmp_path / "os_hdf5_particle_444_file.h5"
     dtype = np.dtype("f4")
 
@@ -82,7 +82,7 @@ def test_Osiris_Hdf5_ParticleFile_check_is_valid_backend(
         is True
     )
 
-    # backend are registered automatically for GridDatasets
+    # backend are registered automatically for ParticleDatasets
     for (name, backend) in ParticleDataset.get_backends().items():
         if name == Osiris_Hdf5_ParticleFile.name:
             continue
