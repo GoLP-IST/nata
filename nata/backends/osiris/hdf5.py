@@ -321,7 +321,7 @@ class Osiris_Hdf5_ParticleFile:
     name = "osiris_4.4.4_particles_hdf5"
     location: Optional[Path] = None
 
-    def __init__(self, location=Union[str, Path]) -> None:
+    def __init__(self, location: FileLocation) -> None:
         self.location = (
             location if isinstance(location, Path) else Path(location)
         )
