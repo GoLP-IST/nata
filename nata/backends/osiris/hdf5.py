@@ -549,17 +549,20 @@ class Osiris_Dev_Hdf5_ParticleFile:
     ) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
-            if fields is None:
-                # create a structured array
-                dset = np.empty(self.num_particles, dtype=self.dtype)
+            index = (
+                ndx.Slice(None) if indexing is None else ndx.ndindex(indexing)
+            )
+            index = index.reduce((self.num_particles,))
+            dtype = self.dtype if fields is None else self.dtype[fields]
 
-                # fill the array
-                for quant in self.quantity_names:
-                    dset[quant] = fp[quant]
+            if dtype.fields:
+                # create array as source to store quantities
+                dset = np.empty(len(index), dtype=dtype)
+
+                for field in dtype.fields:
+                    dset[field][:] = fp[field][index.raw]
             else:
-                if indexing is None:
-                    dset = fp[fields][:]
-                else:
-                    dset = fp[fields][indexing]
+                # only one field element -> string passed
+                dset = fp[fields][index.raw]
 
         return dset

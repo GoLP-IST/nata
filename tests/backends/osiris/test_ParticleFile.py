@@ -131,7 +131,7 @@ def test_Osiris_Hdf5_ParticleFile_time_props(os_hdf5_particle_444_file):
 
 
 @pytest.mark.wip
-def test_Osiris_Dev_Hdf5_GridFile_reading_data(os_hdf5_particle_444_file):
+def test_Osiris_Hdf5_ParticleFile_reading_data(os_hdf5_particle_444_file):
     """Check 'Osiris_Hdf5_ParticleFile' reading array correctly"""
     backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
     dtype = np.dtype([(quant, "f4") for quant in ("q", "quant1", "quant2")])
@@ -266,3 +266,39 @@ def test_Osiris_Dev_Hdf5_ParticleFile_time_props(os_hdf5_particle_dev_file):
     backend = Osiris_Dev_Hdf5_ParticleFile(os_hdf5_particle_dev_file)
     np.testing.assert_allclose(backend.time_step, -321.9)
     assert backend.time_unit == "time unit"
+
+
+@pytest.mark.wip
+def test_Osiris_Dev_Hdf5_ParticleFile_reading_data(os_hdf5_particle_dev_file):
+    """Check 'Osiris_Hdf5_ParticleFile' reading array correctly"""
+    backend = Osiris_Dev_Hdf5_ParticleFile(os_hdf5_particle_dev_file)
+    dtype = np.dtype([(quant, "f4") for quant in ("q", "quant1", "quant2")])
+
+    full_array = np.zeros(13, dtype=dtype)
+    full_array["q"] = np.arange(13, dtype="f4")
+    full_array["quant1"] = np.arange(13, dtype="f4") - 10
+    full_array["quant2"] = np.arange(13, dtype="f4") + 10
+
+    # full data
+    np.testing.assert_array_equal(backend.get_data(), full_array)
+
+    # --- subdata ---
+    # select every 2nd particle
+    index = np.s_[::2]
+    np.testing.assert_array_equal(
+        backend.get_data(indexing=index), full_array[index]
+    )
+    # select two quantities
+    np.testing.assert_array_equal(
+        backend.get_data(fields=["quant1", "quant2"]),
+        full_array[["quant1", "quant2"]],
+    )
+    # select one quantity
+    np.testing.assert_array_equal(
+        backend.get_data(fields="quant1"), full_array["quant1"],
+    )
+    # select one quantity and every 3rd particle
+    np.testing.assert_array_equal(
+        backend.get_data(indexing=index, fields="quant1"),
+        full_array["quant1"][index],
+    )
