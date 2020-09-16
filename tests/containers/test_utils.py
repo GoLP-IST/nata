@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from nata.containers import _separation_newaxis
+from nata.containers.GridDataset import _separation_newaxis
 
 _TestCases_seperation_newaxis = {}
 _TestCases_seperation_newaxis[":"] = (
