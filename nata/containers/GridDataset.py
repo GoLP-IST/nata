@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from collections import defaultdict
 from pathlib import Path
 from typing import AbstractSet
 from typing import Any
@@ -10,10 +11,12 @@ from typing import Union
 
 import numpy as np
 
+import dask.array as da
 from nata.axes import Axis
 from nata.axes import GridAxis
-from nata.types import ArrayLike
+from nata.types import Array
 from nata.types import AxisType
+from nata.types import FileLocation
 from nata.types import GridAxisType
 from nata.types import GridBackendType
 from nata.types import GridDatasetAxes
@@ -120,20 +123,21 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
     """Container holding data associated with a grid."""
 
     _backends: AbstractSet[GridBackendType] = set()
-    # TODO: special treatment of ufuncs and array_function is not yet supported
     _handled_ufuncs = {}
     _handled_array_function = {}
 
     def __init__(
         self,
-        data: Union[np.ndarray, GridBackendType, str, Path],
+        data: Union[Array, FileLocation],
         *,
-        iteration: Optional[AxisType] = _extract_from_backend,
-        time: Optional[AxisType] = _extract_from_backend,
-        grid_axes: Sequence[Optional[GridAxisType]] = _extract_from_backend,
-        name: str = _extract_from_backend,
-        label: str = _extract_from_backend,
-        unit: str = _extract_from_backend,
+        backend: Optional[str] = None,
+        sources: Optional[Sequence[Path]] = None,
+        iteration: Optional[AxisType] = None,
+        time: Optional[AxisType] = None,
+        grid_axes: Optional[Sequence[GridAxisType]] = None,
+        name: str = "unnamed",
+        label: str = "unnamed",
+        unit: str = "",
     ):
         """For initialization of a :class:`.GridDataset`:
 
@@ -196,111 +200,158 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         :class:`nata.utils.exceptions.NataInvalidContainer``:
             If ``data`` is a string or a path and no valid backend is found.
         """
-        if isinstance(data, str):
-            data = Path(data)
+        if isinstance(data, (str, Path)):
+            # extract any information from file and discard all the other
+            if isinstance(data, str):
+                data = Path(data)
 
-        if isinstance(data, Path):
             for backend in self._backends:
                 if backend.is_valid_backend(data):
                     data = backend(data)
                     break
-            else:
-                raise NataInvalidContainer(
-                    f"No valid backend found for '{data}'"
-                )
-
-        if isinstance(data, GridBackendType):
-            self._backend = data.name
-        else:
-            self._backend = None
-
-        if iteration is _extract_from_backend:
-            if isinstance(data, GridBackendType):
-                iteration = Axis(
-                    data.iteration, name="iteration", label="iteration", unit=""
-                )
-            else:
-                iteration = None
-
-        if time is _extract_from_backend:
-            if isinstance(data, GridBackendType):
-                time = Axis(
-                    data.time_step,
-                    name="time",
-                    label="time",
-                    unit=data.time_unit,
-                )
-            else:
-                time = None
-
-        if grid_axes is _extract_from_backend:
-            if isinstance(data, GridBackendType):
-                grid_axes = []
-                for (
-                    axis_name,
-                    axis_label,
-                    axis_unit,
-                    min_,
-                    max_,
-                    grid_points,
-                ) in zip(
-                    data.axes_names,
-                    data.axes_labels,
-                    data.axes_units,
-                    data.axes_min,
-                    data.axes_max,
-                    data.shape,
-                ):
-                    grid_axes.append(
-                        GridAxis.from_limits(
-                            min_,
-                            max_,
-                            grid_points,
-                            name=axis_name,
-                            label=axis_label,
-                            unit=axis_unit,
-                        )
+                else:
+                    raise NataInvalidContainer(
+                        f"No valid backend found for '{data}'"
                     )
-            else:
-                grid_axes = [None] * (np.ndim(data) - 1)
 
-        # TODO: make it an identifier
-        if name is _extract_from_backend:
-            if isinstance(data, GridBackendType):
-                name = data.dataset_name
-            else:
-                name = "unnamed"
+            self._axes = {}
+            self._axes["iteration"] = Axis(
+                data.iteration, name="iteration", label="iteration", unit=""
+            )
+            self._axes["time"] = Axis(
+                data.iteration, name="time", label="time", unit=""
+            )
 
-        if label is _extract_from_backend:
-            if isinstance(data, GridBackendType):
-                label = data.dataset_label
-            else:
-                label = "unnamed"
+            grid_axes_prop = zip(
+                data.axes_names,
+                data.axes_labels,
+                data.axes_units,
+                data.axes_min,
+                data.axes_max,
+                data.shape,
+            )
 
-        if unit is _extract_from_backend:
-            if isinstance(data, GridBackendType):
-                unit = data.dataset_unit
-            else:
-                unit = ""
+            for (name, label, unit, min_, max_, grid_point) in grid_axes_prop:
+                grid_axes.append(
+                    GridAxis.from_limits(
+                        min_,
+                        max_,
+                        grid_points,
+                        name=axis_name,
+                        label=axis_label,
+                        unit=axis_unit,
+                    )
+                )
 
-        self._name = name
-        self._label = label
-        self._unit = unit
-        self._axes = {
-            "iteration": iteration,
-            "time": time,
-            "grid_axes": grid_axes,
-        }
+            self._backend = data.name
+            self._sources = [data.location]
 
-        if isinstance(data, GridBackendType):
-            self._dtype = data.dtype
-            self._grid_shape = data.shape
-            self._data = np.asanyarray(data, dtype=object)[np.newaxis]
+            self._name = data.dataset_name
+            self._label = data.dataset_label
+            self._unit = data.data_unit
+
+            # add temporal dimension
+            data = da.from_array(data)
+            self._data = data.reshape((1,) + data.shape)
         else:
-            data = np.asanyarray(data)
-            self._dtype = data.dtype
-            self._grid_shape = data.shape[1:] if data.ndim > 0 else ()
-            self._data = data if data.ndim > 0 else data[np.newaxis]
+            self._backend = backend
+            self._sources = sources
+
+            self._name = name
+            self._label = label
+            self._unit = unit
+
+            self._data = da.asanyarray(data)
+
+        ##### OLD code
+
+    #         if iteration is _extract_from_backend:
+    #             if isinstance(data, GridBackendType):
+    #                 iteration = Axis(
+    #                     data.iteration, name="iteration", label="iteration", unit=""
+    #                 )
+    #             else:
+    #                 iteration = None
+
+    #         if time is _extract_from_backend:
+    #             if isinstance(data, GridBackendType):
+    #                 time = Axis(
+    #                     data.time_step,
+    #                     name="time",
+    #                     label="time",
+    #                     unit=data.time_unit,
+    #                 )
+    #             else:
+    #                 time = None
+
+    #         if grid_axes is _extract_from_backend:
+    #             if isinstance(data, GridBackendType):
+    #                 grid_axes = []
+    #                 for (
+    #                     axis_name,
+    #                     axis_label,
+    #                     axis_unit,
+    #                     min_,
+    #                     max_,
+    #                     grid_points,
+    #                 ) in zip(
+    #                     data.axes_names,
+    #                     data.axes_labels,
+    #                     data.axes_units,
+    #                     data.axes_min,
+    #                     data.axes_max,
+    #                     data.shape,
+    #                 ):
+    #                     grid_axes.append(
+    #                         GridAxis.from_limits(
+    #                             min_,
+    #                             max_,
+    #                             grid_points,
+    #                             name=axis_name,
+    #                             label=axis_label,
+    #                             unit=axis_unit,
+    #                         )
+    #                     )
+    #             else:
+    #                 grid_axes = [None] * (np.ndim(data) - 1)
+
+    #         # TODO: make it an identifier
+    #         if name is _extract_from_backend:
+    #             if isinstance(data, GridBackendType):
+    #                 name = data.dataset_name
+    #             else:
+    #                 name = "unnamed"
+
+    #         if label is _extract_from_backend:
+    #             if isinstance(data, GridBackendType):
+    #                 label = data.dataset_label
+    #             else:
+    #                 label = "unnamed"
+
+    #         if unit is _extract_from_backend:
+    #             if isinstance(data, GridBackendType):
+    #                 unit = data.dataset_unit
+    #             else:
+    #                 unit = ""
+
+    #         self._name = name
+    #         self._label = label
+    #         self._unit = unit
+    #         self._axes = {
+    #             "iteration": iteration,
+    #             "time": time,
+    #             "grid_axes": grid_axes,
+    #         }
+
+    #         if isinstance(data, GridBackendType):
+    #             self._dtype = data.dtype
+    #             self._grid_shape = data.shape
+    #             self._data = np.asanyarray(data, dtype=object)[np.newaxis]
+    #         else:
+    #             data = np.asanyarray(data)
+    #             self._dtype = data.dtype
+    #             self._grid_shape = data.shape[1:] if data.ndim > 0 else ()
+    #             self._data = data if data.ndim > 0 else data[np.newaxis]
 
     def __repr__(self):
         repr_ = f"{self.__class__.__name__}("
@@ -460,21 +511,12 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         self.data[key] = value
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        if self._data.dtype == object:
-            data = np.empty((len(self),) + self._grid_shape, dtype=self.dtype)
-            for i, d in enumerate(self._data):
-                if isinstance(d, np.ndarray):
-                    data[i] = d
-                else:
-                    data[i] = d.get_data(indexing=None)
-
-            self._data = data
-
-        # check for length is required as np.squeeze raises ValueError
         if len(self) == 1:
-            return np.squeeze(self._data, axis=0)
+            data = da.squeeze(self._data, axis=0)
         else:
-            return self._data
+            data = self._data
+
+        return data.compute() if not dtype else data.astype(dtype).compute()
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if ufunc in self._handled_ufuncs:
@@ -548,13 +590,13 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
     @classmethod
     def from_array(
         cls,
-        array: ArrayLike,
+        array: Array,
         name: str = "unnamed",
         label: str = "unnamed",
         unit: str = "",
-        time: Optional[Union[AxisType, ArrayLike]] = None,
-        iteration: Optional[Union[AxisType, ArrayLike]] = None,
-        grid_axes: Optional[Sequence[Union[GridAxisType, ArrayLike]]] = None,
+        time: Optional[Union[AxisType, Array]] = None,
+        iteration: Optional[Union[AxisType, Array]] = None,
+        grid_axes: Optional[Sequence[Union[GridAxisType, Array]]] = None,
     ):
         """Initialize GridDataset from an array.
 

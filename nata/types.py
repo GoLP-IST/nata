@@ -18,6 +18,8 @@ from typing import Union
 
 import numpy as np
 
+from dask.array.core import Array as dask_array
+
 # "Protocol" and "runtime_checkable" are builtin for 3.8+
 # otherwise use "typing_extension" package
 if sys.version_info >= (3, 8):
@@ -53,7 +55,7 @@ Number = Union[float, int]
 
 #: Type which can be supplied to `numpy.array` and the resulting output is an
 #: array
-ArrayLike = Union[np.ndarray, Sequence[Number]]
+Array = Union[np.ndarray, dask_array]
 
 #: Type for basic indexing
 BasicIndex = Union[int, slice]
