@@ -155,6 +155,17 @@ def test_GridDataset_registration(TestGridBackend):
     assert TestGridBackend.name in GridDataset.get_backends()
 
 
+@pytest.mark.wip
+def test_GridDataset_init_reimplementation():
+    ds = GridDataset([[1, 2, 3]])
+    assert ds.backend is None
+    assert ds.name == "unnamed"
+    assert ds.label == "unnamed"
+    assert ds.unit == ""
+    assert len(ds) == 1
+    np.testing.assert_array_equal(ds, [1, 2, 3])
+
+
 @pytest.mark.parametrize(
     "attr, value",
     [
