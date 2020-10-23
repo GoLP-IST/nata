@@ -1,71 +1,12 @@
 # -*- coding: utf-8 -*-
-import pathlib
+from pathlib import Path
 from typing import Union
 
 from nata.containers import DatasetCollection
+from nata.utils.io import FileList
 
 
-class _FileList:
-    def __init__(
-        self, entrypoint: Union[str, pathlib.Path], recursive: bool = True
-    ):
-        self._entrypoint = (
-            pathlib.Path(entrypoint)
-            if not isinstance(entrypoint, pathlib.Path)
-            else entrypoint
-        )
-        self._recursive = recursive
-
-        if not self._entrypoint.exists():
-            if not self._entrypoint.parent.exists():
-                raise ValueError("Passed a non-existing path!")
-            self._search_pattern = self._entrypoint.name
-            self._entrypoint = self._entrypoint.parent.absolute()
-        else:
-            self._entrypoint = self._entrypoint.absolute()
-            self._search_pattern = "*"
-
-    @property
-    def entrypoint(self) -> pathlib.Path:
-        return self._entrypoint
-
-    @property
-    def recursive(self) -> bool:
-        return self._recursive
-
-    @property
-    def search_pattern(self) -> str:
-        return self._search_pattern
-
-    @property
-    def is_single_file(self) -> bool:
-        return self._entrypoint.is_file()
-
-    @property
-    def paths(self) -> pathlib.Path:
-        if self.is_single_file:
-            yield self._entrypoint
-
-        if self._recursive:
-            list_generator = self._entrypoint.rglob(self._search_pattern)
-        else:
-            list_generator = self._entrypoint.glob(self._search_pattern)
-
-        for p in sorted(list_generator):
-            if p.is_file():
-                yield p
-
-    @property
-    def parent_directory(self) -> pathlib.Path:
-        if self._entrypoint.is_dir():
-            return self._entrypoint
-        else:
-            return self._entrypoint.parent
-
-
-def load(
-    path: Union[str, pathlib.Path], recursive: bool = True,
-) -> DatasetCollection:
+def load(path: Union[str, Path], recursive: bool = True,) -> DatasetCollection:
     """
     Lazy function for loading simulation data.
 
@@ -77,7 +18,7 @@ def load(
 
     Parameters
     ----------
-    ``path`` : ``str``, ``pathlib.Path``
+    ``path`` : ``str``, ``Path``
 
         Path which will be used to search for diagnostic files. If the path
         does not end on a file or a directory, the string after the last
@@ -108,7 +49,7 @@ def load(
         # load data recursively by matching
         >>> data = nata.load("sim_dir/MS/e1*.h5")
     """
-    filelist = _FileList(path, recursive=recursive)
+    filelist = FileList(path, recursive=recursive)
     collection = DatasetCollection(root_path=filelist.parent_directory)
 
     for p in filelist.paths:
