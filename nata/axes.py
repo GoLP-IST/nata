@@ -1,130 +1,82 @@
 # -*- coding: utf-8 -*-
 from typing import Any
+from typing import Callable
+from typing import Dict
 from typing import Optional
 from typing import Tuple
+from typing import Type
 from typing import Union
 
 import numpy as np
 
+import dask.array as da
+import ndindex as ndx
+
 from .types import AxisType
-from .types import GridAxisType
-from .types import is_basic_indexing
+from .utils.exceptions import DimensionError
 from .utils.formatting import make_identifiable
 
 
-def _log_axis(
-    min_: Union[float, np.ndarray], max_: Union[float, np.ndarray], points: int
-) -> np.ndarray:
-    """Generates logarithmically spaced axis/array.
-
-    Returns always an array with the shape (points,) + np.shape(min/max) and
-    a floating dtype.
-    """
-    if np.issubdtype(
-        # min_
-        type(min_) if not isinstance(min_, np.ndarray) else min_.dtype,
-        np.floating,
-    ) or np.issubdtype(
-        # max_
-        type(max_) if not isinstance(max_, np.ndarray) else max_.dtype,
-        np.floating,
-    ):
-        dtype = None
-    else:
-        dtype = float
-
-    return np.logspace(np.log10(min_), np.log10(max_), points, dtype=dtype)
-
-
-def _lin_axis(
-    min_: Union[float, np.ndarray], max_: Union[float, np.ndarray], points: int
-) -> np.ndarray:
-    """Generates linearly spaced axis/array.
-
-    Returns always an array with the shape (points,) + np.shape(min/max) and
-    a floating dtype.
-    """
-    if np.issubdtype(
-        # min_
-        type(min_) if not isinstance(min_, np.ndarray) else min_.dtype,
-        np.floating,
-    ) or np.issubdtype(
-        # max_
-        type(max_) if not isinstance(max_, np.ndarray) else max_.dtype,
-        np.floating,
-    ):
-        dtype = None
-    else:
-        dtype = float
-
-    return np.linspace(min_, max_, points, dtype=dtype)
-
-
-class Axis:
+class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def __init__(
         self,
-        data: np.ndarray,
+        data: da.core.Array,
         *,
+        axis_dim: Optional[int] = None,
         name: str = "unnamed",
-        label: str = "",
+        label: str = "unlabeled",
         unit: str = "",
     ):
-        if not isinstance(data, np.ndarray):
-            data = np.asanyarray(data)
+        self._data = data if isinstance(data, da.core.Array) else da.asanyarray(data)
+        self._axis_dim = self._data.ndim if axis_dim is None else axis_dim
 
-        self._data = data if data.ndim > 0 else data[np.newaxis]
+        if (self._axis_dim < 0) or (self._data.ndim < self._axis_dim):
+            raise DimensionError("Mismatch between data and axis dimensionality!")
 
-        name = make_identifiable(name)
-        self._name = name if name else "unnamed"
+        cleaned_name = make_identifiable(name)
+        self._name = cleaned_name if cleaned_name else "unnamed"
         self._label = label
         self._unit = unit
 
     def __repr__(self) -> str:
-        repr_ = f"{self.__class__.__name__}("
-        repr_ += f"name='{self.name}', "
-        repr_ += f"label='{self.label}', "
-        repr_ += f"unit='{self.unit}', "
-        repr_ += f"axis_dim={self.axis_dim}, "
-        repr_ += f"len={len(self)}"
-        repr_ += ")"
-
-        return repr_
+        return f"{type(self).__name__}<name={self.name}, axis_dim={self.axis_dim}>"
 
     def __len__(self) -> int:
-        return len(self._data)
+        if self._data.ndim > self._axis_dim:
+            return self._data.shape[0]
+        else:
+            return 1
 
     def __iter__(self) -> "Axis":
-        for d in self._data:
-            yield self.__class__(
-                d[np.newaxis], name=self.name, label=self.label, unit=self.unit,
-            )
-
-    def __getitem__(
-        self, key: Union[int, slice, Tuple[Union[int, slice]]]
-    ) -> "Axis":
-        if not is_basic_indexing(key):
-            raise IndexError("Only basic indexing is supported!")
-
-        key = np.index_exp[key]
-        requires_new_axis = False
-
-        # > determine if axis extension is required
-        # 1st index (temporal slicing) not hidden if ndim == axis_dim + 1
-        # or alternatively -> check len of the axis -> number of temporal slices
-        if len(self) != 1:
-            # revert dimensionality reduction
-            if isinstance(key[0], int):
-                requires_new_axis = True
+        if len(self) == 1:
+            yield self
         else:
-            requires_new_axis = True
+            for d in self._data:
+                self.__class__(
+                    d[np.newaxis],
+                    axis_dim=self.axis_dim,
+                    name=self.name,
+                    label=self.label,
+                    unit=self.unit,
+                )
 
-        data = self.data[key]
+    def __getitem__(self, key: Any) -> "Axis":
+        if not self.shape:
+            raise IndexError("Can not index 0-dimensional axis")
 
-        if requires_new_axis:
-            data = data[np.newaxis]
+        index = ndx.ndindex(key).expand(self.shape).raw
+        data = self._data[index]
+        axis_dim = self._axis_dim
+
+        # reduction of axis dimensionality
+        # - dimension associated with axis are the most right dimensions in `.shape`
+        # - `ind_associated_to_dim >= 0` following from `__init__`
+        ind_associated_to_dim = self._data.ndim - self._axis_dim
+        count_int = sum(isinstance(ind, int) for ind in index[ind_associated_to_dim:])
+        axis_dim = (axis_dim - count_int) if (axis_dim - count_int) > 0 else 0
 
         return self.__class__(
-            data, name=self.name, label=self.label, unit=self.unit,
+            data, axis_dim=axis_dim, name=self.name, label=self.label, unit=self.unit,
         )
 
     def __setitem__(
@@ -133,8 +85,57 @@ class Axis:
         self.data[key] = value
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        data = self._data.astype(dtype) if dtype else self._data
-        return np.squeeze(data, axis=0) if len(self) == 1 else data
+        return self.as_numpy().astype(dtype) if dtype else self.as_numpy()
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs) -> Optional["Axis"]:
+        inputs = tuple(self._data if in_ is self else in_ for in_ in inputs)
+
+        if "out" in kwargs:
+            kwargs["out"] = tuple(
+                self._data if in_ is self else in_ for in_ in kwargs["out"]
+            )
+
+        data = self._data.__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+        if data is NotImplemented:
+            raise NotImplementedError(
+                f"ufunc '{ufunc}' "
+                + f"for {method=}, "
+                + f"{inputs=}, "
+                + f"and {kwargs=} not implemented!"
+            )
+        elif data is None:
+            # in-place
+            self._data = kwargs["out"][0]
+            return self
+        else:
+            return self.__class__(
+                data,
+                axis_dim=self.axis_dim,
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+            )
+
+    def __array_function__(
+        self,
+        func: Callable,
+        types: Tuple[Type[Any], ...],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+    ):
+        # repack arguments
+        types = tuple(type(self._data) if t is type(self) else t for t in types)
+        args = tuple(self._data if arg is self else arg for arg in args)
+
+        data = self._data.__array_function__(func, types, args, kwargs)
+        return self.__class__(
+            data,
+            axis_dim=self.axis_dim,
+            name=self.name,
+            label=self.label,
+            unit=self.unit,
+        )
 
     @property
     def data(self) -> np.ndarray:
@@ -143,225 +144,128 @@ class Axis:
     @data.setter
     def data(self, value: Union[np.ndarray, Any]) -> None:
         new = np.broadcast_to(value, self.shape, subok=True)
-        if len(self) == 1:
-            self._data = np.array(new, subok=True)[np.newaxis]
-        else:
-            self._data = np.array(new, subok=True)
+        self._data = da.asanyarray(new)
 
     @property
-    def axis_dim(self):
-        return self._data.ndim - 1
+    def axis_dim(self) -> int:
+        return self._axis_dim
 
     @property
-    def shape(self):
-        return self._data.shape[1:] if len(self) == 1 else self._data.shape
+    def shape(self) -> Tuple[int, ...]:
+        return self._data.shape
 
     @property
-    def dtype(self):
+    def dtype(self) -> np.dtype:
         return self._data.dtype
 
     @property
-    def ndim(self):
-        return (self._data.ndim - 1) if len(self) == 1 else self._data.ndim
+    def ndim(self) -> int:
+        return self._data.ndim
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @name.setter
-    def name(self, value):
+    def name(self, value) -> None:
         parsed_value = make_identifiable(str(value))
         if not parsed_value:
-            raise ValueError(
-                "Invalid name provided! Has to be able to be valid code"
-            )
+            raise ValueError("Invalid name provided! Name requires to be identifiable!")
         self._name = parsed_value
 
     @property
-    def label(self):
+    def label(self) -> str:
         return self._label
 
     @label.setter
-    def label(self, value):
+    def label(self, value) -> None:
         value = str(value)
         self._label = value
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return self._unit
 
     @unit.setter
-    def unit(self, value):
+    def unit(self, value) -> None:
         value = str(value)
         self._unit = value
 
-    def equivalent(self, other: Union[Any, AxisType]) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
+    @staticmethod
+    def _log_axis(
+        min_: Union[float, int], max_: Union[float, int], points: int
+    ) -> da.core.Array:
+        """Generates logarithmically spaced array."""
+        min_ = np.log10(min_)
+        max_ = np.log10(max_)
+        return 10.0 ** da.linspace(min_, max_, points)
 
-        if self.axis_dim != other.axis_dim:
-            return False
+    @staticmethod
+    def _lin_axis(
+        min_: Union[float, int], max_: Union[float, int], points: int
+    ) -> da.core.Array:
+        """Generates linearly spaced array."""
+        return da.linspace(min_, max_, points)
 
-        if self.name != other.name:
-            return False
+    @classmethod
+    def from_limits(
+        cls,
+        min_value: Union[int, float],
+        max_value: Union[int, float],
+        cells: int,
+        *,
+        name: str = "unnamed",
+        label: str = "unlabeled",
+        unit: str = "",
+        axis_type: str = "linear",
+    ) -> "Axis":
+        if axis_type in ("linear", "lin"):
+            axis = cls._lin_axis(min_value, max_value, cells)
+        elif axis_type in ("logarithmic", "log"):
+            axis = cls._log_axis(min_value, max_value, cells)
+        else:
+            raise ValueError(
+                "Invalid axis type provided. "
+                + "Only 'lin', 'linear', 'log', and 'logarithmic' are supported!"
+            )
 
-        if self.label != other.label:
-            return False
+        return cls(axis, axis_dim=1, name=name, label=label, unit=unit)
 
-        if self.unit != other.unit:
-            return False
-
-        return True
+    def is_equiv_to(self, other: Union[Any, AxisType]) -> bool:
+        return isinstance(other, self.__class__) and all(
+            getattr(self, prop) == getattr(other, prop)
+            for prop in ("axis_dim", "name", "label", "unit")
+        )
 
     def append(self, other: "Axis") -> "Axis":
         if not isinstance(other, self.__class__):
             raise TypeError(f"Can not append '{other}' to '{self}'")
 
-        if not self.equivalent(other):
-            raise ValueError(
-                f"Mismatch in attributes between '{self}' and '{other}'"
-            )
+        if not self.is_equiv_to(other):
+            raise ValueError(f"Mismatch in attributes between '{self}' and '{other}'")
 
-        selfdata = (
-            self.data[np.newaxis] if self.ndim == self.axis_dim else self.data
-        )
-
-        otherdata = (
-            other.data[np.newaxis]
-            if other.ndim == other.axis_dim
-            else other.data
-        )
-
-        self._data = np.append(selfdata, otherdata, axis=0)
-
-
-_ignored_if_data = object()
-
-
-class GridAxis(Axis):
-    _supported_axis_types: Tuple[str, ...] = (
-        "lin",
-        "linear",
-        "log",
-        "logarithmic",
-        "custom",
-    )
-
-    def __init__(
-        self,
-        data: np.ndarray,
-        *,
-        axis_type: str = "linear",
-        name: str = "unnamed",
-        label: str = "",
-        unit: str = "",
-    ) -> None:
-        if axis_type not in self._supported_axis_types:
-            raise ValueError(
-                f"'{axis_type}' is not supported for axis_type! "
-                + f"It has to by one of {self._supported_axis_types}"
-            )
-
-        super().__init__(data, name=name, label=label, unit=unit)
-        self._axis_type = axis_type
-
-    def __iter__(self) -> "GridAxis":
-        for d in self._data:
-            yield self.__class__(
-                d[np.newaxis],
-                name=self.name,
-                label=self.label,
-                unit=self.unit,
-                axis_type=self.axis_type,
-            )
-
-    def __getitem__(
-        self, key: Union[int, slice, Tuple[Union[int, slice]]]
-    ) -> "GridAxis":
-        if not is_basic_indexing(key):
-            raise IndexError("Only basic indexing is supported!")
-
-        key = np.index_exp[key]
-        requires_new_axis = False
-
-        # first index corresponds to temporal slicing if ndim == axis_dim + 1
-        # or alternatively -> check len of the axis -> number of temporal slices
-        if len(self) != 1:
-            # revert dimensionality reduction
-            if isinstance(key[0], int):
-                requires_new_axis = True
+        # transform self array to ensure one extra dimension exist for stacking
+        if self._data.ndim == self._axis_dim:
+            self_data = self._data[np.newaxis]
         else:
-            requires_new_axis = True
+            self_data = self._data
 
-        return self.__class__(
-            self.data[key][np.newaxis] if requires_new_axis else self.data[key],
-            name=self.name,
-            label=self.label,
-            unit=self.unit,
-            axis_type=self.axis_type,
-        )
-
-    def __repr__(self) -> str:
-        repr_ = f"{self.__class__.__name__}("
-        repr_ += f"name='{self.name}', "
-        repr_ += f"label='{self.label}', "
-        repr_ += f"unit='{self.unit}', "
-        repr_ += f"axis_type={self.axis_type}, "
-        repr_ += f"axis_dim={self.axis_dim}, "
-        repr_ += f"len={len(self)}"
-        repr_ += ")"
-
-        return repr_
-
-    @property
-    def axis_type(self) -> str:
-        return self._axis_type
-
-    @axis_type.setter
-    def axis_type(self, value: str) -> None:
-        value = str(value)
-        if value not in self._supported_axis_types:
-            raise ValueError(
-                f"'{value}' is not supported for axis_type! "
-                + f"It has to by one of {self._supported_axis_types}"
-            )
-        self._axis_type = value
-
-    @classmethod
-    def from_limits(
-        cls,
-        min_value: Union[np.ndarray, int, float],
-        max_value: Union[np.ndarray, int, float],
-        cells: int,
-        *,
-        axis_type: str = "linear",
-        name: str = "unnamed",
-        label: str = "",
-        unit: str = "",
-    ) -> "GridAxis":
-        if axis_type in ("lin", "linear"):
-            axis: np.ndarray = _lin_axis(min_value, max_value, cells)
-        elif axis_type in ("log", "logarithmic"):
-            axis: np.ndarray = _log_axis(min_value, max_value, cells)
+        # transform other array to ensure one extra dimension exist for stacking
+        if other.ndim == other.axis_dim:
+            other_data = other.as_dask(squeeze=False)[np.newaxis]
         else:
-            raise ValueError(
-                "Invalid axis type provided. "
-                + "Only 'lin', 'linear', 'log', and 'logarithmic' "
-                + "are supported!"
-            )
+            other_data = other.as_dask(squeeze=False)
 
-        if axis.ndim == 1:
-            axis = axis[np.newaxis]
+        self._data = da.concatenate((self_data, other_data), axis=0)
 
-        axis = cls(axis, name=name, label=label, unit=unit)
-        axis._axis_type = axis_type
-        return axis
+    def as_numpy(self, squeeze: bool = False) -> np.ndarray:
+        if squeeze:
+            return np.asanyarray(da.squeeze(self._data).compute())
+        else:
+            return np.asanyarray(self._data.compute())
 
-    def equivalent(self, other: Union[Any, GridAxisType]) -> bool:
-        if not super().equivalent(other):
-            return False
-
-        if self.axis_type != other.axis_type:
-            return False
-
-        return True
+    def as_dask(self, squeeze: bool = False) -> da.core.Array:
+        if squeeze:
+            return da.asanyarray(da.squeeze(self._data))
+        else:
+            return self._data
