@@ -531,3 +531,14 @@ def test_Axis_array_function():
     assert new_axis is not axis
     assert type(new_axis) is Axis
     np.testing.assert_array_equal(new_axis, np.fft.fft(arr))
+
+
+def test_Axis_from_another_Axis():
+    arr = np.random.random_sample(10)
+    axis = Axis(arr, axis_dim=1, name="some_axis", label="some_label", unit="some_unit")
+
+    axis_of_axis = Axis(axis, axis_dim=0)
+    assert axis_of_axis.axis_dim == 0
+    assert axis_of_axis.name == "unnamed"
+    assert axis_of_axis.label == "unlabeled"
+    assert axis_of_axis.unit == ""
