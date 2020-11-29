@@ -87,7 +87,7 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
         return self.as_numpy().astype(dtype) if dtype else self.as_numpy()
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs) -> Optional["Axis"]:
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs) -> "Axis":
         inputs = tuple(self._data if in_ is self else in_ for in_ in inputs)
 
         if "out" in kwargs:
