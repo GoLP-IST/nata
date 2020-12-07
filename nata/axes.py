@@ -6,6 +6,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Type
 from typing import Union
+from warnings import warn
 
 import numpy as np
 
@@ -231,11 +232,38 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
 
         return cls(axis, axis_dim=1, name=name, label=label, unit=unit)
 
-    def is_equiv_to(self, other: Union[Any, AxisType]) -> bool:
-        return isinstance(other, self.__class__) and all(
-            getattr(self, prop) == getattr(other, prop)
-            for prop in ("axis_dim", "name", "label", "unit")
-        )
+    def is_equiv_to(self, other: Union[Any, AxisType], verbose: bool = False) -> bool:
+        if type(self) != type(other):
+            if verbose:
+                warn(f"`{self}` and `{other}` are not equivalent. Types mismatch!")
+
+            return False
+
+        if self.axis_dim != other.axis_dim:
+            if verbose:
+                warn(f"`{self}` and `{other}` are not equivalent. Dimension mismatch!")
+
+            return False
+
+        if self.name != other.name:
+            if verbose:
+                warn(f"`{self}` and `{other}` are not equivalent. Names mismatch!")
+
+            return False
+
+        if self.label != other.label:
+            if verbose:
+                warn(f"`{self}` and `{other}` are not equivalent. Labels mismatch!")
+
+            return False
+
+        if self.unit != other.unit:
+            if verbose:
+                warn(f"`{self}` and `{other}` are not equivalent. Units mismatch!")
+
+            return False
+
+        return True
 
     def append(self, other: "Axis") -> "Axis":
         if not isinstance(other, self.__class__):

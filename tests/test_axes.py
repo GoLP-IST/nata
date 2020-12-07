@@ -199,6 +199,53 @@ def test_Axis_is_equiv_to():
     assert axis.is_equiv_to(Axis([1])) is False
 
 
+def test_Axis_is_equiv_to_verbosity():
+    axis = Axis(
+        [1, 2, 3], axis_dim=0, name="some_name", label="some label", unit="some unit"
+    )
+
+    with pytest.warns(UserWarning, match="Types mismatch"):
+        axis.is_equiv_to(object(), verbose=True)
+
+    with pytest.warns(UserWarning, match="Dimension mismatch"):
+        axis.is_equiv_to(Axis([1, 2, 3], axis_dim=1), verbose=True)
+
+    with pytest.warns(UserWarning, match="Names mismatch"):
+        axis.is_equiv_to(
+            Axis(
+                [1, 2, 3],
+                axis_dim=0,
+                name="some_other",
+                label="some label",
+                unit="some unit",
+            ),
+            verbose=True,
+        )
+
+    with pytest.warns(UserWarning, match="Labels mismatch"):
+        axis.is_equiv_to(
+            Axis(
+                [1, 2, 3],
+                axis_dim=0,
+                name="some_name",
+                label="some other",
+                unit="some unit",
+            ),
+            verbose=True,
+        )
+    with pytest.warns(UserWarning, match="Units mismatch"):
+        axis.is_equiv_to(
+            Axis(
+                [1, 2, 3],
+                axis_dim=0,
+                name="some_name",
+                label="some label",
+                unit="some other unit",
+            ),
+            verbose=True,
+        )
+
+
 def test_Axis_append_0d_case():
     axis = Axis(1)
     assert axis.shape == ()
