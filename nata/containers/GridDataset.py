@@ -1,122 +1,350 @@
 # -*- coding: utf-8 -*-
-from collections import defaultdict
+from copy import copy
 from pathlib import Path
 from typing import AbstractSet
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
+from typing import Protocol
 from typing import Sequence
 from typing import Tuple
 from typing import Union
+from typing import runtime_checkable
+from warnings import warn
 
 import numpy as np
 
 import dask.array as da
+import ndindex as ndx
 from nata.axes import Axis
-from nata.axes import GridAxis
-from nata.types import Array
-from nata.types import AxisType
-from nata.types import FileLocation
-from nata.types import GridAxisType
-from nata.types import GridBackendType
-from nata.types import GridDatasetAxes
-from nata.types import GridDatasetType
-from nata.types import is_basic_indexing
-from nata.utils.array import expand_ellipsis
-from nata.utils.exceptions import NataInvalidContainer
 from nata.utils.formatting import array_format
+from nata.utils.io import FileList
+from nata.utils.types import BasicIndexing
+from nata.utils.types import FileLocation
 
-_extract_from_backend = object()
 
+@runtime_checkable
+class GridBackendType(Protocol):
+    """Backend representing a grid.
 
-def _separation_newaxis(key: Any, two_types: bool = True):
-    """Helper function for separator of newaxis
-
-    It is used in particular when ``np.newaxis`` is encountered as a key
-    argument to ``__getitem__`` call.
-
-    Parameters
-    ----------
-    key: Any
-        Key provided to a ``__getitem__`` call.
-
-    two_types: ``bool``
-        Used to distinguish between different axes. Needed if key would
-        reference spatial and temporal axes, then a seperation is needed.
-
+    `GridBackendType` is a protocol with the purpose of characterizing
+    attributes being available for object to be recognized as a
+    `GridBackendType`. Reading data is not part of this protocol but is
+    characterized by `GridDataReader` which extends this protocol.
     """
-    if two_types:
-        # find last occupance of newaxis
-        for i, k in enumerate(key):
-            if k is np.newaxis:
+
+    #: Name of the backend. The name can be chosen individually and is used
+    #: for providing users with information about the underlaying data
+    #: storage. It should follow the convention
+    #: ``"CODENAME_VERSION_DATATYPE_STORAGE"``, e.g.
+    #: ``"osiris_4.4.4_grid_hdf5"``
+    name: str
+
+    #: Location of the data. This attribute can be used inside a backend to
+    #: point to data, either to open a file or to retrieve it.
+    location: Path
+
+    def __init__(self, location: FileLocation) -> None:
+        ...
+
+    @staticmethod
+    def is_valid_backend(location: FileLocation) -> bool:
+        """Determine if a backend is a valid backend.
+
+        Parameters
+        ----------
+        location : :obj:`str` or :obj:`pathlib.Path`
+            Checks if a location can be passed to backend to initiate it.
+
+        Returns
+        -------
+        out : :obj:`bool`
+            Returns ``True`` if ``location`` is valid input parameter for
+            instantiation and ``False`` otherwise.
+        """
+        ...
+
+    #: Name of the dataset. It has to be identifiable, e.g.
+    #: ``"some_dataset_name"``.
+    dataset_name: str
+
+    #: Descriptive label of the dataset. Can be an arbitrary string, e.g.
+    #: ``"some long label with space"``.
+    dataset_label: str
+
+    #: Unit of the correspinding grid. Can be an string including some latex
+    #: symbols, e.g. ``"m_e c \\omega_p e^{-1}"``.
+    dataset_unit: str
+
+    #: A sequence of strings for each grid axis. Each string of the sequence
+    #: has to be identifiable, e.g. ``["axis0", "axis1", "axis2"]``.
+    axes_names: Sequence[str]
+    #: A sequence of strings for each grid axis. Each string of the sequence
+    #: is a descriptive label for each axis, e.g.
+    #: ``["some axis 0", "some axis 1", "some axis 2"]``.
+    axes_labels: Sequence[str]
+    #: A sequence of strings for each grid axis. Each string of the sequence
+    #: is the unit for each axis including some latex symbols, e.g.
+    #: ``["c / \\omega_p", "mm", "\\omega_p^{-1}"]``.
+    axes_units: Sequence[str]
+    #: An array representing the lower limits of each grid axis.
+    axes_min: np.ndarray
+    #: An array representing the upper limits of each grid axis.
+    axes_max: np.ndarray
+
+    #: Associated iteration step of the underlaying data.
+    iteration: int
+    #: ::Associated time step of the underlaying data in code units.
+    time_step: float
+    #: Unit for time. Can be an arbitrary string, e.g. ``"1 / \\omega_p"``.
+    time_unit: str
+
+    #: Tuple of grid array dimensions. Corresponds to
+    #: `numpy.ndarray.shape`.
+    shape: Tuple[int, ...]
+    #: Data type object of the grid array. Corresponds to `numpy.dtype`.
+    dtype: np.dtype
+    #: Dimensionality of the grid. Corresponds to `numpy.ndarray.ndim`
+    ndim: int
+
+
+@runtime_checkable
+class GridDataReader(GridBackendType, Protocol):
+    """Extended backend which handles grid data reading"""
+
+    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray:
+        """Routine for reading underlaying grid data.
+
+        Parameters
+        ----------
+        indexing : `int`, `slice`, \
+                   :class:`typing.Tuple[Union[slice, int], ...]]`, optional
+            Optional indexing for reading a section of the grid. Any `basic
+            slicing and indexing  <https://numpy.org/doc/stable/reference/\
+            arrays.indexing.html#basic-slicing-and-indexing>`_ can be passed
+            here.
+
+        Returns
+        -------
+        out : :class:`numpy.ndarray`
+            Data array of the underlaying grid.
+        """
+        ...
+
+
+class GridDatasetAxes:
+    def __init__(
+        self,
+        axes: Sequence[Axis],
+        *,
+        time: Optional[Axis] = None,
+        iteration: Optional[Axis] = None,
+    ) -> None:
+        if iteration is not None and not isinstance(iteration, Axis):
+            raise TypeError("Argument 'iteration' axes has to by of type `Axis`")
+
+        if time is not None and not isinstance(time, Axis):
+            raise TypeError("Argument 'time' axes has to by of type `Axis`")
+
+        if not all(isinstance(ax, Axis) for ax in axes):
+            raise TypeError("Argument 'axes' has to by of type `List[Axis]`")
+
+        if any(ax.ndim == 0 for ax in axes):
+            raise ValueError("0-dimensional axis not allowed!")
+
+        # check for mismatch in axis (temporal information -> stored in 1st index)
+        if axes and len(set(len(ax) for ax in axes)) != 1:
+            raise ValueError("Length of individual axis mismatch!")
+
+        if any(ax.axis_dim not in (0, 1) for ax in axes):
+            raise NotImplementedError("Only 0d and 1d axis are supported!")
+
+        self._axes = axes if isinstance(axes, list) else list(axes)
+        self._time = self._find_axis_in_axes("time", axes) if time is None else time
+        self._iteration = (
+            self._find_axis_in_axes("iteration", axes)
+            if iteration is None
+            else iteration
+        )
+
+        self._axes_map = {}
+        for ax in self._axes:
+            if ax.name in ("time", "iteration"):
                 continue
+            elif ax.name not in self._axes_map:
+                self._axes_map[ax.name] = ax
             else:
-                break
+                warn(f"Inconsistency in axes object. Axis '{ax.name}' present!")
 
-        type_1 = key[:i]
-        key = key[i:]
-    else:
-        type_1 = ()
+    def __eq__(self, other: Union[Any, "GridDatasetAxes"]) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
 
-    # determine positions of new axis for second type
-    type_2 = tuple([k for k, v in enumerate(key) if v is np.newaxis])
-    key = tuple(filter(lambda v: v is not np.newaxis, key))
+        if self.time is None and other.time is not None:
+            return False
 
-    return key, type_1, type_2
+        if self.time is not None and not self.time.is_equiv_to(other.time):
+            return False
 
+        if self.iteration is None and other.iteration is not None:
+            return False
 
-def _axis_type_reduction(value):
-    if value is not None and not isinstance(value, (AxisType, np.ndarray)):
-        return np.asanyarray(value)
-    else:
-        return value
+        if self.iteration is not None and not self.iteration.is_equiv_to(
+            other.iteration
+        ):
+            return False
 
+        if len(self.grid_axes) != len(other.grid_axes):
+            return False
 
-def _value_to_axis_transformation(value, name_and_label, unit, none_value):
-    requires_new_axis = False
+        if not all(s.is_equiv_to(o) for s, o in zip(self.grid_axes, other.grid_axes)):
+            return False
 
-    if value is None:
-        requires_new_axis = True
-        value = Axis(
-            none_value, name=name_and_label, label=name_and_label, unit=unit
+        return True
+
+    def __len__(self) -> int:
+        return len(self._axes)
+
+    def __contains__(self, item: str) -> bool:
+        if item in ("time", "iteration"):
+            return True
+        else:
+            return hasattr(self, item) and isinstance(getattr(self, item), Axis)
+
+    def __iter__(self) -> Axis:
+        for ax in self._axes:
+            yield ax
+
+    def __getattr__(self, name: str) -> Axis:
+        if name in self._axes_map:
+            return self._axes_map[name]
+        else:
+            raise AttributeError(f"'{self}' object has no attribute '{name}'")
+
+    def __getitem__(self, key: Union[str, int]):
+        if isinstance(key, int):
+            return self._axes[key]
+        elif isinstance(key, str):
+            for ax in self:
+                if key == ax.name:
+                    return ax
+            raise KeyError(f"Couldn't find matching `{key}`")
+        else:
+            raise KeyError("Supplied an invalid key. Only `str` and `int` supporeted!")
+
+    def __repr__(self) -> str:
+        all_axes = ", ".join(ax.name for ax in self._axes)
+        return f"{self.__class__.__name__}[{all_axes}]"
+
+    def copy(self) -> "GridDatasetAxes":
+        return self.__class__(
+            copy(self._axes), iteration=copy(self._iteration), time=copy(self._time)
         )
-    elif isinstance(value, np.ndarray):
-        value = Axis(
-            value, name=name_and_label, label=name_and_label, unit=unit
-        )
 
-    return value, requires_new_axis
+    @staticmethod
+    def _find_axis_in_axes(axis_name: str, axes: List[Axis]) -> Optional[Axis]:
+        for ax in axes:
+            if axis_name == ax.name:
+                return ax
 
+        return None
 
-def _grid_axis_transformation(axes, temporal_steps, axes_cells):
-    if axes is None:
+    @property
+    def time(self) -> Optional[Axis]:
+        return self._time
+
+    @property
+    def iteration(self) -> Optional[Axis]:
+        return self._iteration
+
+    @property
+    def grid_axes(self) -> List[Axis]:
+        return self._axes
+
+    @property
+    def mapping(self) -> Dict[int, Axis]:
+        return {i: a for i, a in enumerate(self)}
+
+    @property
+    def span(self) -> Tuple[int, ...]:
+        return tuple(ax.shape[-1] for ax in self._axes)
+
+    @property
+    def has_temporal_axes(self) -> bool:
+        return any((ax is self.time) or (ax is self.iteration) for ax in self.grid_axes)
+
+    def index(self, axis_name: str) -> Optional[int]:
+        for i, ax in enumerate(self):
+            if ax.name == axis_name:
+                return i
+
+        return None
+
+    def insert(self, i: int, new_axis: Axis) -> None:
+        if not isinstance(new_axis, Axis):
+            raise TypeError("Only axis are supported to be inserted!")
+        self._axes.insert(i, new_axis)
+
+    @staticmethod
+    def _default_time_axis(data: Union[Axis, Sequence]) -> Axis:
+        return Axis(data, axis_dim=0, name="time", label="time")
+
+    @staticmethod
+    def _default_iteration_axis(data: Union[Axis, Sequence]) -> Axis:
+        return Axis(data, axis_dim=0, name="iteration", label="iteration")
+
+    @staticmethod
+    def _default_grid_axis(data: Union[Axis, Sequence], dim: int) -> Axis:
+        if isinstance(data, Axis):
+            return data
+        else:
+            return Axis(data, axis_dim=1, name=f"axis{dim}", label=f"axis {dim}")
+
+    @classmethod
+    def default_axes_from_shape(
+        cls,
+        shape: Tuple[int, ...],
+        time: Optional[Union[Axis, Sequence]],
+        iteration: Optional[Union[Axis, Sequence]],
+        grid_axes: Optional[Sequence[Union[Axis, Sequence]]],
+    ):
         axes = []
-        for i, cells in enumerate(axes_cells):
-            data = [np.arange(cells)] * temporal_steps
-            axes.append(
-                GridAxis(data, name=f"axis{i}", label=f"axis{i}", unit="")
-            )
-    else:
-        for i, axis in enumerate(axes):
-            if isinstance(axis, GridAxisType):
-                continue
-            else:
-                axis = np.asanyarray(axis)
-                if temporal_steps == 1:
-                    axis = axis[np.newaxis]
 
-                if (temporal_steps, axes_cells[i]) != axis.shape:
-                    raise ValueError("Dimension for axis do not match!")
+        time = None if time is None else cls._default_time_axis(time)
+        iteration = (
+            None if iteration is None else cls._default_iteration_axis(iteration)
+        )
 
-                axes[i] = GridAxis(
-                    axis,
-                    name=f"axis{i}",
-                    label=f"axis{i}",
-                    unit="",
-                    axis_type="custom",
-                )
+        # if multiple time steps -> 1st axis is time
+        if time and len(time) > 1:
+            if not shape or len(time) != shape[0]:
+                raise ValueError("Mismatch between shape and time axis!")
+            axes.append(time)
+            _, *shape = shape
 
-    return axes
+        # if multiple iteration steps and time axis is None -> 1st axis is iteration
+        if iteration and (len(iteration) > 1 and time is None):
+            if not shape or len(iteration) != shape[0]:
+                raise ValueError("Mismatch between shape and iteration axis!")
+            axes.append(iteration)
+            _, *shape = shape
+
+        # make sure number of grid axes matches with number of dimension of shape
+        if grid_axes is not None:
+            if len(grid_axes) != len(shape):
+                raise ValueError("Number of grid axes mismatches provided shape!")
+
+            for i, axis in enumerate(grid_axes):
+                grid_axis = cls._default_grid_axis(axis, i)
+                axes.append(grid_axis)
+
+        # default behavior
+        if time is None and iteration is None and grid_axes is None:
+            for i, s in enumerate(shape):
+                axes.append(Axis(np.arange(s), name=f"axis{i}", label=f"axis{i}"))
+
+        return cls(axes, time=time, iteration=iteration)
 
 
 class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
@@ -128,577 +356,423 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
     def __init__(
         self,
-        data: Union[Array, FileLocation],
+        data: da.core.Array,
+        axes: GridDatasetAxes,
         *,
         backend: Optional[str] = None,
-        sources: Optional[Sequence[Path]] = None,
-        iteration: Optional[AxisType] = None,
-        time: Optional[AxisType] = None,
-        grid_axes: Optional[Sequence[GridAxisType]] = None,
+        locations: Optional[List[Path]] = None,
         name: str = "unnamed",
         label: str = "unnamed",
         unit: str = "",
     ):
-        """For initialization of a :class:`.GridDataset`:
+        data = data if isinstance(data, da.core.Array) else da.asanyarray(data)
+
+        if data.ndim != len(axes):
+            raise ValueError("Mistmatched dimensionality between `data` and `axes`!")
+
+        if data.shape != axes.span:
+            raise ValueError("Shape and span of axes mismatch!")
+
+        self._data = data
+        self._axes = axes
+
+        self._backend = backend
+        self._locations = (
+            locations
+            if locations is None or isinstance(locations, list)
+            else list(locations)
+        )
+
+        self._name = name
+        self._label = label
+        self._unit = unit
+
+    @classmethod
+    def from_array(
+        cls,
+        array: Union[np.ndarray, da.core.Array, Sequence],
+        *,
+        name: str = "unnamed",
+        label: str = "unlabeled",
+        unit: str = "",
+        dataset_axes: Optional[GridDatasetAxes] = None,
+        time: Optional[Union[Axis, Sequence]] = None,
+        iteration: Optional[Union[Axis, Sequence]] = None,
+        grid_axes: Optional[Sequence[Union[Axis, Sequence]]] = None,
+    ) -> "GridDataset":
+        """``GridDataset`` from array/array-like objects
+
+        The classmethod ``GridDataset.from_array`` can create a ``GridDataset`` from
+        array like objects. If no axes are provided, default axis for a grid dataset
+        will be used. If `dataset_axes` is provided, it will be used as axes for the
+        ``GridDataset`` and individual axis are ignored. Otherwise use individual axis
+        `time`, `iteration`, and `grid_axes` to specify values for each axis.
 
         Parameters
         ----------
-        data: :class:`numpy.ndarray`, :class:`nata.type.GridBackendType`, \
-              :class:`str`, :class:`pathlib.Path`
-            Input data which is used to initialize the grid container:
+        array : ``np.ndarray``, ``da.core.Array``, ``Sequence``
+            Array or an array like object used for creating ``GridDataset``.
+        name : ``str``, default: "unnamed"
+            Name of the ``GridDataset``.
+        label : ``str``, default: "unlabeled"
+            Label of the ``GridDataset``.
+        unit : ``str``, default: ""
+            Unit of the ``GridDataset``.
 
-            * If it is a numpy array or array-like, the first dimension is
-              consumed and is considered to represent time/iteration.
-            * If it is a backend, then it must follow the
-              :class:`nata.types.GridBackendType` Protocol to be recognized
-              as such.
-            * If it is a string, then it will be converted to a path and is
-              equivalent as passing the string as a path.
-            * If it is a path, then it will be used to initialize a backend
-              based on registered backends for :class:`.GridDatasets`. The
-              first matching backend is used and if no valid backend was
-              found, an exception is raised.
-
-        iteration: ``None`` or :class:`nata.types.AxisType`, \
-                   extract from ``data`` if not provided
-            Keyword-only argument which represents the iteration axis for the
-            container. If not provided, it is extracted from ``data``. If
-            ``data`` is a valid backend, an iteration axis is created and
-            otherwise the iteration axis is ``None``.
-
-        time: ``None`` or :class:`nata.types.AxisType`, extract from ``data`` \
-              if not provided
-            Keyword-only argument which represents the time axis for the
-            container. If not provided, it is extracted from ``data``. If
-            ``data`` is a valid backend, an time axis is created and
-            otherwise the time axis is ``None``.
-
-        grid_axes: ``None`` or Sequence of :class:`nata.types.AxisType`,  \
-                   extract from ``data`` if not provided
-            Keyword-only argument which represents a sequence of grid axes
-            for the container. If not provided, it is extracted from
-            ``data``. If ``data`` is a valid backend, a sequence og grid axes
-            is created and otherwise the sequence contains ``None``.
-
-        name: ``str``, extract from ``data`` if not provided
-            Keyword-only argument which represents the name of the grid
-            container. If not possible to extract a valid name from ``data``,
-            a default string ``'unnamed'`` is used.
-
-        label: ``str``, extract from ``data`` if not provided
-            Keyword-only argument which represents the label of the grid
-            container. If not possible to extract a valid label from ``data``,
-            a default string ``'unnamed'`` is used.
-
-        unit: ``str``, extract from ``data`` if not provided
-            Keyword-only argument which represents the unit of the grid
-            container. If not possible to extract a valid unit from ``data``,
-            an empty string is used.
-
-        Raises
-        ------
-        :class:`nata.utils.exceptions.NataInvalidContainer``:
-            If ``data`` is a string or a path and no valid backend is found.
         """
-        if isinstance(data, (str, Path)):
-            # extract any information from file and discard all the other
-            if isinstance(data, str):
-                data = Path(data)
+        data = da.asanyarray(array)
 
-            for backend in self._backends:
-                if backend.is_valid_backend(data):
-                    data = backend(data)
-                    break
-                else:
-                    raise NataInvalidContainer(
-                        f"No valid backend found for '{data}'"
-                    )
-
-            self._axes = {}
-            self._axes["iteration"] = Axis(
-                data.iteration, name="iteration", label="iteration", unit=""
+        axes = (
+            dataset_axes
+            if dataset_axes
+            else GridDatasetAxes.default_axes_from_shape(
+                data.shape, time=time, iteration=iteration, grid_axes=grid_axes
             )
-            self._axes["time"] = Axis(
-                data.iteration, name="time", label="time", unit=""
-            )
-
-            grid_axes_prop = zip(
-                data.axes_names,
-                data.axes_labels,
-                data.axes_units,
-                data.axes_min,
-                data.axes_max,
-                data.shape,
-            )
-
-            for (name, label, unit, min_, max_, grid_point) in grid_axes_prop:
-                grid_axes.append(
-                    GridAxis.from_limits(
-                        min_,
-                        max_,
-                        grid_points,
-                        name=axis_name,
-                        label=axis_label,
-                        unit=axis_unit,
-                    )
-                )
-
-            self._backend = data.name
-            self._sources = [data.location]
-
-            self._name = data.dataset_name
-            self._label = data.dataset_label
-            self._unit = data.data_unit
-
-            # add temporal dimension
-            data = da.from_array(data)
-            self._data = data.reshape((1,) + data.shape)
-        else:
-            self._backend = backend
-            self._sources = sources
-
-            self._name = name
-            self._label = label
-            self._unit = unit
-
-            self._data = da.asanyarray(data)
-
-        ##### OLD code
-
-    #         if iteration is _extract_from_backend:
-    #             if isinstance(data, GridBackendType):
-    #                 iteration = Axis(
-    #                     data.iteration, name="iteration", label="iteration", unit=""
-    #                 )
-    #             else:
-    #                 iteration = None
-
-    #         if time is _extract_from_backend:
-    #             if isinstance(data, GridBackendType):
-    #                 time = Axis(
-    #                     data.time_step,
-    #                     name="time",
-    #                     label="time",
-    #                     unit=data.time_unit,
-    #                 )
-    #             else:
-    #                 time = None
-
-    #         if grid_axes is _extract_from_backend:
-    #             if isinstance(data, GridBackendType):
-    #                 grid_axes = []
-    #                 for (
-    #                     axis_name,
-    #                     axis_label,
-    #                     axis_unit,
-    #                     min_,
-    #                     max_,
-    #                     grid_points,
-    #                 ) in zip(
-    #                     data.axes_names,
-    #                     data.axes_labels,
-    #                     data.axes_units,
-    #                     data.axes_min,
-    #                     data.axes_max,
-    #                     data.shape,
-    #                 ):
-    #                     grid_axes.append(
-    #                         GridAxis.from_limits(
-    #                             min_,
-    #                             max_,
-    #                             grid_points,
-    #                             name=axis_name,
-    #                             label=axis_label,
-    #                             unit=axis_unit,
-    #                         )
-    #                     )
-    #             else:
-    #                 grid_axes = [None] * (np.ndim(data) - 1)
-
-    #         # TODO: make it an identifier
-    #         if name is _extract_from_backend:
-    #             if isinstance(data, GridBackendType):
-    #                 name = data.dataset_name
-    #             else:
-    #                 name = "unnamed"
-
-    #         if label is _extract_from_backend:
-    #             if isinstance(data, GridBackendType):
-    #                 label = data.dataset_label
-    #             else:
-    #                 label = "unnamed"
-
-    #         if unit is _extract_from_backend:
-    #             if isinstance(data, GridBackendType):
-    #                 unit = data.dataset_unit
-    #             else:
-    #                 unit = ""
-
-    #         self._name = name
-    #         self._label = label
-    #         self._unit = unit
-    #         self._axes = {
-    #             "iteration": iteration,
-    #             "time": time,
-    #             "grid_axes": grid_axes,
-    #         }
-
-    #         if isinstance(data, GridBackendType):
-    #             self._dtype = data.dtype
-    #             self._grid_shape = data.shape
-    #             self._data = np.asanyarray(data, dtype=object)[np.newaxis]
-    #         else:
-    #             data = np.asanyarray(data)
-    #             self._dtype = data.dtype
-    #             self._grid_shape = data.shape[1:] if data.ndim > 0 else ()
-    #             self._data = data if data.ndim > 0 else data[np.newaxis]
-
-    def __repr__(self):
-        repr_ = f"{self.__class__.__name__}("
-        repr_ += f"name='{self.name}', "
-        repr_ += f"label='{self.label}', "
-        repr_ += f"unit='{self.unit}', "
-        repr_ += f"shape={self.shape}, "
-
-        iteration_axis = self.axes["iteration"]
-        if isinstance(iteration_axis, AxisType):
-            repr_ += f"iteration={array_format(iteration_axis.data)}, "
-        else:
-            repr_ += f"iteration={iteration_axis}, "
-
-        time_axis = self.axes["time"]
-        if isinstance(time_axis, AxisType):
-            repr_ += f"time={array_format(time_axis.data)}, "
-        else:
-            repr_ += f"time={time_axis}, "
-
-        grid_axes = self.axes["grid_axes"]
-        if grid_axes:
-            axes_formmating = []
-            for axis in grid_axes:
-                if isinstance(axis, AxisType):
-                    axes_formmating.append(
-                        f"Axis('{axis.name}', "
-                        + f"len={len(axis)}, "
-                        + f"shape={axis.shape})"
-                    )
-                else:
-                    axes_formmating.append(f"{axis}")
-            repr_ += f"grid_axes=[{', '.join(axes_formmating)}]"
-        else:
-            repr_ += f"grid_axes={self.axes['grid_axes']}"
-
-        repr_ += ")"
-
-        return repr_
-
-    def __len__(self) -> int:
-        return len(self._data)
-
-    def __iter__(self) -> "GridDataset":
-        if len(self) == 1:
-            yield self
-        else:
-            for d, it, t in zip(
-                self._data, self.axes["iteration"], self.axes["time"]
-            ):
-                yield self.__class__(
-                    d,
-                    name=self.name,
-                    label=self.label,
-                    unit=self.unit,
-                    iteration=it,
-                    time=t,
-                    grid_axes=self.axes["grid_axes"],
-                )
-
-    def __getitem__(
-        self, key: Union[int, slice, Tuple[int, slice]]
-    ) -> "GridDataset":
-        if not is_basic_indexing(key):
-            raise IndexError("Only basic indexing is supported!")
-
-        # expand ellipsis to all dimensions -> newaxis are added
-        key = expand_ellipsis(key, self.ndim)
-
-        # >>>> data
-        # > determine if new axis extension is required
-        new_axis_for_data = False
-        if len(self) != 1:
-            # revert dimensionality reduction
-            if isinstance(key[0], int):
-                new_axis_for_data = True
-        else:
-            new_axis_for_data = True
-
-        data = self.data[key]
-
-        if new_axis_for_data:
-            data = data[np.newaxis]
-
-        # >>>> separate new axis from key
-        key, temporal_new_axis, grid_new_axis = _separation_newaxis(
-            key, two_types=len(self) != 1
         )
 
-        # >>>> iteration/time axis
-        # string is the best way to insure not overlapping with key
-        # -> 'np.newaxis is None == True' therefore we use a string
-        temporal_indexing = "None"
-        if len(self) != 1:
-            temporal_indexing = key[0]
-
-        time = (
-            self.axes["time"][temporal_indexing]
-            if temporal_indexing != "None"
-            else self.axes["time"]
-        )
-        iteration = (
-            self.axes["iteration"][temporal_indexing]
-            if temporal_indexing != "None"
-            else self.axes["iteration"]
+        return cls(
+            data, axes, name=name, label=label, unit=unit, backend=None, locations=None
         )
 
-        if temporal_new_axis:
-            time = time[temporal_new_axis]
-            iteration = iteration[temporal_new_axis]
+    @staticmethod
+    def _unpack_backend(backend: GridBackendType, path: Path):
+        grid = backend(path)
+        grid_arr = da.from_array(backend(path))
 
-        # >>>> grid_axes
-        index_for_grid_axes = [slice(None) for _ in self.axes["grid_axes"]]
-        if len(self) == 1:
-            for i, k in enumerate(key):
-                index_for_grid_axes[i] = k
-        else:
-            for i, k in enumerate(key[1:]):
-                index_for_grid_axes[i] = k
+        name = grid.dataset_name
+        label = grid.dataset_label
+        unit = grid.dataset_unit
+
+        time = Axis(grid.time_step, name="time", label="time", unit=grid.time_unit)
+        iteration = Axis(grid.iteration, name="iteration", label="iteration")
 
         grid_axes = []
-        for index, grid_axis in zip(
-            index_for_grid_axes, self.axes["grid_axes"]
+        for min_, max_, ax_pts, ax_name, ax_label, ax_unit in zip(
+            grid.axes_min,
+            grid.axes_max,
+            grid.shape,
+            grid.axes_names,
+            grid.axes_labels,
+            grid.axes_units,
         ):
-            # dimension will be reduced
-            if isinstance(index, int):
-                continue
+            ax = Axis.from_limits(
+                min_, max_, ax_pts, name=ax_name, label=ax_label, unit=ax_unit
+            )
+            grid_axes.append(ax)
 
-            if temporal_indexing == "None":
-                grid_axes.append(grid_axis[index])
-            else:
-                grid_axes.append(grid_axis[temporal_indexing, index])
-
-        for i in grid_new_axis:
-            if len(self) == 1:
-                # shift not required as no time index is included
-                grid_axes.insert(i, None)
-            else:
-                grid_axes.insert(i - 1, None)
-
-        # finally return the reduced data entries
-        return self.__class__(
-            data,
-            iteration=iteration,
-            time=time,
-            grid_axes=grid_axes,
-            name=self.name,
-            label=self.label,
-            unit=self.unit,
+        return (
+            grid_arr,
+            name,
+            label,
+            unit,
+            GridDatasetAxes(grid_axes, time=time, iteration=iteration),
         )
 
-    def __setitem__(
-        self,
-        key: Union[int, slice, Tuple[int, slice]],
-        value: Union[np.ndarray, float, int],
-    ) -> None:
-        self.data[key] = value
+    @classmethod
+    def from_path(cls, path: Union[Path, str]) -> "GridDataset":
+        file_list = FileList(path, recursive=False)
+        dataset = None
+
+        for p in file_list.paths:
+            backend = cls.get_valid_backend(p)
+            grid, name, label, unit, axes = cls._unpack_backend(backend, p)
+
+            tmp = cls(
+                grid,
+                axes,
+                name=name,
+                label=label,
+                unit=unit,
+                locations=[backend.location],
+                backend=backend.name,
+            )
+
+            if not dataset:
+                dataset = tmp
+            else:
+                dataset.append(tmp)
+
+        return dataset
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}[{self.name}]"
+
+    def __len__(self) -> int:
+        if self._axes.has_temporal_axes:
+            if self._axes.time:
+                return len(self._axes.time)
+            else:
+                return len(self._axes.iteration)
+
+        return 1
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
-        if len(self) == 1:
-            data = da.squeeze(self._data, axis=0)
+        if dtype:
+            return self.as_numpy().astype(dtype)
         else:
-            data = self._data
-
-        return data.compute() if not dtype else data.astype(dtype).compute()
+            return self.as_numpy()
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # > Special case
         if ufunc in self._handled_ufuncs:
-            return self._handled_ufuncs[ufunc](method, *inputs, **kwargs)
-        elif method == "__call__":
-            out = kwargs.pop("out", ())
+            return self._handled_ufuncs[ufunc](method, inputs, kwargs)
 
-            # repack all inputs and use `.data` if its of type GridDataset
-            new_inputs = []
-            for input_ in inputs:
-                if isinstance(input_, self.__class__):
-                    new_inputs.append(input_.data)
-                else:
-                    new_inputs.append(input_)
+        # > General case
+        # repack inputs to mimic passing as dask array
+        inputs = tuple(self._data if in_ is self else in_ for in_ in inputs)
 
-            new_data = ufunc(*new_inputs, **kwargs)
-            new_data = new_data[np.newaxis] if len(self) == 1 else new_data
+        # required additional repacking if in-place
+        if "out" in kwargs:
+            kwargs["out"] = tuple(
+                self._data if in_ is self else in_ for in_ in kwargs["out"]
+            )
 
-            # should only occur if in-place operation are occuring
-            if out and isinstance(out[0], self.__class__):
-                self.data = new_data
-                return self
-            else:
-                return self.__class__(
-                    new_data,
-                    iteration=self.axes["iteration"],
-                    time=self.axes["time"],
-                    grid_axes=self.axes["grid_axes"],
-                    name=self.name,
-                    label=self.label,
-                    unit=self.unit,
-                )
+        data = self._data.__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+        # __array_ufunc__ return not implemented by dask
+        if data is NotImplemented:
+            raise NotImplementedError(
+                f"ufunc '{ufunc}' "
+                + f"for {method=}, "
+                + f"{inputs=}, "
+                + f"and {kwargs=} not implemented!"
+            )
+        # in-place scenario
+        elif data is None:
+            self._data = kwargs["out"][0]
+            return self
         else:
-            raise NotImplementedError
-
-    def __array_function__(self, func, types, args, kwargs):
-        if func in self._handled_array_function:
-            return self._handled_array_function[func](*args, **kwargs)
-        else:
-            new_args = []
-            for arg in args:
-                if isinstance(arg, self.__class__):
-                    new_args.append(arg.data)
-                else:
-                    new_args.append(arg)
-
-            new_data = func(*new_args, **kwargs)
-            # func can return something which is not an array
-            if not isinstance(new_data, np.ndarray):
-                return new_data
-
-            new_data = new_data[np.newaxis] if len(self) == 1 else new_data
-
             return self.__class__(
-                new_data,
-                iteration=self.axes["iteration"],
-                time=self.axes["time"],
-                grid_axes=self.axes["grid_axes"],
+                data,
+                self._axes.copy(),
+                backend=copy(self.backend),
+                locations=copy(self.locations),
                 name=self.name,
                 label=self.label,
                 unit=self.unit,
             )
 
-    # TODO: allow for dictionaries for time, iteration, and grid_axes, e.g.:
-    #       time={
-    #           "value": [0, 1, 2],
-    #           "name":  "some_time",
-    #           "label": "some_time_label",
-    #           "unit":  "some_time_unit"
-    #       }
-    @classmethod
-    def from_array(
-        cls,
-        array: Array,
-        name: str = "unnamed",
-        label: str = "unnamed",
-        unit: str = "",
-        time: Optional[Union[AxisType, Array]] = None,
-        iteration: Optional[Union[AxisType, Array]] = None,
-        grid_axes: Optional[Sequence[Union[GridAxisType, Array]]] = None,
-    ):
-        """Initialize GridDataset from an array.
+    def __array_function__(self, func, types, args, kwargs):
+        # > Special case
+        if func in self._handled_array_function:
+            return self._handled_array_function[func](types, args, kwargs)
 
-        As in general, :class:`.GridDataset` container provide a rich-API,
-        :meth:`.GridDataset.from_array` allows to create naively a object
-        with the source data coming from a numpy array and pre-defined objects
-        for the axes.
+        # > General case
+        # repack arguments
+        types = tuple(type(self._data) if t is type(self) else t for t in types)
+        args = tuple(self._data if arg is self else arg for arg in args)
+        data = self._data.__array_function__(func, types, args, kwargs)
 
-        Parameters
-        ----------
-        array : array-like object
-            Input data, in any form that can be converted to an numpy array
-            or a numpy array itself. The array dimension correspond the grid
-            dimension if no temporal information is provided. Otherwise, the
-            first dimension is consumed.
-
-        name : :obj:`str`, default value: ``"unnamed"``
-            Name of the grid container and expected to be identifiable.
-
-        label : :obj:`str`, default value: ``"unnamed"``
-            Label of the grid container with a descriptive meaning. It is not
-            expected to be identifiable.
-
-        unit : :obj:`str`, default value: ``""``
-            Unit of the grid container.
-
-        time : array-like, axis object, optional
-            Time axis of the grid container. If an array-like object is
-            provided, an axis object is created underneath. In addition, an
-            axis object can be provided which has to fulfill the
-            :py:class:`nata.types.AxisType` protocol. If nothing is provided
-            (default option), a time axis with the single value ``0.0`` is
-            created.
-
-        iteration : array-like, axis object, optional
-            Iteration axis of the grid container. If an array-like object is
-            provided, an axis object is created underneath. In addition, an
-            axis object can be provided which has to fulfill the
-            :py:class:`nata.types.AxisType` protocol. If nothing is provided
-            (default option), a iteration axis with a single value ``0`` is
-            created.
-
-        grid_axes : sequence of array like objects and/or grid axis objects, \
-                    optional
-            Sequence characterizing each grid axis. The length of the
-            sequence has to correspond to the dimension of the array. In the
-            absence of temporal axes, the length corresponds to the array
-            dimension otherwise the first axes of the array is consumed.
-        """
-        data = np.asanyarray(array)
-
-        # XOR of time and iteration
-        # -> use others values
-        if (time is None and iteration is not None) or (
-            time is not None and iteration is None
-        ):
-            if time is None:
-                time = iteration
-            else:
-                iteration = time
-
-        time = _axis_type_reduction(time)
-        time, add_temporal_axis = _value_to_axis_transformation(
-            time, "time", "", 0.0
-        )
-
-        iteration = _axis_type_reduction(iteration)
-        iteration, add_temporal_axis = _value_to_axis_transformation(
-            iteration, "iteration", "", 0
-        )
-
-        if add_temporal_axis:
-            data = data[np.newaxis]
-
-        # now we can check that
-        if not (len(data) == len(time) == len(iteration)):
-            raise ValueError(
-                f"Creating an '{cls.__name__}' from array failed! "
-                + "Temporal dimension mismatch for data, time, and iteration"
-            )
-
-        temporal_steps, *shape_grid_axes = data.shape
-
-        grid_axes = _grid_axis_transformation(
-            grid_axes, temporal_steps, shape_grid_axes
-        )
-
-        if any(len(data) != len(axis) for axis in grid_axes):
-            raise ValueError(
-                f"Creating an '{cls.__name__}' from array failed! "
-                + "Temporal dimension mismatch for data and grid_axes"
-            )
-
-        return cls(
+        return self.__class__(
             data,
-            iteration=iteration,
-            time=time,
-            grid_axes=grid_axes,
-            name=name,
-            label=label,
-            unit=unit,
+            self._axes.copy(),
+            backend=copy(self.backend),
+            locations=copy(self.locations),
+            name=self.name,
+            label=self.label,
+            unit=self.unit,
         )
+
+    def __getitem__(self, key: Any) -> "GridDataset":
+        # reconstruct key to map indexing to a shape
+        index = ndx.ndindex(key).expand(self.shape).raw
+        without_newaxis = [ind for ind in index if ind is not np.newaxis]
+        index_of_newaxis = [i for i, ind in enumerate(index) if ind is np.newaxis]
+
+        # index data -> no special treatment required
+        data = self._data[index]
+
+        # index each axis -> skip if index is `int` as dimension will reduce
+        grid_axes = [
+            ax[ind]
+            for (ax, ind) in zip(self._axes, without_newaxis)
+            if not isinstance(ind, int)
+        ]
+
+        # deduce time axis
+        time = None
+
+        if self._axes.time:
+            t_ind = self._axes.index("time")
+
+            if t_ind is not None and isinstance(index[t_ind], int):
+                time = self._axes.time[index[t_ind]]
+            else:
+                time = self._axes.time
+
+        # deduce iteration axis
+        iteration = None
+
+        if self._axes.iteration:
+            iter_ind = self._axes.index("iteration")
+
+            if iter_ind is not None and isinstance(index[iter_ind], int):
+                iteration = self._axes.iteration[index[iter_ind]]
+            else:
+                iteration = self._axes.iteration
+
+        # insert new axis for each np.newaxis
+        if index_of_newaxis:
+            if time:
+                num_fills = len(time)
+            elif iteration:
+                num_fills = len(iteration)
+            else:
+                num_fills = 1
+
+            fill_values = np.zeros((1, 1)).repeat(num_fills, axis=0)
+
+            for i, ind in enumerate(index_of_newaxis):
+                grid_axes.insert(ind, Axis(fill_values, axis_dim=1, name=f"newaxis{i}"))
+
+        axes = GridDatasetAxes(grid_axes, time=time, iteration=iteration)
+
+        return self.__class__(
+            data,
+            axes,
+            backend=copy(self.backend),
+            locations=copy(self.locations),
+            name=self.name,
+            label=self.label,
+            unit=self.unit,
+        )
+
+    def __setitem__(self, key: Any, value: Any):
+        raise NotImplementedError(
+            "Setting individual subitems is not supported!"
+            + "Please use the `.data` property!"
+        )
+
+    @property
+    def backend(self) -> Optional[str]:
+        """Backend associated with instance."""
+        return self._backend
+
+    @property
+    def locations(self) -> Optional[List[Path]]:
+        """Location associated with the source."""
+        return self._locations
+
+    @property
+    def data(self) -> np.ndarray:
+        """Return data for the grid as a numpy array."""
+        return self.as_numpy()
+
+    @data.setter
+    def data(self, value: Union[np.ndarray, da.core.Array, Sequence]) -> None:
+        value = da.asanyarray(value)
+        if value.shape != self.shape:
+            raise ValueError(f"Shapes inconsistent {self.shape} -> {value.shape}")
+        self._data = value if len(self) != 1 else value[np.newaxis]
+        self._dtype = value.dtype
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._data.dtype
+
+    @property
+    def shape(self) -> Tuple[int]:
+        return self._data.shape
+
+    @property
+    def ndim(self) -> int:
+        return self._data.ndim
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, new: str) -> None:
+        self._name = new
+
+    @property
+    def label(self) -> str:
+        return self._label
+
+    @label.setter
+    def label(self, new: str) -> None:
+        self._label = new
+
+    @property
+    def unit(self) -> str:
+        return self._unit
+
+    @unit.setter
+    def unit(self, new: str) -> None:
+        self._unit = new
+
+    @property
+    def axes(self) -> GridDatasetAxes:
+        return self._axes
+
+    @property
+    def temporal_steps(self) -> int:
+        if self._axes.time:
+            temporal_steps = len(self._axes.time)
+        elif self._axes.iteration:
+            temporal_steps = len(self._axes.iteration)
+        else:
+            temporal_steps = 1
+
+        return temporal_steps
+
+    @property
+    def grid_shape(self) -> Tuple[int, int]:
+        return tuple(
+            s
+            for s, ax in zip(self._data.shape, self._axes)
+            if ax.name not in ("time", "iteration")
+        )
+
+    @property
+    def grid_ndim(self) -> int:
+        return len(self.grid_shape)
+
+    def is_equiv_to(self, other: Union[Any, "GridDataset"]) -> bool:
+        if not isinstance(other, self.__class__):
+            return False
+
+        for attr in ["name", "label", "unit"]:
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+
+        if (self.grid_ndim != other.grid_ndim) or (self.grid_shape != other.grid_shape):
+            return False
+
+        return True
+
+    def append(self, other: Union[Any, "GridDataset"]) -> None:
+        if not isinstance(other, type(self)):
+            raise TypeError(
+                f"Can not append '{type(other).__name__}' to `GridDataset`!"
+            )
+
+        if not self.is_equiv_to(other):
+            raise ValueError("GridDatasets are not equivalent")
+
+        # update data
+        if len(self.axes.time) == 1:
+            self._data = self._data[np.newaxis]
+
+        if len(other.axes.time) == 1:
+            other_data = other.as_dask(squeeze=False)[np.newaxis]
+        else:
+            other_data = other.as_dask(squeeze=False)
+
+        self._data = da.concatenate((self._data, other_data))
+
+        # update axes
+        for ax in self.axes:
+            if ax.name in ("time", "iteration"):
+                continue
+            ax.append(other.axes[ax.name])
+
+        if len(self.axes.time) == 1:
+            self._axes.insert(0, self.axes.time)
+
+        self.axes.time.append(other.axes.time)
+        self.axes.iteration.append(other.axes.iteration)
 
     @classmethod
     def add_backend(cls, backend: GridBackendType) -> None:
@@ -726,133 +800,62 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             backends_dict[backend.name] = backend
         return backends_dict
 
-    @property
-    def backend(self) -> Optional[str]:
-        """Backend associated with instance."""
-        return self._backend
+    @classmethod
+    def get_valid_backend(cls, path: Path) -> Optional[GridBackendType]:
+        for backend in cls._backends:
+            if backend.is_valid_backend(path):
+                return backend
 
-    @property
-    def data(self) -> np.ndarray:
-        """Underlaying numpy array which stores the data for the grid."""
-        return self.__array__()
-
-    @data.setter
-    def data(self, value: Union[np.ndarray, Any]) -> None:
-        value = np.asanyarray(value)
-        if value.shape != self.shape:
-            raise ValueError(
-                f"Shapes inconsistent {self.shape} -> {value.shape}"
-            )
-        self._data = value if len(self) != 1 else value[np.newaxis]
-        self._dtype = value.dtype
-
-    @property
-    def dtype(self) -> np.dtype:
-        return self._dtype
-
-    @property
-    def shape(self) -> Tuple[int]:
-        if len(self) == 1:
-            shape = self.grid_shape
-        else:
-            shape = (len(self),) + self.grid_shape
-
-        return shape
-
-    @property
-    def ndim(self) -> int:
-        if len(self) == 1:
-            return len(self.grid_shape)
-        else:
-            return len(self.grid_shape) + 1
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, new) -> None:
-        self._name = str(new)
-
-    @property
-    def label(self) -> str:
-        return self._label
-
-    @label.setter
-    def label(self, new) -> None:
-        self._label = str(new)
-
-    @property
-    def unit(self) -> str:
-        return self._unit
-
-    @unit.setter
-    def unit(self, new) -> None:
-        self._unit = str(new)
-
-    @property
-    def axes(self) -> GridDatasetAxes:
-        return self._axes
-
-    @property
-    def grid_shape(self) -> Tuple[int]:
-        return self._grid_shape
-
-    def equivalent(self, other: Union[Any, GridDatasetType]) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-
-        for attr in ["name", "label", "unit"]:
-            if getattr(self, attr) != getattr(other, attr):
-                return False
-
-        if (self.axes["iteration"] is not None) and (
-            not self.axes["iteration"].equivalent(other.axes["iteration"])
-        ):
-            return False
-
-        if (self.axes["time"] is not None) and (
-            not self.axes["time"].equivalent(other.axes["time"])
-        ):
-            return False
-
-        for grid_axis, other_grid_axis in zip(
-            self.axes["grid_axes"], other.axes["grid_axes"]
-        ):
-            if grid_axis is None:
-                if other_grid_axis is None:
-                    continue
-                else:
-                    return False
-            else:
-                if not grid_axis.equivalent(other_grid_axis):
-                    return False
-
-        return True
-
-    def append(self, other: Union[Any, GridDatasetType]) -> None:
-        if not isinstance(other, self.__class__):
-            raise TypeError(
-                "Can not append "
-                + f"'{type(other).__name__}' to '{type(self).__name__}'"
-            )
-
-        if not self.equivalent(other):
-            raise ValueError("GridDatasets are not equivalent")
-
-        if self.axes["iteration"]:
-            self.axes["iteration"].append(other.axes["iteration"])
-        if self.axes["time"]:
-            self.axes["time"].append(other.axes["time"])
-
-        if self.axes["grid_axes"]:
-            for self_grid_axis, other_grid_axis in zip(
-                self.axes["grid_axes"], other.axes["grid_axes"]
-            ):
-                self_grid_axis.append(other_grid_axis)
-
-        self._data = np.append(self._data, other._data, axis=0)
+        return None
 
     @classmethod
     def register_plugin(cls, plugin_name, plugin):
         setattr(cls, plugin_name, plugin)
+
+    def as_numpy(self, squeeze: bool = False) -> np.ndarray:
+        arr = self.as_dask(squeeze).compute()
+        if isinstance(arr, np.ndarray):
+            return arr
+        else:
+            return np.asanyarray(arr)
+
+    def as_dask(self, squeeze: bool = False) -> da.core.Array:
+        if squeeze:
+            return da.squeeze(self._data)
+        else:
+            return self._data
+
+    def info(self) -> str:
+        str_ = f"{self.__class__.__name__}("
+        str_ += f"name='{self.name}', "
+        str_ += f"label='{self.label}', "
+        str_ += f"unit='{self.unit}', "
+        str_ += f"ndim={self.ndim}, "
+        str_ += f"shape={self.shape}, "
+        str_ += f"dtype={self.dtype}, "
+
+        iteration_axis = self.axes.iteration
+        str_ += "iteration="
+        str_ += array_format(iteration_axis.data) if iteration_axis else "None"
+        str_ += ", "
+
+        time_axis = self.axes.time
+        str_ += "time="
+        str_ += array_format(time_axis.data) if time_axis else "None"
+        str_ += ", "
+
+        if self.axes.grid_axes:
+            axes_formmating = []
+            for axis in self.axes.grid_axes:
+                axes_formmating.append(
+                    f"Axis('{axis.name}', "
+                    + f"len={len(axis)}, "
+                    + f"shape={axis.shape})"
+                )
+            str_ += f"grid_axes=[{', '.join(axes_formmating)}]"
+        else:
+            str_ += f"grid_axes={self.axes.grid_axes}"
+
+        str_ += ")"
+
+        return str_
