@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 from pathlib import Path
+from typing import Iterator
 from typing import Union
 
 
@@ -35,7 +37,7 @@ class FileList:
         return self._entrypoint.is_file()
 
     @property
-    def paths(self) -> Path:
+    def paths(self) -> Iterator[Path]:
         if self.is_single_file:
             yield self._entrypoint
 

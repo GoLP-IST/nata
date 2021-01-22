@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pytest
 
-from nata.containers.GridDataset import _separation_newaxis
+# import pytest
 
 _TestCases_seperation_newaxis = {}
 _TestCases_seperation_newaxis[":"] = (
@@ -107,28 +106,28 @@ _TestCases_seperation_newaxis[
 )
 
 
-@pytest.mark.parametrize(
-    [
-        "key",
-        "expected_deconstruction",
-        "expected_temporal_key",
-        "expected_spatial_key",
-        "two_types",
-    ],
-    [args for args in _TestCases_seperation_newaxis.values()],
-    ids=[names for names in _TestCases_seperation_newaxis.keys()],
-)
-def test_separation_newaxis(
-    key,
-    expected_deconstruction,
-    expected_temporal_key,
-    expected_spatial_key,
-    two_types,
-):
-    deconstructed_key, temporal_key, spatial_key = _separation_newaxis(
-        key, two_types=two_types
-    )
+# @pytest.mark.parametrize(
+#     [
+#         "key",
+#         "expected_deconstruction",
+#         "expected_temporal_key",
+#         "expected_spatial_key",
+#         "two_types",
+#     ],
+#     [args for args in _TestCases_seperation_newaxis.values()],
+#     ids=[names for names in _TestCases_seperation_newaxis.keys()],
+# )
+# def test_separation_newaxis(
+#     key,
+#     expected_deconstruction,
+#     expected_temporal_key,
+#     expected_spatial_key,
+#     two_types,
+# ):
+#     deconstructed_key, temporal_key, spatial_key = _separation_newaxis(
+#         key, two_types=two_types
+#     )
 
-    assert deconstructed_key == expected_deconstruction
-    assert temporal_key == expected_temporal_key
-    assert spatial_key == expected_spatial_key
+#     assert deconstructed_key == expected_deconstruction
+#     assert temporal_key == expected_temporal_key
+#     assert spatial_key == expected_spatial_key
