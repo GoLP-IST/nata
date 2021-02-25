@@ -36,7 +36,7 @@ classifiers = [
 python = "^3.6"
 numpy = "^1.18.1"
 matplotlib = "^3.1.2"
-h5py = "^2.10.0"
+h5py = "^3.1.0"
 typing_extensions = {version = "^3.7.4", python = "<3.8"}
 ipywidgets = "^7.5.1"
 dataclasses = {version = "^0.7", python = ">=3.6 <3.7"}
