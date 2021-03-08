@@ -330,8 +330,8 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
     ) -> "GridDataset":
         """``GridDataset`` from array/array-like objects
 
-        The classmethod ``GridDataset.from_array`` can create a ``GridDataset`` from
-        array like objects. If no axes are provided, default axis for a grid dataset
+        The classmethod ``GridDataset.from_array`` creates a ``GridDataset`` from an
+        array-like objects. If no axes are provided, default axis for a grid dataset
         will be used. If `dataset_axes` is provided, it will be used as axes for the
         ``GridDataset`` and individual axis are ignored. Otherwise use individual axis
         `time`, `iteration`, and `grid_axes` to specify values for each axis.
