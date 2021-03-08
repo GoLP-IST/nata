@@ -26,111 +26,36 @@ from nata.utils.types import FileLocation
 
 @runtime_checkable
 class GridBackendType(Protocol):
-    """Backend representing a grid.
-
-    `GridBackendType` is a protocol with the purpose of characterizing
-    attributes being available for object to be recognized as a
-    `GridBackendType`. Reading data is not part of this protocol but is
-    characterized by `GridDataReader` which extends this protocol.
-    """
-
-    #: Name of the backend. The name can be chosen individually and is used
-    #: for providing users with information about the underlaying data
-    #: storage. It should follow the convention
-    #: ``"CODENAME_VERSION_DATATYPE_STORAGE"``, e.g.
-    #: ``"osiris_4.4.4_grid_hdf5"``
     name: str
-
-    #: Location of the data. This attribute can be used inside a backend to
-    #: point to data, either to open a file or to retrieve it.
     location: Path
 
-    def __init__(self, location: FileLocation) -> None:
-        ...
+    def __init__(self, location: FileLocation) -> None: ...
 
     @staticmethod
-    def is_valid_backend(location: FileLocation) -> bool:
-        """Determine if a backend is a valid backend.
+    def is_valid_backend(location: FileLocation) -> bool: ...
 
-        Parameters
-        ----------
-        location : :obj:`str` or :obj:`pathlib.Path`
-            Checks if a location can be passed to backend to initiate it.
-
-        Returns
-        -------
-        out : :obj:`bool`
-            Returns ``True`` if ``location`` is valid input parameter for
-            instantiation and ``False`` otherwise.
-        """
-        ...
-
-    #: Name of the dataset. It has to be identifiable, e.g.
-    #: ``"some_dataset_name"``.
     dataset_name: str
-
-    #: Descriptive label of the dataset. Can be an arbitrary string, e.g.
-    #: ``"some long label with space"``.
     dataset_label: str
-
-    #: Unit of the correspinding grid. Can be an string including some latex
-    #: symbols, e.g. ``"m_e c \\omega_p e^{-1}"``.
     dataset_unit: str
 
-    #: A sequence of strings for each grid axis. Each string of the sequence
-    #: has to be identifiable, e.g. ``["axis0", "axis1", "axis2"]``.
     axes_names: Sequence[str]
-    #: A sequence of strings for each grid axis. Each string of the sequence
-    #: is a descriptive label for each axis, e.g.
-    #: ``["some axis 0", "some axis 1", "some axis 2"]``.
     axes_labels: Sequence[str]
-    #: A sequence of strings for each grid axis. Each string of the sequence
-    #: is the unit for each axis including some latex symbols, e.g.
-    #: ``["c / \\omega_p", "mm", "\\omega_p^{-1}"]``.
     axes_units: Sequence[str]
-    #: An array representing the lower limits of each grid axis.
     axes_min: np.ndarray
-    #: An array representing the upper limits of each grid axis.
     axes_max: np.ndarray
 
-    #: Associated iteration step of the underlaying data.
     iteration: int
-    #: ::Associated time step of the underlaying data in code units.
     time_step: float
-    #: Unit for time. Can be an arbitrary string, e.g. ``"1 / \\omega_p"``.
     time_unit: str
 
-    #: Tuple of grid array dimensions. Corresponds to
-    #: `numpy.ndarray.shape`.
     shape: Tuple[int, ...]
-    #: Data type object of the grid array. Corresponds to `numpy.dtype`.
     dtype: np.dtype
-    #: Dimensionality of the grid. Corresponds to `numpy.ndarray.ndim`
     ndim: int
 
 
 @runtime_checkable
 class GridDataReader(GridBackendType, Protocol):
-    """Extended backend which handles grid data reading"""
-
-    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray:
-        """Routine for reading underlaying grid data.
-
-        Parameters
-        ----------
-        indexing : `int`, `slice`, \
-                   :class:`typing.Tuple[Union[slice, int], ...]]`, optional
-            Optional indexing for reading a section of the grid. Any `basic
-            slicing and indexing  <https://numpy.org/doc/stable/reference/\
-            arrays.indexing.html#basic-slicing-and-indexing>`_ can be passed
-            here.
-
-        Returns
-        -------
-        out : :class:`numpy.ndarray`
-            Data array of the underlaying grid.
-        """
-        ...
+    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray: ...
 
 
 class GridDatasetAxes:
@@ -366,6 +291,9 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         unit: str = "",
     ):
         data = data if isinstance(data, da.core.Array) else da.asanyarray(data)
+
+        if not isinstance(axes, GridDatasetAxes):
+            raise TypeError("GridDatasetAxes object is required for 'axes'")
 
         if data.ndim != len(axes):
             raise ValueError("Mistmatched dimensionality between `data` and `axes`!")
