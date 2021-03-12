@@ -61,7 +61,7 @@ known_third_party=["attr", "h5py", "matplotlib", "numpy", "pytest", "hypothesis"
 
 [tool.black]
 line-length = 88
-target-version = ['py37', 'py38']
+target-version = ['py38']
 include = '\.pyi?$'
 exclude = '''
 /(
