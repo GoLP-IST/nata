@@ -46,6 +46,11 @@ RUN \
 USER ${dev_user}
 WORKDIR ${work_dir}
 
+# Setup devtools
 RUN \
   curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - \
-  && echo "export PATH='${HOME}/.poetry/bin:${PATH}'" >> "${HOME}/.bashrc"
+  && echo "export PATH='${HOME}/.poetry/bin:${PATH}'" >> "${HOME}/.bashrc" \
+  && pip install --user black \
+  && pip install --user pre-commit \
+  && pip install --user tox \
+  && echo "export PATH='${HOME}/.local/bin:${PATH}'" >> "${HOME}/.bashrc"
