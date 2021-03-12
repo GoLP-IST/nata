@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 from copy import copy
-from dataclasses import dataclass
-from dataclasses import field
 from pathlib import Path
 from typing import AbstractSet
 from typing import Any
@@ -15,62 +13,16 @@ from typing import Union
 from typing import runtime_checkable
 from warnings import warn
 
-import numpy as np
-
 import dask.array as da
 import ndindex as ndx
+import numpy as np
+
 from nata.axes import Axis
+from nata.containers.formatting import Table
 from nata.utils.formatting import array_format
 from nata.utils.io import FileList
 from nata.utils.types import BasicIndexing
 from nata.utils.types import FileLocation
-
-
-@dataclass
-class HtmlTag:
-    tag: str
-    text: str = field(default="")
-    children: List["HtmlTag"] = field(default_factory=list)
-    parent: Optional["HtmlTag"] = None
-
-    def __post_init__(self) -> None:
-        if self.parent:
-            if isinstance(self.parent, HtmlTag):
-                self.parent.append(self)
-            else:
-                raise TypeError(
-                    "Invalid parent type. Only 'HtmlTag' is allowed as parent"
-                )
-
-    def append(self, other: "HtmlTag") -> None:
-        if not isinstance(other, HtmlTag):
-            raise TypeError("Can only append elements of type 'HtmlTag'")
-        self.children.append(other)
-
-    def __str__(self) -> str:
-        if len(self.children):
-            inner = self.text
-            inner += "".join(str(child) for child in self.children)
-            return f"<{self.tag}>{inner}</{self.tag}>"
-        elif self.text:
-            return f"<{self.tag}>{self.text}</{self.tag}>"
-        else:
-            return f"</{self.tag}>"
-
-
-@dataclass
-class Table(HtmlTag):
-    tag: str = "table"
-
-
-@dataclass
-class TableRow(HtmlTag):
-    tag: str = "tr"
-
-
-@dataclass
-class TableData(HtmlTag):
-    tag: str = "td"
 
 
 @runtime_checkable
@@ -466,46 +418,30 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         return f"{type(self).__name__}[{self.name}]"
 
     def _repr_html_(self) -> str:
-        html = f"""
-        <table>
-          <tr>
-            <td>name</td>
-            <td>{self.name}</td>
-          </tr>
-          <tr>
-            <td>label</td>
-            <td>{self.label}</td>
-          </tr>
-        </table>
-        """
+        general_props = {
+            "name": self.name,
+            "label": self.label,
+            "unit": self.unit or "None",
+            "backend": self.backend or "None",
+        }
+        array_props = {
+            "ndim": self.ndim,
+            "shape": self.shape,
+            "dtype": self.dtype,
+        }
+        grid_props = {
+            "grid_ndim": self.grid_ndim,
+            "grid_shape": self.grid_shape,
+            "axes": ", ".join(axis.name for axis in self.axes),
+        }
 
-        # table = Table()
-
-        # # general properties
-        # row = TableRow(parent=table)
-        # TableData(text="name", parent=row)
-        # TableData(text=self.name, parent=row)
-
-        # row = TableRow(parent=table)
-        # TableData(text="label", parent=row)
-        # TableData(text=self.label, parent=row)
-
-        # row = TableRow(parent=table)
-        # TableData(text="unit", parent=row)
-        # TableData(text=self.unit or "-", parent=row)
-
-        # # Array props
-        # row = TableRow(parent=table)
-        # TableData(text="dtype", parent=row)
-        # TableData(text=self.dtype, parent=row)
-
-        # row = TableRow(parent=table)
-        # TableData(text="ndim", parent=row)
-        # TableData(text=self.ndim, parent=row)
-
-        # row = TableRow(parent=table)
-        # TableData(text="shape", parent=row)
-        # TableData(text=self.shape, parent=row)
+        html = Table(
+            f"{type(self).__name__}:",
+            general_props,
+            foldable=False,
+        ).render_as_html()
+        html += Table("Grid Properties", grid_props).render_as_html()
+        html += Table("Array Properties", array_props).render_as_html()
 
         return html
 
