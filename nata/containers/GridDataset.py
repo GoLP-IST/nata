@@ -325,7 +325,6 @@ class GridDatasetAxes:
 
 
 class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
-    """Container holding data associated with a grid."""
 
     _backends: AbstractSet[GridBackendType] = set()
     _handled_ufuncs = {}
@@ -380,39 +379,54 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         iteration: Optional[Union[Axis, Sequence]] = None,
         grid_axes: Optional[Sequence[Union[Axis, Sequence]]] = None,
     ) -> "GridDataset":
-        """``GridDataset`` from array/array-like objects
-
-        The classmethod ``GridDataset.from_array`` creates a ``GridDataset`` from an
-        array-like objects. If no axes are provided, default axis for a grid dataset
-        will be used. If `dataset_axes` is provided, it will be used as axes for the
-        ``GridDataset`` and individual axis are ignored. Otherwise use individual axis
-        `time`, `iteration`, and `grid_axes` to specify values for each axis.
-
-        Parameters
-        ----------
-        array : ``np.ndarray``, ``da.core.Array``, ``Sequence``
-            Array or an array like object used for creating ``GridDataset``.
-        name : ``str``, default: "unnamed"
-            Name of the ``GridDataset``.
-        label : ``str``, default: "unlabeled"
-            Label of the ``GridDataset``.
-        unit : ``str``, default: ""
-            Unit of the ``GridDataset``.
-
-        """
         data = da.asanyarray(array)
 
         axes = (
             dataset_axes
             if dataset_axes
             else GridDatasetAxes.default_axes_from_shape(
-                data.shape, time=time, iteration=iteration, grid_axes=grid_axes
+                data.shape,
+                time=time,
+                iteration=iteration,
+                grid_axes=grid_axes,
             )
         )
 
         return cls(
-            data, axes, name=name, label=label, unit=unit, backend=None, locations=None
+            data,
+            axes,
+            name=name,
+            label=label,
+            unit=unit,
+            backend=None,
+            locations=None,
         )
+
+    @classmethod
+    def from_path(cls, path: Union[Path, str]) -> "GridDataset":
+        file_list = FileList(path, recursive=False)
+        dataset = None
+
+        for p in file_list.paths:
+            backend = cls.get_valid_backend(p)
+            grid, name, label, unit, axes = cls._unpack_backend(backend, p)
+
+            tmp = cls(
+                grid,
+                axes,
+                name=name,
+                label=label,
+                unit=unit,
+                locations=[backend.location],
+                backend=backend.name,
+            )
+
+            if not dataset:
+                dataset = tmp
+            else:
+                dataset.append(tmp)
+
+        return dataset
 
     @staticmethod
     def _unpack_backend(backend: GridBackendType, path: Path):
@@ -447,32 +461,6 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             unit,
             GridDatasetAxes(grid_axes, time=time, iteration=iteration),
         )
-
-    @classmethod
-    def from_path(cls, path: Union[Path, str]) -> "GridDataset":
-        file_list = FileList(path, recursive=False)
-        dataset = None
-
-        for p in file_list.paths:
-            backend = cls.get_valid_backend(p)
-            grid, name, label, unit, axes = cls._unpack_backend(backend, p)
-
-            tmp = cls(
-                grid,
-                axes,
-                name=name,
-                label=label,
-                unit=unit,
-                locations=[backend.location],
-                backend=backend.name,
-            )
-
-            if not dataset:
-                dataset = tmp
-            else:
-                dataset.append(tmp)
-
-        return dataset
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}[{self.name}]"
