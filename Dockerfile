@@ -22,7 +22,7 @@ RUN \
   && tar -xzf szip-${SZIP_VERSION}.tar.gz \
   && cd szip-${SZIP_VERSION} \
   && ./configure --prefix=${SZIP_DIR} \
-  && make \ 
+  && make \
   && make install \
   && cd .. \
   && rm -rf szip-${SZIP_VERSION} szip-${SZIP_VERSION}.tar.gz \
@@ -36,6 +36,12 @@ RUN \
   && cd .. \
   && rm -rf hdf5-${HDF5_VERSION} hdf5-${HDF5_VERSION}.tar.bz2
 
+# Pip
+RUN \
+  pip install poetry \
+  && pip install black \
+  && pip install pre-commit
+
 # Setup project directory & poetry
 RUN \
   adduser \
@@ -45,12 +51,3 @@ RUN \
 
 USER ${dev_user}
 WORKDIR ${work_dir}
-
-# Setup devtools
-RUN \
-  curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - \
-  && echo "export PATH='${HOME}/.poetry/bin:${PATH}'" >> "${HOME}/.bashrc" \
-  && pip install --user black \
-  && pip install --user pre-commit \
-  && pip install --user tox \
-  && echo "export PATH='${HOME}/.local/bin:${PATH}'" >> "${HOME}/.bashrc"
