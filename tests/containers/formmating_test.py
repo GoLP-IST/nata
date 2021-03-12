@@ -17,9 +17,11 @@ def test_Table_foldable():
     table = Table("", {})
     assert table.foldable is True
 
+    # with foldable True
     table = Table("", {}, foldable=True)
     assert table.foldable is True
 
+    # with foldable False
     table = Table("", {}, foldable=False)
     assert table.foldable is False
 
