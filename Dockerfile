@@ -1,4 +1,4 @@
-FROM python:3.7.10
+FROM python:3.8
 
 ARG dev_user=natadev
 ARG home_dir=/home/${dev_user}
