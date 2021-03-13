@@ -10,5 +10,6 @@
 		"ms-python.vscode-pylance",
 		"bungcip.better-toml"
 	],
-	"remoteUser": "natadev"
+	"remoteUser": "natadev",
+	"postCreateCommand": "pip install ipdb"
 }
