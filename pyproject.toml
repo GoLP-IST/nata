@@ -64,25 +64,6 @@ known_third_party = ["attr", "h5py", "matplotlib", "numpy", "pytest", "hypothesi
 line_length = 88
 
 [tool.black]
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  # The following are specific to Black, you probably don't want those.
-  | blib2to3
-  | tests/data
-  | profiling
-)/
-'''
-include = '\.pyi?$'
 line-length = 88
 target-version = ['py38']
 
