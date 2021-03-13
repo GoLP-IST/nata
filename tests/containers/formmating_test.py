@@ -76,3 +76,31 @@ def test_Table_render_as_html_without_foldable_table():
         "</table>"
     )
     assert table.render_as_html() == expected_html
+
+
+def test_Table_render_as_html_using_foldable_table_open():
+    table = Table(
+        "some label",
+        {
+            "some key": "some value",
+            "some other key": "some other value",
+        },
+        foldable=True,
+        fold_closed=False,
+    )
+    expected_html = (
+        "<details open>"
+        "<summary>some label</summary>"
+        "<table style='margin-left: 1rem;'>"
+        "<tr>"
+        "<td style='font-weight: bold; text-align: left;'>some key</td>"
+        "<td style='text-align: left;'>some value</td>"
+        "</tr>"
+        "<tr>"
+        "<td style='font-weight: bold; text-align: left;'>some other key</td>"
+        "<td style='text-align: left;'>some other value</td>"
+        "</tr>"
+        "</table>"
+        "</details>"
+    )
+    assert table.render_as_html() == expected_html

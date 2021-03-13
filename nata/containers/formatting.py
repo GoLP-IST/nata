@@ -8,6 +8,7 @@ class Table:
     label: str
     content: Dict[str, str]
     foldable: bool = True
+    fold_closed: bool = True
 
     def render_as_html(self) -> str:
         inner = ""
@@ -21,7 +22,7 @@ class Table:
 
         if self.foldable:
             return (
-                "<details>"
+                f"<details{'' if self.fold_closed else ' open'}>"
                 f"<summary>{self.label}</summary>"
                 f"<table style='margin-left: 1rem;'>{inner}</table>"
                 "</details>"
