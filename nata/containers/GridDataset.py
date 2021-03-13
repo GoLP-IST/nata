@@ -270,7 +270,9 @@ class GridDatasetAxes:
                 axes.append(grid_axis)
 
         elif time is not None or iteration is not None:
-            temporal_dim = len(time) or len(iteration)
+            len_time = len(time) if time is not None else None
+            len_iteration = len(iteration) if iteration is not None else None
+            temporal_dim = len_time or len_iteration or 1
 
             for i, axis_len in enumerate(shape):
                 axis_values = np.broadcast_to(
