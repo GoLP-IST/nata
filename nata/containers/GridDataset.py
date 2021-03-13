@@ -71,13 +71,13 @@ class GridDatasetAxes:
         iteration: Optional[Axis] = None,
     ) -> None:
         if iteration is not None and not isinstance(iteration, Axis):
-            raise TypeError("Argument 'iteration' axes has to by of type `Axis`")
+            raise TypeError("Argument 'iteration' has to be of type `Axis`")
 
         if time is not None and not isinstance(time, Axis):
-            raise TypeError("Argument 'time' axes has to by of type `Axis`")
+            raise TypeError("Argument 'time' has to be of type `Axis`")
 
         if not all(isinstance(ax, Axis) for ax in axes):
-            raise TypeError("Argument 'axes' has to by of type `List[Axis]`")
+            raise TypeError("Argument 'axes' has to be of type `List[Axis]`")
 
         if any(ax.ndim == 0 for ax in axes):
             raise ValueError("0-dimensional axis not allowed!")
