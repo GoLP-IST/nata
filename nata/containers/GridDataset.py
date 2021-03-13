@@ -421,7 +421,7 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         general_props = {
             "name": self.name,
             "label": self.label,
-            "unit": self.unit or "None",
+            "unit": self.unit or "''",
             "backend": self.backend or "None",
         }
         array_props = {
