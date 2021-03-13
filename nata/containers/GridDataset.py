@@ -435,13 +435,23 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             "axes": ", ".join(axis.name for axis in self.axes),
         }
 
-        html = Table(
-            f"{type(self).__name__}:",
-            general_props,
-            foldable=False,
-        ).render_as_html()
-        html += Table("Grid Properties", grid_props).render_as_html()
-        html += Table("Array Properties", array_props).render_as_html()
+        html = (
+            Table(
+                f"{type(self).__name__}:",
+                general_props,
+                foldable=False,
+            ).render_as_html()
+            + Table(
+                "Grid Properties",
+                grid_props,
+                fold_closed=False,
+            ).render_as_html()
+            + Table(
+                "Array Properties",
+                array_props,
+                fold_closed=False,
+            ).render_as_html()
+        )
 
         return html
 
