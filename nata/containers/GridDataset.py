@@ -240,10 +240,11 @@ class GridDatasetAxes:
     ):
         axes = []
 
-        time = None if time is None else cls._default_time_axis(time)
-        iteration = (
-            None if iteration is None else cls._default_iteration_axis(iteration)
-        )
+        if time is not None:
+            time = cls._default_time_axis(time)
+
+        if iteration is not None:
+            iteration = cls._default_iteration_axis(iteration)
 
         # if multiple time steps -> 1st axis is time
         if time and len(time) > 1:
@@ -266,6 +267,17 @@ class GridDatasetAxes:
 
             for i, axis in enumerate(grid_axes):
                 grid_axis = cls._default_grid_axis(axis, i)
+                axes.append(grid_axis)
+
+        elif time is not None or iteration is not None:
+            temporal_dim = len(time) or len(iteration)
+
+            for i, axis_len in enumerate(shape):
+                axis_values = np.broadcast_to(
+                    np.arange(axis_len),
+                    (temporal_dim, axis_len),
+                )
+                grid_axis = cls._default_grid_axis(axis_values, i)
                 axes.append(grid_axis)
 
         # default behavior
