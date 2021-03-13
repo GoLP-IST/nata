@@ -36,12 +36,13 @@ version = "0.0.2"
 dask = {extras = ["array"], version = "^2.26.0"}
 dataclasses = {version = "^0.7", python = ">=3.6 <3.7"}
 h5py = "^3.1.0"
-ipywidgets = "^7.5.1"
 matplotlib = "^3.3.4"
 ndindex = "^1.4"
 numpy = "^1.20.1"
 python = "^3.8"
 jupyterlab = {version = "^3.0.10", optional = true}
+ipywidgets = {version = "^7.6.3", optional = true}
+jupyter = {version = "^1.0.0", optional = true}
 
 [tool.poetry.dev-dependencies]
 hypothesis = "^5.10.4"
@@ -53,6 +54,7 @@ ipdb = {version = "^0.13.6", optional = true, extras = ["devtools"]}
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme", "recommonmark"]
+jupyter = ["jupyterlab", "ipywidgets", "jupyter"]
 
 [tool.isort]
 atomic = true
