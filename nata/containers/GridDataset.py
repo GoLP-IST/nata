@@ -24,6 +24,8 @@ from nata.utils.io import FileList
 from nata.utils.types import BasicIndexing
 from nata.utils.types import FileLocation
 
+__all__ = ["GridDatasetAxes", "GridDataset"]
+
 
 @runtime_checkable
 class GridBackendType(Protocol):
