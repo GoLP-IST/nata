@@ -460,12 +460,10 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             + Table(
                 "Grid Properties",
                 grid_props,
-                fold_closed=False,
             ).render_as_html()
             + Table(
                 "Array Properties",
                 array_props,
-                fold_closed=False,
             ).render_as_html()
         )
 
