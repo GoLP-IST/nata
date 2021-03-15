@@ -318,7 +318,7 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             raise ValueError("Mistmatched dimensionality between `data` and `axes`!")
 
         if data.shape != axes.span:
-            raise ValueError("Shape and span of axes mismatch!")
+            raise ValueError("Shape of the data and span of axes mismatch!")
 
         self._data = data
         self._axes = axes
