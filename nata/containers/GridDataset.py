@@ -470,13 +470,12 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         return html
 
     def __len__(self) -> int:
-        if self._axes.has_temporal_axes:
-            if self._axes.time:
-                return len(self._axes.time)
-            else:
-                return len(self._axes.iteration)
-
-        return 1
+        if self._axes.time:
+            return len(self._axes.time)
+        elif self._axes.iteration:
+            return len(self._axes.iteration)
+        else:
+            return 1
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
         if dtype:
