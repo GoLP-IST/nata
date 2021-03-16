@@ -330,6 +330,14 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             else list(locations)
         )
 
+        # perform conversion to string if needed
+        name = name if isinstance(name, str) else str(name, encoding="utf-8")
+        label = label if isinstance(label, str) else str(label, encoding="utf-8")
+        unit = unit if isinstance(unit, str) else str(unit, encoding="utf-8")
+
+        if not name.isidentifier():
+            raise ValueError("Argument 'name' has to be an identifier!")
+
         self._name = name
         self._label = label
         self._unit = unit
