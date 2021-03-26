@@ -34,7 +34,6 @@ version = "0.0.2"
 
 [tool.poetry.dependencies]
 dask = {extras = ["array"], version = "^2.26.0"}
-dataclasses = {version = "^0.7", python = ">=3.6 <3.7"}
 h5py = "^3.1.0"
 matplotlib = "^3.3.4"
 ndindex = "^1.4"
