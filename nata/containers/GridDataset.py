@@ -678,6 +678,10 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
     @name.setter
     def name(self, new: str) -> None:
+        new = new if isinstance(new, str) else str(new, encoding="utf-8")
+        if not new.isidentifier():
+            raise ValueError("New name has to be an identifier")
+
         self._name = new
 
     @property

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 from nata.containers import GridDataset
 
@@ -41,6 +42,15 @@ def test_GridDataset_change_name():
     assert grid.name == "old_name"
     grid.name = "new_name"
     assert grid.name == "new_name"
+
+
+def test_GridDataset_raise_invalid_name():
+    with pytest.raises(ValueError, match="has to be an identifier"):
+        GridDataset.from_array([1, 2], name="some invalid name")
+
+    grid = GridDataset.from_array([1, 2])
+    with pytest.raises(ValueError, match="has to be an identifier"):
+        grid.name = "some invalid name"
 
 
 def test_GridDataset_from_array_with_time_axis():
