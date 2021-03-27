@@ -1,12 +1,25 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+
 from nata.containers import GridDataset
 
 
 def test_GridDataset_from_array():
     grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]])
 
+    # general information
+    assert grid.name == "unnamed"
+    assert grid.label == "unlabeled"
+    assert grid.unit == ""
+
+    # array and grid information
     assert grid.ndim == grid.grid_ndim == 2
     assert grid.shape == grid.grid_shape == (2, 3)
+    assert grid.dtype == np.int64
+
+    # axis info
+    assert grid.axes[0].name == "axis0"
+    assert grid.axes[1].name == "axis1"
 
 
 def test_GridDataset_from_array_with_time_axis():
