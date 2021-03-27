@@ -75,3 +75,19 @@ def test_GridDataset_from_array_with_iteration_axis():
 
     assert grid.axes[0].name == "iteration"
     assert grid.axes[1].name == "axis0"
+
+
+def test_GridDataset_from_array_time_precedence():
+    grid = GridDataset.from_array(
+        [[1, 2, 3], [3, 4, 5]],
+        iteration=[1, 5],
+        time=[2.2, 5.5],
+    )
+
+    assert grid.axes[0].name == "time"
+    assert grid.axes[1].name == "axis0"
+
+    assert "iteration" in grid.axes
+
+    np.testing.assert_array_equal(grid.axes.time, [2.2, 5.5])
+    np.testing.assert_array_equal(grid.axes.iteration, [1, 5])
