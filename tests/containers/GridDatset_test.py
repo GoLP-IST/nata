@@ -22,6 +22,19 @@ def test_GridDataset_from_array():
     assert grid.axes[1].name == "axis1"
 
 
+def test_GridDataset_from_array_naming():
+    grid = GridDataset.from_array(
+        [[1, 2, 3], [3, 4, 5]],
+        name="my_new_name",
+        label="My New Label",
+        unit="some unit",
+    )
+
+    assert grid.name == "my_new_name"
+    assert grid.label == "My New Label"
+    assert grid.unit == "some unit"
+
+
 def test_GridDataset_from_array_with_time_axis():
     grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]], time=[15, 20])
 
