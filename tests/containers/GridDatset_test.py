@@ -72,3 +72,6 @@ def test_GridDataset_from_array_with_iteration_axis():
     assert grid.grid_ndim == 1
     assert grid.shape == (2, 3)
     assert grid.grid_shape == (3,)
+
+    assert grid.axes[0].name == "iteration"
+    assert grid.axes[1].name == "axis0"
