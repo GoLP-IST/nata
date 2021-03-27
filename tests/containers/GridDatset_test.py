@@ -61,6 +61,9 @@ def test_GridDataset_from_array_with_time_axis():
     assert grid.shape == (2, 3)
     assert grid.grid_shape == (3,)
 
+    assert grid.axes[0].name == "time"
+    assert grid.axes[1].name == "axis0"
+
 
 def test_GridDataset_from_array_with_iteration_axis():
     grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]], iteration=[1, 5])
