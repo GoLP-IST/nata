@@ -35,6 +35,14 @@ def test_GridDataset_from_array_naming():
     assert grid.unit == "some unit"
 
 
+def test_GridDataset_change_name():
+    grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]], name="old_name")
+
+    assert grid.name == "old_name"
+    grid.name = "new_name"
+    assert grid.name == "new_name"
+
+
 def test_GridDataset_from_array_with_time_axis():
     grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]], time=[15, 20])
 
