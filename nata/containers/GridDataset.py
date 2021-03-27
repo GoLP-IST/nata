@@ -168,6 +168,21 @@ class GridDatasetAxes:
         all_axes = ", ".join(ax.name for ax in self._axes)
         return f"{self.__class__.__name__}[{all_axes}]"
 
+    def _repr_html_(self) -> str:
+        time_html = self.time._repr_html_() if isinstance(self.time, Axis) else "None"
+        iter_html = (
+            self.iteration._repr_html_() if isinstance(self.iteration, Axis) else "None"
+        )
+        grid_axes_html = ", ".join(ax._repr_html_() for ax in self.grid_axes)
+
+        axes = {
+            "time": time_html,
+            "iteration": iter_html,
+            "grid_axes": grid_axes_html,
+        }
+
+        return Table(f"{type(self).__name__}:", axes, foldable=False).render_as_html()
+
     def copy(self) -> "GridDatasetAxes":
         return self.__class__(
             copy(self._axes), iteration=copy(self._iteration), time=copy(self._time)
