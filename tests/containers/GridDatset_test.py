@@ -2,7 +2,9 @@
 import numpy as np
 import pytest
 
+from nata.axes import Axis
 from nata.containers import GridDataset
+from nata.containers.GridDataset import GridDatasetAxes
 
 
 def test_GridDataset_from_array():
@@ -91,3 +93,38 @@ def test_GridDataset_from_array_time_precedence():
 
     np.testing.assert_array_equal(grid.axes.time, [2.2, 5.5])
     np.testing.assert_array_equal(grid.axes.iteration, [1, 5])
+
+
+def test_GridDataset_from_array_passing_GridDatasetAxes():
+    grid = GridDataset.from_array(
+        [[1, 2, 3], [3, 4, 5]],
+        dataset_axes=GridDatasetAxes(
+            axes=[
+                Axis([1.2, 3.4], name="my_custom_axis0"),
+                Axis([-4, 8, 3], name="my_custom_axis1"),
+            ],
+            iteration=Axis(10, name="my_iter_axis"),
+            time=Axis(123.0, name="my_time_axis"),
+        ),
+        # should be ignored
+        iteration=[1, 2, 3, 4],
+        time=[0],
+    )
+
+    assert grid.axes[0].name == "my_custom_axis0"
+    assert grid.axes[1].name == "my_custom_axis1"
+    assert "my_custom_axis0" in grid.axes
+    assert "my_custom_axis1" in grid.axes
+
+    assert grid.axes.iteration.name == "my_iter_axis"
+    np.testing.assert_array_equal(grid.axes.iteration, 10)
+
+    assert grid.axes.time.name == "my_time_axis"
+    np.testing.assert_array_equal(grid.axes.time, 123)
+
+    # should raise assertion error as this axis are ignored
+    with pytest.raises(AssertionError):
+        np.testing.assert_array_equal(grid.axes.time, [0])
+
+    with pytest.raises(AssertionError):
+        np.testing.assert_array_equal(grid.axes.iteration, [1, 2, 3, 4])
