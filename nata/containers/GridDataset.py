@@ -351,7 +351,7 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         unit = unit if isinstance(unit, str) else str(unit, encoding="utf-8")
 
         if not name.isidentifier():
-            raise ValueError("Argument 'name' has to be an identifier!")
+            raise ValueError("Argument 'name' has to be an identifier")
 
         self._name = name
         self._label = label
