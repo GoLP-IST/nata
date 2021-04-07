@@ -8,10 +8,9 @@ from typing import Type
 from typing import Union
 from warnings import warn
 
-import numpy as np
-
 import dask.array as da
 import ndindex as ndx
+import numpy as np
 
 from .types import AxisType
 from .utils.exceptions import DimensionError
@@ -40,7 +39,10 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         self._unit = unit
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}<name={self.name}, axis_dim={self.axis_dim}>"
+        return f"{type(self).__name__}(name={self.name})"
+
+    def _repr_html_(self) -> str:
+        return f"{type(self).__name__}(name: <i>{self.name}</i>)"
 
     def __len__(self) -> int:
         if self._data.ndim > self._axis_dim:
@@ -77,7 +79,11 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         axis_dim = (axis_dim - count_int) if (axis_dim - count_int) > 0 else 0
 
         return self.__class__(
-            data, axis_dim=axis_dim, name=self.name, label=self.label, unit=self.unit,
+            data,
+            axis_dim=axis_dim,
+            name=self.name,
+            label=self.label,
+            unit=self.unit,
         )
 
     def __setitem__(
