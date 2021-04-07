@@ -128,3 +128,12 @@ def test_GridDataset_from_array_passing_GridDatasetAxes():
 
     with pytest.raises(AssertionError):
         np.testing.assert_array_equal(grid.axes.iteration, [1, 2, 3, 4])
+
+
+def test_GridDataset_raise_if_invalid_name():
+    with pytest.raises(ValueError, match="Argument 'name' has to be an identifier"):
+        GridDataset.from_array([[1, 2, 3], [3, 4, 5]], name="some invalid name")
+
+    with pytest.raises(ValueError, match="New name has to be an identifier"):
+        grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]])
+        grid.name = "some invalid name"
