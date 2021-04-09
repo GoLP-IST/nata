@@ -84,3 +84,12 @@ def test_Axis_as_numpy():
     """Check that '.as_numpy' returns a numpy array"""
     axis = Axis(())
     assert isinstance(axis.as_numpy(), np.ndarray)
+
+
+def test_Axis_len():
+    """Check length represents appendable dimension."""
+    axis = Axis([1, 2, 3])
+    assert len(axis) == 1
+
+    axis = Axis([1, 2, 3], has_appendable_dim=True)
+    assert len(axis) == 3

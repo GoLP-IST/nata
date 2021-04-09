@@ -23,6 +23,12 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         self._label = label
         self._unit = unit
 
+    def __len__(self) -> int:
+        if self._has_appendable_dim:
+            return len(self._data)
+        else:
+            return 1
+
     def __repr__(self) -> str:
         return f"Axis(name='{self.name}', label='{self.label}', unit='{self.unit}')"
 
