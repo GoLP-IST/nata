@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
 from typing import Tuple
 
 import dask.array as da
@@ -90,3 +91,7 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
 
     def as_numpy(self) -> np.ndarray:
         return self._data.compute()
+
+    def __array__(self, dtype: Optional[np.dtype] = None):
+        data = self._data.compute()
+        return data.astype(dtype) if dtype else data

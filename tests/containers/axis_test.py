@@ -101,3 +101,8 @@ def test_Axis_array_props():
     assert axis.shape == (3,)
     assert axis.ndim == 1
     assert axis.dtype == int
+
+
+def test_Axis_array_method():
+    axis = Axis([0, 1, 2])
+    np.testing.assert_almost_equal(np.array(axis), [0, 1, 2])
