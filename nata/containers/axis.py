@@ -67,3 +67,6 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
 
     def as_dask(self) -> da.Array:
         return self._data
+
+    def as_numpy(self) -> np.ndarray:
+        return self._data.compute()

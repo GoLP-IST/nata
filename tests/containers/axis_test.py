@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import dask.array as da
+import numpy as np
 import pytest
 
 from nata.containers.axis import Axis
@@ -77,3 +78,9 @@ def test_Axis_as_dask():
     """Check that '.as_dask' returns a dask array"""
     axis = Axis(())
     assert isinstance(axis.as_dask(), da.Array)
+
+
+def test_Axis_as_numpy():
+    """Check that '.as_numpy' returns a numpy array"""
+    axis = Axis(())
+    assert isinstance(axis.as_numpy(), np.ndarray)
