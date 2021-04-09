@@ -93,3 +93,11 @@ def test_Axis_len():
 
     axis = Axis([1, 2, 3], has_appendable_dim=True)
     assert len(axis) == 3
+
+
+def test_Axis_array_props():
+    axis = Axis([1, 2, 3])
+
+    assert axis.shape == (3,)
+    assert axis.ndim == 1
+    assert axis.dtype == int

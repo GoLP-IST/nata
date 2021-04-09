@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Tuple
+
 import dask.array as da
 import numpy as np
 
@@ -70,6 +72,18 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     @unit.setter
     def unit(self, new_unit: str) -> None:
         self._unit = new_unit
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return self._data.shape
+
+    @property
+    def ndim(self) -> int:
+        return self._data.ndim
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._data.dtype
 
     def as_dask(self) -> da.Array:
         return self._data
