@@ -26,6 +26,18 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def __repr__(self) -> str:
         return f"Axis(name='{self.name}', label='{self.label}', unit='{self.unit}')"
 
+    def _repr_html_(self) -> str:
+        return (
+            "<span>Axis</span>"
+            "<span style='color: var(--jp-info-color0);'>"
+            "("
+            f"name='{self.name}', "
+            f"label='{self.label}', "
+            f"unit='{self.unit}'"
+            ")"
+            "</span>"
+        )
+
     @property
     def name(self) -> str:
         return self._name
