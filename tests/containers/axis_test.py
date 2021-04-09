@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import dask.array as da
+import pytest
 
 from nata.containers.axis import Axis
 
@@ -43,6 +44,15 @@ def test_Axis_change_name():
 
     axis.name = "some_new_name"
     assert axis.name == "some_new_name"
+
+
+def test_Axis_raises_not_identifier():
+    with pytest.raises(ValueError, match="has to be a valid identifier"):
+        Axis((), name="invalid name with space")
+
+    with pytest.raises(ValueError, match="has to be a valid identifier"):
+        axis = Axis(())
+        axis.name = "invalid name with space"
 
 
 def test_Axis_change_label():

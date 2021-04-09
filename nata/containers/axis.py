@@ -44,6 +44,9 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
 
     @name.setter
     def name(self, new_name: str) -> None:
+        if not new_name.isidentifier():
+            raise ValueError("New name has to be a valid identifier")
+
         self._name = new_name
 
     @property
