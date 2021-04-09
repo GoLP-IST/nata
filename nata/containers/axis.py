@@ -126,3 +126,43 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
             new_data = new_data[np.newaxis]
 
             self._data = da.concatenate((self._data, new_data), axis=0)
+
+    @staticmethod
+    def _log_axis(
+        min_: Union[float, int], max_: Union[float, int], points: int
+    ) -> da.core.Array:
+        """Generates logarithmically spaced array."""
+        min_ = np.log10(min_)
+        max_ = np.log10(max_)
+        return 10.0 ** da.linspace(min_, max_, points)
+
+    @staticmethod
+    def _lin_axis(
+        min_: Union[float, int], max_: Union[float, int], points: int
+    ) -> da.core.Array:
+        """Generates linearly spaced array."""
+        return da.linspace(min_, max_, points)
+
+    @classmethod
+    def from_limits(
+        cls,
+        lower_limit: Union[float, int],
+        upper_limit: Union[float, int],
+        points: int,
+        *,
+        name: str = "unnamed",
+        label: str = "unlabeled",
+        unit: str = "",
+        spacing: str = "linear",
+    ) -> "Axis":
+        if spacing in ("linear", "lin"):
+            axis = cls._lin_axis(lower_limit, upper_limit, points)
+        elif spacing in ("logarithmic", "log"):
+            axis = cls._log_axis(lower_limit, upper_limit, points)
+        else:
+            raise ValueError(
+                "Invalid axis type provided. \n"
+                "Only 'lin', 'linear', 'log', and 'logarithmic' are supported"
+            )
+
+        return cls(axis, name=name, label=label, unit=unit)

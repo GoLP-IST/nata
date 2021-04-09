@@ -146,3 +146,50 @@ def test_Axis_getitem():
     sub_axis = axis[1:3]
     np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
     assert len(sub_axis) == 2
+
+
+_testCases_from_limits = {}
+_testCases_from_limits["linear"] = {
+    "args": (-12.3, 42.3, 110),
+    "kwargs": {"spacing": "linear"},
+    "expected_name": "unnamed",
+    "expected_label": "unlabeled",
+    "expected_unit": "",
+    "expected_array": np.linspace(-12.3, 42.3, 110),
+}
+_testCases_from_limits["lin"] = {
+    "args": (-12.3, 42.3, 123),
+    "kwargs": {"spacing": "lin"},
+    "expected_name": "unnamed",
+    "expected_label": "unlabeled",
+    "expected_unit": "",
+    "expected_array": np.linspace(-12.3, 42.3, 123),
+}
+_testCases_from_limits["logarithmic"] = {
+    "args": (0.1, 1000.0, 42),
+    "kwargs": {"spacing": "logarithmic"},
+    "expected_name": "unnamed",
+    "expected_label": "unlabeled",
+    "expected_unit": "",
+    "expected_array": np.logspace(-1, 3, 42),
+}
+_testCases_from_limits["log"] = {
+    "args": (0.1, 100.0, 13),
+    "kwargs": {"spacing": "log"},
+    "expected_name": "unnamed",
+    "expected_label": "unlabeled",
+    "expected_unit": "",
+    "expected_array": np.logspace(-1, 2, 13),
+}
+
+
+@pytest.mark.parametrize(
+    "case", _testCases_from_limits.values(), ids=_testCases_from_limits.keys()
+)
+def test_Axis_from_limits(case):
+    axis = Axis.from_limits(*case["args"], **case["kwargs"])
+
+    assert axis.name == case["expected_name"]
+    assert axis.label == case["expected_label"]
+    assert axis.unit == case["expected_unit"]
+    np.testing.assert_array_equal(axis, case["expected_array"])
