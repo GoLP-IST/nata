@@ -5,6 +5,7 @@ from typing import Tuple
 from typing import Union
 
 import dask.array as da
+import ndindex as ndx
 import numpy as np
 
 
@@ -97,6 +98,17 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def __array__(self, dtype: Optional[np.dtype] = None):
         data = self._data.compute()
         return data.astype(dtype) if dtype else data
+
+    def __getitem__(self, key: Any) -> da.Array:
+        # check if appendable dimension is being reduced
+        if self._has_appendable_dim:
+            index = ndx.ndindex(key).expand(self._data.shape).raw
+            has_appendable_dim = True if not isinstance(index[0], int) else False
+        else:
+            has_appendable_dim = False
+
+        selection = self._data[key]
+        return self.__class__(selection, has_appendable_dim=has_appendable_dim)
 
     def append(self, new_data: Union[da.Array, Any]) -> None:
         if not isinstance(new_data, da.Array):

@@ -119,3 +119,30 @@ def test_Axis_append():
 
     axis.append([3, 4])
     np.testing.assert_array_equal(axis, [0, 1, 2, 3, 4])
+
+
+def test_Axis_append_other_Axis():
+    some_axis = Axis(0, name="some_axis")
+    some_other_axis = Axis(1, name="some_other_axis")
+
+    some_axis.append(some_other_axis)
+
+    assert some_axis.name == "some_axis"
+    np.testing.assert_array_equal(some_axis, [0, 1])
+
+
+def test_Axis_getitem():
+    axis = Axis(np.arange(12).reshape((4, 3)))
+    sub_axis = axis[3]
+    np.testing.assert_array_equal(sub_axis, [9, 10, 11])
+    assert len(sub_axis) == 1
+
+    axis = Axis(np.arange(12).reshape((4, 3)))
+    sub_axis = axis[1:3]
+    np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
+    assert len(sub_axis) == 1
+
+    axis = Axis(np.arange(12).reshape((4, 3)), has_appendable_dim=True)
+    sub_axis = axis[1:3]
+    np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
+    assert len(sub_axis) == 2
