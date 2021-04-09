@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import dask.array as da
+
 from nata.containers.axis import Axis
 
 
@@ -59,3 +61,9 @@ def test_Axis_change_unit():
 
     axis.unit = "some new unit"
     assert axis.unit == "some new unit"
+
+
+def test_Axis_as_dask():
+    """Check that '.as_dask' returns a dask array"""
+    axis = Axis(())
+    assert isinstance(axis.as_dask(), da.Array)
