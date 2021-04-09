@@ -106,3 +106,16 @@ def test_Axis_array_props():
 def test_Axis_array_method():
     axis = Axis([0, 1, 2])
     np.testing.assert_almost_equal(np.array(axis), [0, 1, 2])
+
+
+def test_Axis_append():
+    axis = Axis(0)
+
+    axis.append(1)
+    np.testing.assert_array_equal(axis, [0, 1])
+
+    axis.append(2)
+    np.testing.assert_array_equal(axis, [0, 1, 2])
+
+    axis.append([3, 4])
+    np.testing.assert_array_equal(axis, [0, 1, 2, 3, 4])

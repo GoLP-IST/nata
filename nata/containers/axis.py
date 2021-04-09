@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+from typing import Any
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import dask.array as da
 import numpy as np
@@ -95,3 +97,20 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def __array__(self, dtype: Optional[np.dtype] = None):
         data = self._data.compute()
         return data.astype(dtype) if dtype else data
+
+    def append(self, new_data: Union[da.Array, Any]) -> None:
+        if not isinstance(new_data, da.Array):
+            new_data = da.asanyarray(new_data)
+
+        if self._has_appendable_dim:
+            if new_data.ndim == (self._data.ndim - 1):
+                new_data = new_data[np.newaxis]
+
+            self._data = da.concatenate((self._data, new_data), axis=0)
+        else:
+            # add new dimension along which 'new_data' will be appended
+            self._data = self._data[np.newaxis]
+            self._has_appendable_dim = True
+            new_data = new_data[np.newaxis]
+
+            self._data = da.concatenate((self._data, new_data), axis=0)
