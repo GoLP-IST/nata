@@ -57,3 +57,7 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     @property
     def unit(self) -> str:
         return self._unit
+
+    @unit.setter
+    def unit(self, new_unit: str) -> None:
+        self._unit = new_unit

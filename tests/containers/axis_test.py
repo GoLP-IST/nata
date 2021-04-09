@@ -50,3 +50,12 @@ def test_Axis_change_label():
 
     axis.label = "some new label"
     assert axis.label == "some new label"
+
+
+def test_Axis_change_unit():
+    """Makes sure unit property of Axis can be changed"""
+    axis = Axis((), unit="some unit")
+    assert axis.unit == "some unit"
+
+    axis.unit = "some new unit"
+    assert axis.unit == "some new unit"
