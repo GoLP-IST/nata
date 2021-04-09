@@ -35,8 +35,18 @@ def test_Axis_repr_html():
 
 
 def test_Axis_change_name():
+    """Makes sure name property of Axis can be changed"""
     axis = Axis((), name="some_name")
     assert axis.name == "some_name"
 
     axis.name = "some_new_name"
     assert axis.name == "some_new_name"
+
+
+def test_Axis_change_label():
+    """Makes sure label property of Axis can be changed"""
+    axis = Axis((), label="some label")
+    assert axis.label == "some label"
+
+    axis.label = "some new label"
+    assert axis.label == "some new label"

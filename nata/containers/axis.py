@@ -50,6 +50,10 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def label(self) -> str:
         return self._label
 
+    @label.setter
+    def label(self, new_label: str) -> None:
+        self._label = new_label
+
     @property
     def unit(self) -> str:
         return self._unit
