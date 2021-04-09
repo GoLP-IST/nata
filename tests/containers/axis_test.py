@@ -32,3 +32,11 @@ def test_Axis_repr_html():
     )
 
     assert axis._repr_html_() == expected
+
+
+def test_Axis_change_name():
+    axis = Axis((), name="some_name")
+    assert axis.name == "some_name"
+
+    axis.name = "some_new_name"
+    assert axis.name == "some_new_name"
