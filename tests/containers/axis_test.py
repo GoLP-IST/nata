@@ -193,3 +193,12 @@ def test_Axis_from_limits(case):
     assert axis.label == case["expected_label"]
     assert axis.unit == case["expected_unit"]
     np.testing.assert_array_equal(axis, case["expected_array"])
+
+
+def test_Axis_ufunc():
+    axis = Axis([0, 1, 2])
+    axis += 1
+    np.testing.assert_array_equal(axis, [1, 2, 3])
+
+    axis = Axis([0, 1, 2])
+    np.testing.assert_array_equal(axis + 1, [1, 2, 3])

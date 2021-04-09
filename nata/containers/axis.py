@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -98,6 +99,40 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def __array__(self, dtype: Optional[np.dtype] = None):
         data = self._data.compute()
         return data.astype(dtype) if dtype else data
+
+    def __array_ufunc__(
+        self,
+        ufunc: np.ufunc,
+        method: str,
+        *inputs: Tuple[Any, ...],
+        **kwargs: Dict[str, Any],
+    ) -> "Axis":
+        # Takes inputs and replaces instances of 'self' by '_data'
+        inputs = tuple(self._data if obj is self else obj for obj in inputs)
+
+        if "out" in kwargs:
+            kwargs["out"] = tuple(
+                self._data if obj is self else obj for obj in kwargs["out"]
+            )
+
+        data = self._data.__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+        if data is NotImplemented:
+            raise NotImplementedError(
+                f"{ufunc=} for {method=}, {inputs=}, and {kwargs=} not implemented"
+            )
+        elif data is None:
+            # in-place
+            self._data = kwargs["out"][0]
+            return self
+        else:
+            return self.__class__(
+                data,
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+                has_appendable_dim=self._has_appendable_dim,
+            )
 
     def __getitem__(self, key: Any) -> da.Array:
         # check if appendable dimension is being reduced
