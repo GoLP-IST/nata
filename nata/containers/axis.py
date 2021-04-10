@@ -146,6 +146,9 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         return self.__class__(selection, has_appendable_dim=has_appendable_dim)
 
     def append(self, new_data: Union[da.Array, Any]) -> None:
+        if isinstance(new_data, Axis):
+            new_data = new_data.as_dask()
+
         if not isinstance(new_data, da.Array):
             new_data = da.asanyarray(new_data)
 
