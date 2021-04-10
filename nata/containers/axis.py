@@ -244,3 +244,11 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
             )
 
         return cls(axis, name=name, label=label, unit=unit)
+
+
+@Axis.implements(np.concatenate)
+def concatenate(arrays, *args, **kwargs):
+    arrays = tuple(
+        array if not isinstance(array, Axis) else array.as_dask() for array in arrays
+    )
+    return Axis(np.concatenate(arrays, *args, **kwargs))

@@ -202,3 +202,8 @@ def test_Axis_ufunc():
 
     axis = Axis([0, 1, 2])
     np.testing.assert_array_equal(axis + 1, [1, 2, 3])
+
+
+def test_Axis_array_function():
+    concanated_axes = np.concatenate((Axis([0, 1]), Axis([2, 3])))
+    np.testing.assert_array_equal(concanated_axes, [0, 1, 2, 3])
