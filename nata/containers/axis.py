@@ -11,6 +11,8 @@ import dask.array as da
 import ndindex as ndx
 import numpy as np
 
+from .formatting import Table
+
 
 class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     _handled_array_function = {}
@@ -45,16 +47,19 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         return f"Axis(name='{self.name}', label='{self.label}', unit='{self.unit}')"
 
     def _repr_html_(self) -> str:
-        return (
-            "<span>Axis</span>"
-            "<span style='color: var(--jp-info-color0);'>"
-            "("
-            f"name='{self.name}', "
-            f"label='{self.label}', "
-            f"unit='{self.unit}'"
-            ")"
-            "</span>"
-        )
+        html = Table(
+            f"{type(self).__name__}",
+            {
+                "name": self.name,
+                "label": self.label,
+                "unit": self.unit or "''",
+                "ndim": self.ndim,
+                "shape": self.shape,
+                "dtype": self.dtype,
+            },
+            fold_closed=False,
+        ).render_as_html()
+        return html
 
     @property
     def name(self) -> str:
