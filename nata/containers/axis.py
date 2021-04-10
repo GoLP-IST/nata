@@ -14,6 +14,7 @@ import numpy as np
 
 class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     _handled_array_function = {}
+    _handled_array_ufunc = {}
 
     def __init__(
         self,
@@ -104,6 +105,24 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         data = self._data.compute()
         return data.astype(dtype) if dtype else data
 
+    @classmethod
+    def implements(
+        cls,
+        numpy_function: Callable,
+        function_type: str = "array_function",
+    ):
+        def decorator(func):
+            if function_type == "array_function":
+                cls._handled_array_function[numpy_function] = func
+            elif function_type == "array_ufunc":
+                cls._handled_array_ufunc[numpy_function] = func
+            else:
+                raise ValueError("Invalid 'function_type' provided")
+
+            return func
+
+        return decorator
+
     def __array_ufunc__(
         self,
         ufunc: np.ufunc,
@@ -111,6 +130,9 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         *inputs: Tuple[Any, ...],
         **kwargs: Dict[str, Any],
     ) -> "Axis":
+        if ufunc in self._handled_array_ufunc:
+            return self._handled_array_ufunc[ufunc](method, *inputs, **kwargs)
+
         # Takes inputs and replaces instances of 'self' by '_data'
         inputs = tuple(self._data if obj is self else obj for obj in inputs)
 
@@ -137,14 +159,6 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
                 unit=self.unit,
                 has_appendable_dim=self._has_appendable_dim,
             )
-
-    @classmethod
-    def implements(cls, numpy_function: Callable):
-        def decorator(func):
-            cls._handled_array_function[numpy_function] = func
-            return func
-
-        return decorator
 
     def __array_function__(
         self,
