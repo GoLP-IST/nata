@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import Optional
 from typing import Tuple
+from typing import Type
 from typing import Union
 
 import dask.array as da
@@ -11,6 +13,8 @@ import numpy as np
 
 
 class Axis(np.lib.mixins.NDArrayOperatorsMixin):
+    _handled_array_function = {}
+
     def __init__(
         self,
         data: da.Array,
@@ -133,6 +137,42 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
                 unit=self.unit,
                 has_appendable_dim=self._has_appendable_dim,
             )
+
+    @classmethod
+    def implements(cls, numpy_function: Callable):
+        def decorator(func):
+            cls._handled_array_function[numpy_function] = func
+            return func
+
+        return decorator
+
+    def __array_function__(
+        self,
+        function: Callable,
+        types: Tuple[Type[Any], ...],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+    ):
+        if function in self._handled_array_function:
+            return self._handled_array_function[function](*args, **kwargs)
+
+        repacked_types = tuple(
+            type_ if not issubclass(type_, Axis) else da.Array for type_ in types
+        )
+        repacked_args = tuple(
+            arg if not isinstance(arg, Axis) else arg.as_dask() for arg in args
+        )
+
+        data = self._data.__array_function__(
+            function,
+            repacked_types,
+            repacked_args,
+            kwargs,
+        )
+
+        # TODO: Are name, label, and unit required to be passed here or should we have
+        #       default option
+        return self.__class__(data, has_appendable_dim=self._has_appendable_dim)
 
     def __getitem__(self, key: Any) -> da.Array:
         # check if appendable dimension is being reduced
