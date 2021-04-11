@@ -6,7 +6,7 @@ import numpy as np
 
 from nata.utils.exceptions import NataInvalidContainer
 
-from .GridDataset import GridDataset
+from .grid import GridDataset
 from .ParticleDataset import ParticleDataset
 
 
@@ -14,9 +14,7 @@ class DatasetCollection:
     _container_set = set([GridDataset, ParticleDataset])
 
     def __init__(self, root_path: Union[str, Path]) -> None:
-        self.root_path = (
-            root_path if isinstance(root_path, Path) else Path(root_path)
-        )
+        self.root_path = root_path if isinstance(root_path, Path) else Path(root_path)
         self.store = dict()
 
     def __repr__(self) -> str:

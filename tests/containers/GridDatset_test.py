@@ -4,7 +4,7 @@ import pytest
 
 from nata.axes import Axis
 from nata.containers import GridDataset
-from nata.containers.GridDataset import GridDatasetAxes
+from nata.containers import GridDatasetAxes
 
 
 def test_GridDataset_from_array():
