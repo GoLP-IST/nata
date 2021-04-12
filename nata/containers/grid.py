@@ -186,7 +186,7 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             backend = cls.get_valid_backend(p)
             if not backend:
                 continue
-            grid, name, label, unit, axes = cls._unpack_backend(backend, p)
+            backend, grid, name, label, unit, axes = cls._unpack_backend(backend, p)
 
             tmp = cls(
                 grid,
@@ -213,7 +213,7 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         backend: GridBackendType, path: Path
     ) -> Tuple[da.Array, str, str, str, GridAxes]:
         grid = backend(path)
-        grid_arr = da.from_array(backend(path))
+        grid_arr = da.from_array(grid)
 
         name = grid.dataset_name
         label = grid.dataset_label
@@ -242,6 +242,7 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             grid_axes.append(ax)
 
         return (
+            grid,
             grid_arr,
             name,
             label,
