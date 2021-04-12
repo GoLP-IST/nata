@@ -17,11 +17,12 @@ import ndindex as ndx
 import numpy as np
 from numpy.typing import ArrayLike
 
-from nata.axes import Axis
 from nata.containers.formatting import Table
 from nata.utils.io import FileList
 from nata.utils.types import BasicIndexing
 from nata.utils.types import FileLocation
+
+from .axis import Axis
 
 __all__ = ["GridAxes", "GridDataset"]
 
@@ -183,7 +184,9 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
         for p in file_list.paths:
             backend = cls.get_valid_backend(p)
-            grid, name, label, unit, axes = cls._unpack_backend(backend, p)
+            if not backend:
+                continue
+            backend, grid, name, label, unit, axes = cls._unpack_backend(backend, p)
 
             tmp = cls(
                 grid,
@@ -200,12 +203,17 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             else:
                 dataset.append(tmp)
 
+        if not dataset:
+            raise ValueError("provided path has no valid files to init GridDataset")
+
         return dataset
 
     @staticmethod
-    def _unpack_backend(backend: GridBackendType, path: Path):
+    def _unpack_backend(
+        backend: GridBackendType, path: Path
+    ) -> Tuple[da.Array, str, str, str, GridAxes]:
         grid = backend(path)
-        grid_arr = da.from_array(backend(path))
+        grid_arr = da.from_array(grid)
 
         name = grid.dataset_name
         label = grid.dataset_label
@@ -224,16 +232,22 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
             grid.axes_units,
         ):
             ax = Axis.from_limits(
-                min_, max_, ax_pts, name=ax_name, label=ax_label, unit=ax_unit
+                min_,
+                max_,
+                ax_pts,
+                name=ax_name,
+                label=ax_label,
+                unit=ax_unit,
             )
             grid_axes.append(ax)
 
         return (
+            grid,
             grid_arr,
             name,
             label,
             unit,
-            GridAxes(grid_axes, time=time, iteration=iteration),
+            GridAxes(indexable=grid_axes, hidden=(time, iteration)),
         )
 
     def __repr__(self) -> str:
@@ -267,10 +281,8 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
         return html
 
     def __len__(self) -> int:
-        if self._axes.time:
-            return len(self._axes.time)
-        elif self._axes.iteration:
-            return len(self._axes.iteration)
+        if self._has_appendable_dim:
+            return len(self._data)
         else:
             return 1
 
