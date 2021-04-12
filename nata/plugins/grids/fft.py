@@ -4,13 +4,16 @@ from typing import Optional
 import numpy as np
 import numpy.fft as fft
 
-from nata.axes import Axis
 from nata.containers import GridDataset
+from nata.containers.axis import Axis
 from nata.plugins.register import register_container_plugin
 
 
 @register_container_plugin(GridDataset, name="fft")
-def fft_grid_dataset(dataset: GridDataset, type: Optional[str] = "abs",) -> GridDataset:
+def fft_grid_dataset(
+    dataset: GridDataset,
+    type: Optional[str] = "abs",
+) -> GridDataset:
     """Computes the Fast Fourier Transform (FFT) of a single/multiple\
        iteration :class:`nata.containers.GridDataset` along all grid axes\
        using `numpy's fft module`__.

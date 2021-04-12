@@ -12,7 +12,6 @@ from typing import Union
 import numpy as np
 from numpy.lib import recfunctions as rfn
 
-from nata.axes import Axis
 from nata.types import AxisType
 from nata.types import DatasetType
 from nata.types import ParticleBackendType
@@ -21,6 +20,8 @@ from nata.types import QuantityType
 from nata.types import is_basic_indexing
 from nata.utils.exceptions import NataInvalidContainer
 from nata.utils.formatting import make_identifiable
+
+from .axis import Axis
 
 _extract_from_backend = object()
 _extract_from_data = object()
@@ -305,9 +306,7 @@ class ParticleQuantity(np.lib.mixins.NDArrayOperatorsMixin):
     def name(self, value):
         parsed_value = make_identifiable(str(value))
         if not parsed_value:
-            raise ValueError(
-                "Invalid name provided! Has to be able to be valid code"
-            )
+            raise ValueError("Invalid name provided! Has to be able to be valid code")
         self._name = parsed_value
 
     @property
@@ -348,9 +347,7 @@ class ParticleQuantity(np.lib.mixins.NDArrayOperatorsMixin):
             raise TypeError(f"Can not append '{other}' to '{self}'")
 
         if not self.equivalent(other):
-            raise ValueError(
-                f"Mismatch in attributes between '{self}' and '{other}'"
-            )
+            raise ValueError(f"Mismatch in attributes between '{self}' and '{other}'")
 
         self._data = np.append(self._data, other._data, axis=0)
         self._num_prt = np.append(self._num_prt, other._num_prt)
@@ -361,9 +358,7 @@ class ParticleDataset:
 
     def __init__(
         self,
-        data: Optional[
-            Union[ParticleBackendType, np.ndarray, str, Path]
-        ] = None,
+        data: Optional[Union[ParticleBackendType, np.ndarray, str, Path]] = None,
         *,
         name: str = _extract_from_backend,
         iteration: Optional[AxisType] = _extract_from_backend,
@@ -467,9 +462,7 @@ class ParticleDataset:
 
         else:
             q = next(iter(quantities.values()))
-            num_particles = np.full(
-                shape=len(q), fill_value=q.num_particles, dtype=int
-            )
+            num_particles = np.full(shape=len(q), fill_value=q.num_particles, dtype=int)
 
         self._quantities = quantities
         self._num_particles = Axis(
@@ -497,13 +490,9 @@ class ParticleDataset:
         # >>>> iteration/time axis
         time = self.axes["time"][key] if key is not None else self.axes["time"]
         iteration = (
-            self.axes["iteration"][key]
-            if key is not None
-            else self.axes["iteration"]
+            self.axes["iteration"][key] if key is not None else self.axes["iteration"]
         )
-        quantities = {
-            quant.name: quant[key] for quant in self.quantities.values()
-        }
+        quantities = {quant.name: quant[key] for quant in self.quantities.values()}
 
         # finally return the reduced data entries
         return self.__class__(
@@ -558,9 +547,7 @@ class ParticleDataset:
 
     def append(self, other: "ParticleDataset") -> None:
         if not self.equivalent(other):
-            raise ValueError(
-                f"Can not append '{other}' particle datasets are unequal!"
-            )
+            raise ValueError(f"Can not append '{other}' particle datasets are unequal!")
 
         if self.axes["iteration"]:
             self.axes["iteration"].append(other.axes["iteration"])
@@ -582,9 +569,7 @@ class ParticleDataset:
             return False
 
         for quant_name in self.quantities:
-            if not self.quantities[quant_name].equivalent(
-                other.quantities[quant_name]
-            ):
+            if not self.quantities[quant_name].equivalent(other.quantities[quant_name]):
                 return False
 
         if not self.num_particles.equivalent(other.num_particles):
