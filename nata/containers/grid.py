@@ -183,6 +183,8 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
         for p in file_list.paths:
             backend = cls.get_valid_backend(p)
+            if not backend:
+                continue
             grid, name, label, unit, axes = cls._unpack_backend(backend, p)
 
             tmp = cls(
