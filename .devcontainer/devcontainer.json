@@ -13,5 +13,8 @@
 		"github.vscode-pull-request-github"
 	],
 	"remoteUser": "natadev",
-	"postCreateCommand": "pip install ipdb"
+	"containerEnv": {
+		"PYTHONBREAKPOINT": "ipdb.set_trace"
+	},
+	"postCreateCommand": "poetry install && poetry install -E jupyter && poetry run pip install ipdb"
 }
