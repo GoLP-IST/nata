@@ -1,0 +1,15 @@
+{
+	"name": "natadev",
+	"context": "..",
+	"dockerFile": "../Dockerfile",
+	"settings": {
+		"terminal.integrated.shell.linux": null
+	},
+	"extensions": [
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"bungcip.better-toml"
+	],
+	"remoteUser": "natadev",
+	"postCreateCommand": "pip install ipdb"
+}

@@ -7,8 +7,8 @@ from nata.types import DatasetType
 
 def register_backend(container: DatasetType):
     """Decorater for registering a backend for a Datset"""
-    if not isinstance(container, DatasetType):
-        raise TypeError(f"Requires container of type '{DatasetType}'")
+    # if not isinstance(container, DatasetType):
+    #     raise TypeError(f"Requires container of type '{DatasetType}'")
 
     def add_backend_to_container(backend: BackendType):
         if container.is_valid_backend(backend):

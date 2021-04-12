@@ -1,21 +1,171 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
-from typing import Mapping
 from typing import Optional
-from typing import Sequence
 from typing import Union
 
 import numpy as np
 import pytest
 
+import dask.array as da
 from nata import GridDataset
 from nata.axes import Axis
-from nata.axes import GridAxis
-from nata.types import AxisType
+from nata.containers.GridDataset import GridDatasetAxes
 from nata.types import BasicIndexing
 from nata.types import FileLocation
 from nata.types import GridBackendType
 from nata.types import GridDatasetType
+from nata.utils.container_tools import register_backend
+
+
+def test_GridDatasetAxes_init():
+    assert GridDatasetAxes([]).mapping == {}
+
+    axes = [Axis([0], name="a0"), Axis([0], name="a1")]
+    assert GridDatasetAxes(axes).mapping == {i: a for i, a in enumerate(axes)}
+
+    axis = Axis([0], name="some_name")
+    assert isinstance(GridDatasetAxes([axis]).some_name, Axis)
+    assert GridDatasetAxes([axis]).some_name is axis
+
+
+_testCases_GridDatasetAxes_eq = {}
+_testCases_GridDatasetAxes_eq["default"] = (
+    GridDatasetAxes([]),
+    GridDatasetAxes([]),
+    True,
+)
+_testCases_GridDatasetAxes_eq["axes length"] = (
+    GridDatasetAxes([]),
+    GridDatasetAxes([Axis([0])]),
+    False,
+)
+_testCases_GridDatasetAxes_eq["axes equivalence"] = (
+    GridDatasetAxes([Axis([0], name="some")]),
+    GridDatasetAxes([Axis([1], name="some")]),
+    True,
+)
+_testCases_GridDatasetAxes_eq["time axis"] = (
+    GridDatasetAxes([], time=Axis(0)),
+    GridDatasetAxes([], time=None),
+    False,
+)
+
+_testCases_GridDatasetAxes_eq["time axis equivalence"] = (
+    GridDatasetAxes([], time=Axis(0)),
+    GridDatasetAxes([], time=Axis(0, name="some")),
+    False,
+)
+
+_testCases_GridDatasetAxes_eq["iteration axis"] = (
+    GridDatasetAxes([], iteration=Axis(0)),
+    GridDatasetAxes([], iteration=None),
+    False,
+)
+
+_testCases_GridDatasetAxes_eq["iteration axis equivalence"] = (
+    GridDatasetAxes([], iteration=Axis(0)),
+    GridDatasetAxes([], iteration=Axis(0, name="some")),
+    False,
+)
+
+
+@pytest.mark.parametrize(
+    "left, right, equal",
+    _testCases_GridDatasetAxes_eq.values(),
+    ids=_testCases_GridDatasetAxes_eq.keys(),
+)
+def test_GridDatasetAxes_eq(left, right, equal):
+    if equal:
+        assert left == right
+        assert not (left != right)
+    else:
+        assert left != right
+        assert not (left == right)
+
+
+def test_GridDatasetAxes_len():
+    assert len(GridDatasetAxes([])) == 0
+    assert len(GridDatasetAxes([Axis([0])])) == 1
+    assert len(GridDatasetAxes([], time=Axis(0))) == 0
+
+
+def test_GridDatasetAxes_contains():
+    assert "time" in GridDatasetAxes(())
+    assert "some_name" in GridDatasetAxes((Axis([0], name="some_name"),))
+    assert "time" in GridDatasetAxes((), time=Axis(0, name="time"))
+    assert "time" in GridDatasetAxes([Axis([0, 1], axis_dim=0, name="time")])
+    assert "iteration" in GridDatasetAxes((), iteration=Axis(0, name="iteration"))
+
+
+def test_GridDatasetAxes_raises_warning():
+    with pytest.warns(UserWarning):
+        GridDatasetAxes([Axis([0]), Axis([0])])
+
+
+def test_GridDatasetAxes_index():
+    example = GridDatasetAxes((Axis([0], name="a0"), Axis([0], name="a1")))
+    assert example.index("a0") == 0
+    assert example.index("a1") == 1
+    assert example.index("some") is None
+    assert GridDatasetAxes((), time=Axis(0, name="time")).index("time") is None
+
+
+def test_GridDatasetAxes_raises_TypeError_invalid_axis_object():
+    with pytest.raises(TypeError):
+        GridDatasetAxes((object(),))
+
+
+def test_GridDatasetAxes_raises_TypeError_invalid_time():
+    with pytest.raises(TypeError):
+        GridDatasetAxes([], time=1.0)
+
+
+def test_GridDatasetAxes_raises_TypeError_invalid_iteration():
+    with pytest.raises(TypeError):
+        GridDatasetAxes([], iteration=1)
+
+
+def test_GridDatasetAxes_raises_TypeError_invalid_0d_axis():
+    with pytest.raises(ValueError):
+        GridDatasetAxes([Axis(0)])
+
+
+def test_GridDatasetAxes_raises_ValueError():
+    with pytest.raises(ValueError):
+        GridDatasetAxes(
+            [
+                Axis(np.arange(10).reshape(5, 2), axis_dim=1),
+                Axis(np.arange(5), axis_dim=1),
+            ]
+        )
+
+
+def test_GridDatasetAxes_iter():
+    axes = (Axis([0], name="a0"), Axis([0], name="a1"))
+    grid_axes = GridDatasetAxes(axes)
+
+    for ax, expected in zip(grid_axes, axes):
+        assert ax is expected
+
+
+def test_GridDatasetAxes_getitem():
+    axes = (Axis([0], name="a"), Axis([0], name="b"))
+    grid_axes = GridDatasetAxes(axes)
+
+    assert grid_axes[0] is axes[0]
+    assert grid_axes[1] is axes[1]
+    assert grid_axes["a"] is axes[0]
+    assert grid_axes["b"] is axes[1]
+
+
+def test_GridDataset_span():
+    assert GridDatasetAxes(
+        [
+            Axis(range(10), name="a0", axis_dim=1),
+            Axis(range(20), name="a1", axis_dim=1),
+            Axis(range(30), name="a2", axis_dim=1),
+        ]
+    ).span == (10, 20, 30)
 
 
 @pytest.fixture(name="TestGridBackend")
@@ -52,9 +202,7 @@ def _TestGridBackend():
         ndim = 3
 
         def __init__(
-            self,
-            location: Optional[FileLocation] = None,
-            raise_on_read: bool = True,
+            self, location: Optional[FileLocation] = None, raise_on_read: bool = True,
         ):
             self.location = location
             self._raise_on_read = raise_on_read
@@ -63,9 +211,7 @@ def _TestGridBackend():
         def is_valid_backend(location: Union[Path, str]) -> bool:
             return Path(location) == Path("TestGridBackend_location")
 
-        def get_data(
-            self, indexing: Optional[BasicIndexing] = None
-        ) -> np.ndarray:
+        def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray:
             if self._raise_on_read:
                 raise IOError("Should not read any file")
 
@@ -81,70 +227,6 @@ def _TestGridBackend():
     GridDataset.remove_backend(TestGridBackend)
 
 
-@pytest.fixture(name="MultipleBackends")
-def _TestMultiBackend():
-    """Fixture for returning multiple backends"""
-
-    class MultiBackend:
-        """Test backend for MultiBackend
-
-        * simple backend to provide data based on the path
-        * `MultiBackend.*` triggers this backend but not `MultiBackend.*.*`
-        * `iteration` is based on suffix `*.42` means iteration is `42`
-        * `time_step` is based on iteration and is `float(iteration * 10)`
-        """
-
-        name = "MultiTestBackend"
-        location = None
-
-        dataset_name = "test_dataset_name"
-        dataset_label = "test dataset label"
-        dataset_unit = "test dataset unit"
-
-        axes_names = ("axes0", "axes1", "axes2")
-        axes_labels = ("axes 0", "axes 1", "axes 3")
-        axes_units = ("axes unit 0", "axes unit 1", "axes unit 2")
-        axes_min = np.array([-1.0, -2.0, -3.0])
-        axes_max = np.array([0.5, 1.5, 2.5])
-
-        iteration = None
-        time_step = None
-        time_unit = "time unit"
-
-        shape = (4, 5, 6)
-        dtype = np.float
-
-        ndim = 3
-
-        def __init__(
-            self,
-            location: Optional[FileLocation] = None,
-            raise_on_read: bool = True,
-        ):
-            self.location = location
-            self._raise_on_read = raise_on_read
-            self.iteration = int(Path(location).suffix.strip("."))
-            self.time_step = float(self.iteration * 10)
-
-        @staticmethod
-        def is_valid_backend(location: Union[Path, str]) -> bool:
-            return Path(location).stem == "MultiGridBackend"
-
-        def get_data(
-            self, indexing: Optional[BasicIndexing] = None
-        ) -> np.ndarray:
-            data = np.arange(4 * 5 * 6).reshape(self.shape)
-            return data[indexing] if indexing else data
-
-    # ensure dummy backend is of valid type
-    assert isinstance(MultiBackend, GridBackendType)
-
-    GridDataset.add_backend(MultiBackend)
-    yield MultiBackend
-    # teardown
-    GridDataset.remove_backend(MultiBackend)
-
-
 def test_GridDataset_isinstance_GridDatasetType():
     """Ensures that a GridDataset fulfills `GridDatasetType` protocol"""
     assert isinstance(GridDataset, GridDatasetType)
@@ -155,920 +237,672 @@ def test_GridDataset_registration(TestGridBackend):
     assert TestGridBackend.name in GridDataset.get_backends()
 
 
+def test_GridDataset_default_init():
+    """Checks default init of GridDataset. Ensures some properties are proper setup"""
+    axis = Axis([0, 1, 2])
+    ds = GridDataset(np.arange(3), GridDatasetAxes([axis]))
+
+    assert ds.name == "unnamed"
+    assert ds.label == "unnamed"
+    assert ds.unit == ""
+    assert "time" in ds.axes
+    assert "iteration" in ds.axes
+    assert ds.axes.time is None
+    assert ds.axes.iteration is None
+    assert ds.axes[0] is axis
+
+
+def test_GridDataset_init_raises_ValueError_for_mismatched_dimensionality():
+    with pytest.raises(ValueError):
+        GridDataset(np.arange(3), GridDatasetAxes([]))
+
+
+def test_GridDataset_init_raises_ValueError_for_mismatched_shapes():
+    with pytest.raises(ValueError):
+        GridDataset(np.arange(3), GridDatasetAxes([Axis(0)]))
+
+
+def test_GridDatset_init_with_name():
+    """Checks if name property changes if name was defined"""
+    args = (np.arange(3), GridDatasetAxes([Axis(np.arange(3))]))
+    ds = GridDataset(*args, name="some_name")
+    assert ds.name == "some_name"
+
+
+def test_GridDatset_init_with_label():
+    """Checks if label property changes if label was defined"""
+    args = (np.arange(3), GridDatasetAxes([Axis(np.arange(3))]))
+    ds = GridDataset(*args, label="some label")
+    assert ds.label == "some label"
+
+
+def test_GridDatset_init_with_unit():
+    """Checks if unit property changes if unit was defined"""
+    args = (np.arange(3), GridDatasetAxes([Axis(np.arange(3))]))
+    ds = GridDataset(*args, unit="some unit")
+    assert ds.unit == "some unit"
+
+
+def test_GridDatset_init_with_backend():
+    """Checks if backend property changes if backend was defined"""
+    args = (np.arange(3), GridDatasetAxes([Axis(np.arange(3))]))
+    ds = GridDataset(*args, backend="some_backend")
+    assert ds.backend == "some_backend"
+
+
+def test_GridDatset_init_with_locations():
+    """Checks if location property changes if location was defined"""
+    args = (np.arange(3), GridDatasetAxes([Axis(np.arange(3))]))
+    ds = GridDataset(*args, locations=(Path("some/location"),))
+    assert isinstance(ds.locations, list)
+    assert len(ds.locations) == 1
+    assert ds.locations[0] == Path("some/location")
+
+
+def test_GridDatset_init_with_grid_axes():
+    """Checks if grid axes are properly set if passed to init"""
+    # additional dimension is used for temporal (t_dim, *spatial_dim)
+    ds = GridDataset(
+        np.arange(3), GridDatasetAxes([Axis.from_limits(0, 1, 3, name="a1")]),
+    )
+    assert "a1" in ds.axes
+    assert ds.axes.grid_axes is not None
+    assert isinstance(ds.axes.grid_axes, list)
+    assert len(ds.axes.grid_axes) == 1
+    assert isinstance(ds.axes.grid_axes[0], Axis)
+    assert ds.axes.grid_axes[0].shape == (3,)
+
+
+def test_GridDatset_init_with_time():
+    time = Axis([0, 1], name="time", axis_dim=0)
+    other_axis = Axis(np.arange(6).reshape((2, 3)), axis_dim=1)
+
+    ds = GridDataset(
+        np.random.random_sample((2, 3)), GridDatasetAxes([time, other_axis]),
+    )
+    assert "time" in ds.axes
+    assert ds.axes.time is time
+
+
+def test_GridDatset_init_with_iteration():
+    iteration = Axis([0, 1], name="iteration", axis_dim=0)
+    other_axis = Axis(np.arange(6).reshape((2, 3)), axis_dim=1)
+
+    ds = GridDataset(
+        np.random.random_sample((2, 3)), GridDatasetAxes([iteration, other_axis]),
+    )
+    assert "iteration" in ds.axes
+    assert ds.axes.iteration is iteration
+
+
+def test_GridDataset_from_array_default():
+    """Checks default behavior for init by class method `.from_array`"""
+    array_content = np.random.random_sample((4, 3, 5))
+    ds = GridDataset.from_array(array_content)
+
+    assert ds.name == "unnamed"
+    assert ds.label == "unlabeled"
+    assert ds.unit == ""
+
+    assert ds.backend is None
+    assert ds.locations is None
+
+    assert "time" in ds.axes
+    assert ds.axes.time is None
+    assert "iteration" in ds.axes
+    assert ds.axes.iteration is None
+    assert len(ds.axes) == 3
+    for i, s in enumerate(array_content.shape):
+        assert f"axis{i}" in ds.axes
+        assert f"axis{i}" == ds.axes[i].name
+        assert f"axis{i}" == ds.axes[i].label
+        np.testing.assert_equal(ds.axes[i], np.arange(s))
+
+    np.testing.assert_array_equal(ds, array_content)
+
+
+def test_GridDataset_from_array_with_name():
+    """Test if `.from_array` passes name through"""
+    ds = GridDataset.from_array([], name="some_name")
+    assert ds.name == "some_name"
+
+
+def test_GridDataset_from_array_with_label():
+    """Test if `.from_array` passes label through"""
+    ds = GridDataset.from_array([], label="some label")
+    assert ds.label == "some label"
+
+
+def test_GridDataset_from_array_with_unit():
+    """Test if `.from_array` passes unit through"""
+    ds = GridDataset.from_array([], unit="some unit")
+    assert ds.unit == "some unit"
+
+
+_testCases_GridDataset_from_array_with_time = {}
+_testCases_GridDataset_from_array_with_time["numpy"] = (
+    np.arange(10),
+    Axis(np.arange(10), name="time", label="time", unit="", axis_dim=0),
+)
+_testCases_GridDataset_from_array_with_time["dask"] = (
+    da.arange(10),
+    Axis(np.arange(10), name="time", label="time", unit="", axis_dim=0),
+)
+_testCases_GridDataset_from_array_with_time["iterator"] = (
+    range(10),
+    Axis(np.arange(10), name="time", label="time", unit="", axis_dim=0),
+)
+_testCases_GridDataset_from_array_with_time["Axis"] = (
+    Axis(np.arange(10)),
+    Axis(np.arange(10), name="time", label="time", unit="", axis_dim=0),
+)
+
+
 @pytest.mark.parametrize(
-    "attr, value",
+    "case",
+    _testCases_GridDataset_from_array_with_time.values(),
+    ids=_testCases_GridDataset_from_array_with_time.keys(),
+)
+def test_GridDataset_from_array_with_time(case):
+    """Test if `.from_array` initializes time correctly"""
+    input_, expected = case
+    ds = GridDataset.from_array(np.arange(10), time=input_)
+    assert "time" in ds.axes
+    assert isinstance(ds.axes.time, Axis)
+    assert ds.axes.time is ds.axes[0]
+    assert ds.axes[0].is_equiv_to(expected)
+    np.testing.assert_array_equal(ds.axes.time, expected)
+
+
+_testCases_GridDataset_from_array_with_iteration = {}
+_testCases_GridDataset_from_array_with_iteration["numpy"] = (
+    np.arange(10),
+    Axis(np.arange(10), name="iteration", label="iteration", unit="", axis_dim=0),
+)
+_testCases_GridDataset_from_array_with_iteration["dask"] = (
+    da.arange(10),
+    Axis(np.arange(10), name="iteration", label="iteration", unit="", axis_dim=0),
+)
+_testCases_GridDataset_from_array_with_iteration["iterator"] = (
+    range(10),
+    Axis(np.arange(10), name="iteration", label="iteration", unit="", axis_dim=0),
+)
+_testCases_GridDataset_from_array_with_iteration["Axis"] = (
+    Axis(np.arange(10)),
+    Axis(np.arange(10), name="iteration", label="iteration", unit="", axis_dim=0),
+)
+
+
+@pytest.mark.parametrize(
+    "case",
+    _testCases_GridDataset_from_array_with_iteration.values(),
+    ids=_testCases_GridDataset_from_array_with_iteration.keys(),
+)
+def test_GridDataset_from_array_with_iteration(case):
+    """Test if `.from_array` initializes iteration correctly"""
+    input_, expected = case
+    ds = GridDataset.from_array(np.arange(10), iteration=input_)
+    assert "iteration" in ds.axes
+    assert isinstance(ds.axes.iteration, Axis)
+    assert ds.axes.iteration is ds.axes[0]
+    assert ds.axes[0].is_equiv_to(expected)
+    np.testing.assert_array_equal(ds.axes.iteration, expected)
+
+
+_testCases_GridDataset_from_array_with_grid_axes = {}
+_testCases_GridDataset_from_array_with_grid_axes["numpy"] = (
+    [np.arange(3), np.arange(4)],
     [
-        ("backend", "TetsGridBackend"),
-        ("name", "test_dataset_name"),
-        ("label", "test dataset label"),
-        ("unit", "test dataset unit"),
+        Axis(np.arange(3), name="axis0", label="axis 0", axis_dim=1),
+        Axis(np.arange(4), name="axis1", label="axis 1", axis_dim=1),
     ],
-    ids=["backend", "name", "label", "unit"],
 )
-def test_GridDataset_attr_propagation_from_Backend(
-    TestGridBackend, attr, value
-):
-    """Parameterize check for different props of GridDataset"""
-    ds = GridDataset("TestGridBackend_location")
-    assert getattr(ds, attr) == value
-
-
-def test_GridDataset_axes_from_Backend(TestGridBackend):
-    """Tests extraction correct type for .axes and its proper extraction"""
-    ds = GridDataset("TestGridBackend_location")
-
-    assert isinstance(ds.axes, Mapping)
-
-    for axes_name, type_ in [
-        ("iteration", AxisType),
-        ("time", AxisType),
-        ("grid_axes", Sequence),
-    ]:
-        assert axes_name in ds.axes
-        assert isinstance(ds.axes.get(axes_name), type_)
+_testCases_GridDataset_from_array_with_grid_axes["dask"] = (
+    [da.arange(3), da.arange(4)],
+    [
+        Axis(np.arange(3), name="axis0", label="axis 0", axis_dim=1),
+        Axis(np.arange(4), name="axis1", label="axis 1", axis_dim=1),
+    ],
+)
+_testCases_GridDataset_from_array_with_grid_axes["iterator"] = (
+    [range(3), range(4)],
+    [
+        Axis(np.arange(3), name="axis0", label="axis 0", axis_dim=1),
+        Axis(np.arange(4), name="axis1", label="axis 1", axis_dim=1),
+    ],
+)
+_testCases_GridDataset_from_array_with_grid_axes["Axis"] = (
+    [
+        Axis(np.arange(3), name="a0", label="some axis", unit="some_unit", axis_dim=1),
+        Axis(
+            np.arange(4),
+            name="a1",
+            label="some other axis",
+            unit="some other unit",
+            axis_dim=1,
+        ),
+    ],
+    [
+        Axis(np.arange(3), name="a0", label="some axis", unit="some_unit", axis_dim=1),
+        Axis(
+            np.arange(4),
+            name="a1",
+            label="some other axis",
+            unit="some other unit",
+            axis_dim=1,
+        ),
+    ],
+)
 
 
 @pytest.mark.parametrize(
-    "attr, value",
-    [("name", "iteration"), ("label", "iteration"), ("unit", "")],
-    ids=["name", "label", "unit"],
+    "case",
+    _testCases_GridDataset_from_array_with_grid_axes.values(),
+    ids=_testCases_GridDataset_from_array_with_grid_axes.keys(),
 )
-def test_GridDataset_iteration_axis_from_Backend(TestGridBackend, attr, value):
-    """Extraction is correct for iteration axis. Check attributes for axis"""
-    ds = GridDataset("TestGridBackend_location")
-    assert getattr(ds.axes["iteration"], attr) == value
+def test_GridDataset_from_array_with_grid_axes(case):
+    """Test if `.from_array` initializes iteration correctly"""
+    input_, expected = case
+    ds = GridDataset.from_array(np.arange(3 * 4).reshape((3, 4)), grid_axes=input_)
+
+    for actual_axis, expected_axis in zip(ds.axes.grid_axes, expected):
+        assert isinstance(actual_axis, Axis)
+        assert expected_axis.is_equiv_to(actual_axis)
+        np.testing.assert_array_equal(actual_axis, expected_axis)
+
+
+@pytest.fixture(name="backend_on_disk")
+def _create_backend_file(tmp_path):
+    @register_backend(GridDataset)
+    class DummyBackend:
+        valid_paths = set()
+        name = "DummyBackend"
+        location: Optional[str] = None
+        dataset_name = "dummy_name"
+        dataset_label = "dummy label"
+        dataset_unit = "dummy unit"
+        iteration = 123
+        time_step = -12314.0
+        time_unit = "time unit"
+        shape = (2, 5)
+        ndim = 2
+        axes_min = (-123.0, 321.0)
+        axes_max = (346.0, 898.0)
+        axes_names = ("dummy_axis_0", "dummy_axis_1")
+        axes_labels = ("dummy axis 0", "dummy axis 1")
+        axes_units = ("axis0 unit", "axis1 unit")
+        dtype = np.int
+
+        def __init__(self, location: str) -> None:
+            self.location = location
+
+        def get_data(self, indexing):
+            raise NotImplementedError
+
+        @classmethod
+        def is_valid_backend(cls, path: Path) -> bool:
+            return True if path in cls.valid_paths else False
+
+    def create_file(filename: str):
+        f = tmp_path / filename
+        f.touch()
+        DummyBackend.valid_paths |= {f}
+        return f
+
+    create_file.root_path = tmp_path
+    create_file.backend_info = DummyBackend
+
+    return create_file
+
+
+def test_GridDataset_get_valid_backend(backend_on_disk):
+    test_file = backend_on_disk("test")
+    assert GridDataset.get_valid_backend(test_file)
+
+
+def test_GridDataset_from_file_with_single_file_path(backend_on_disk):
+    # create backend file
+    backend_on_disk("test")
+
+    ds = GridDataset.from_path(backend_on_disk.root_path / "test")
+
+    # temporal info
+    assert ds.temporal_steps == 1
+
+    # check for grid properties
+    assert len(ds) == 1
+    assert ds.shape == backend_on_disk.backend_info.shape
+    assert ds.grid_shape == backend_on_disk.backend_info.shape
+    assert ds.ndim == backend_on_disk.backend_info.ndim
+    assert ds.grid_ndim == backend_on_disk.backend_info.ndim
+    assert ds.dtype == backend_on_disk.backend_info.dtype
+
+    # check propagation of namings
+    assert ds.name == backend_on_disk.backend_info.dataset_name
+    assert ds.label == backend_on_disk.backend_info.dataset_label
+    assert ds.unit == backend_on_disk.backend_info.dataset_unit
+
+    # check axes init
+    assert isinstance(ds.axes.iteration, Axis)
+    assert isinstance(ds.axes.time, Axis)
+    assert all(isinstance(ax, Axis) for ax in ds.axes.grid_axes)
+
+
+def test_GridDataset_from_file_with_multiple_files(backend_on_disk):
+    # create backend file
+    for i in range(10):
+        backend_on_disk(f"test{i}")
+
+    ds = GridDataset.from_path(backend_on_disk.root_path / "*")
+
+    # temporal info
+    assert ds.temporal_steps == 10
+
+    # check for grid properties
+    assert len(ds) == 10
+    assert ds.shape == (10,) + backend_on_disk.backend_info.shape
+    assert ds.grid_shape == backend_on_disk.backend_info.shape
+    assert ds.ndim == backend_on_disk.backend_info.ndim + 1
+    assert ds.grid_ndim == backend_on_disk.backend_info.ndim
+    assert ds.dtype == backend_on_disk.backend_info.dtype
+
+    # check propagation of namings
+    assert ds.name == backend_on_disk.backend_info.dataset_name
+    assert ds.label == backend_on_disk.backend_info.dataset_label
+    assert ds.unit == backend_on_disk.backend_info.dataset_unit
+
+    # check axes init
+    assert isinstance(ds.axes.iteration, Axis)
+    assert isinstance(ds.axes.time, Axis)
+    assert all(isinstance(ax, Axis) for ax in ds.axes.grid_axes)
+
+
+def test_GridDataset___array__():
+    ds = GridDataset.from_array(np.arange(10).reshape((1, 10)))
+    assert ds.shape == (1, 10)
+    assert ds.grid_shape == (1, 10)
+    np.testing.assert_array_equal(ds, np.arange(10).reshape((1, 10)))
+
+    ds = GridDataset.from_array(np.arange(10))
+    assert ds.shape == (10,)
+    assert ds.grid_shape == (10,)
+    np.testing.assert_array_equal(ds, np.arange(10))
+
+
+_ufunc_test_cases = [
+    (np.add, (10,), {}),
+    (np.subtract, (10,), {}),
+    (np.multiply, (10,), {}),
+    # (np.matmul, ),
+    (np.divide, (10,), {}),
+    (np.logaddexp, (10,), {}),
+    (np.logaddexp, (10,), {}),
+    (np.true_divide, (10,), {}),
+    (np.floor_divide, (10,), {}),
+    (np.negative, (), {}),
+    (np.positive, (), {}),
+    (np.power, (10,), {}),
+    (np.float_power, (10,), {}),
+    (np.remainder, (10,), {}),
+    (np.mod, (10,), {}),
+    (np.fmod, (10,), {}),
+    # (np.divmod, (10,), {}),
+    (np.absolute, (), {}),
+    (np.fabs, (), {}),
+    (np.rint, (), {}),
+    (np.sign, (), {}),
+    (np.heaviside, (10,), {}),
+    (np.conj, (), {}),
+    (np.conjugate, (), {}),
+    (np.exp, (), {}),
+    (np.exp2, (), {}),
+    (np.log, (), {}),
+    (np.log2, (), {}),
+    (np.log10, (), {}),
+    (np.expm1, (), {}),
+    (np.log1p, (), {}),
+    (np.sqrt, (), {}),
+    (np.square, (), {}),
+    (np.cbrt, (), {}),
+    (np.reciprocal, (), {}),
+    # (np.gcd, (10,), {}),
+    # (np.lcm, (10,), {}),
+    (np.sin, (), {}),
+    (np.cos, (), {}),
+    (np.tan, (), {}),
+    (np.arcsin, (), {}),
+    (np.arccos, (), {}),
+    (np.arctan, (), {}),
+    (np.arctan2, (10,), {}),
+    (np.hypot, (10,), {}),
+    (np.sinh, (), {}),
+    (np.cosh, (), {}),
+    (np.tanh, (), {}),
+    (np.arcsinh, (), {}),
+    (np.arccosh, (), {}),
+    (np.arctanh, (), {}),
+    (np.degrees, (), {}),
+    (np.radians, (), {}),
+    (np.deg2rad, (), {}),
+    (np.rad2deg, (), {}),
+    # (np.bitwise_and, (10,), {}),
+    # (np.bitwise_or, (), {}),
+    # (np.bitwise_xor, (10,), {}),
+    # (np.invert, (), {}),
+    # (np.left_shift, (10,), {}),
+    # (np.right_shift, (10,), {}),
+    (np.greater, (10,), {}),
+    (np.greater_equal, (10,), {}),
+    (np.less, (10,), {}),
+    (np.less_equal, (10,), {}),
+    (np.not_equal, (10,), {}),
+    (np.equal, (10,), {}),
+    (np.logical_and, (10,), {}),
+    (np.logical_or, (10,), {}),
+    (np.logical_xor, (10,), {}),
+    (np.logical_not, (), {}),
+    (np.maximum, (10,), {}),
+    (np.minimum, (10,), {}),
+    (np.fmax, (10,), {}),
+    (np.fmin, (10,), {}),
+    (np.isfinite, (), {}),
+    (np.isinf, (), {}),
+    (np.isnan, (), {}),
+    # (np.isnat, (), {}),
+    (np.signbit, (), {}),
+    (np.copysign, (10,), {}),
+    (np.nextafter, (10,), {}),
+    (np.spacing, (), {}),
+    # (np.modf, (), {}),
+    (np.ldexp, (10,), {}),
+    # (np.frexp, (), {}),
+    (np.floor, (), {}),
+    (np.ceil, (), {}),
+    (np.trunc, (), {}),
+]
 
 
 @pytest.mark.parametrize(
-    "attr, value",
-    [("name", "time"), ("label", "time"), ("unit", "time unit")],
-    ids=["name", "label", "unit"],
+    "func, args, kwargs",
+    _ufunc_test_cases,
+    ids=[str(case[0].__name__) for case in _ufunc_test_cases],
 )
-def test_GridDataset_time_axis_from_Backend(TestGridBackend, attr, value):
-    """Extraction is correct for iteration axis. Check attributes for axis"""
-    ds = GridDataset("TestGridBackend_location")
-    assert getattr(ds.axes["time"], attr) == value
-
-
-def test_GridDataset_grid_axes_from_Backend(TestGridBackend):
-    """Tests grid_axes have been properly extracted."""
-    ds = GridDataset("TestGridBackend_location")
-
-    # obtain the expected ndim, names, labels and units from fixture
-    assert len(ds.axes["grid_axes"]) == TestGridBackend.ndim
-
-    expected_names = TestGridBackend.axes_names
-    expected_labels = TestGridBackend.axes_labels
-    expected_units = TestGridBackend.axes_units
-
-    for axis, expected_name in zip(ds.axes["grid_axes"], expected_names):
-        assert axis.name == expected_name
-
-    for axis, expected_label in zip(ds.axes["grid_axes"], expected_labels):
-        assert axis.label == expected_label
-
-    for axis, expected_unit in zip(ds.axes["grid_axes"], expected_units):
-        assert axis.unit == expected_unit
-
-
-def test_GridDataset_grid_shape_from_Backend(TestGridBackend):
-    """Tests propagation of grid_shape from backend"""
-    ds = GridDataset("TestGridBackend_location")
-    assert ds.grid_shape == TestGridBackend.shape
-
-
-@pytest.mark.skip
-def test_GridDataset_grid_ndim_from_Backend(TestGridBackend):
-    """Tests propagation of ndim from backend to dataset"""
-    ds = GridDataset("TestGridBackend_location")
-    assert ds.grid_ndim == TestGridBackend.ndim
-
-
-def test_GridDataset_array_props_from_Backend(TestGridBackend):
-    """Tests propagation of array properties from backend"""
-    ds = GridDataset("TestGridBackend_location")
-    assert ds.shape == TestGridBackend.shape
-    assert ds.ndim == TestGridBackend.ndim
-    assert ds.dtype == TestGridBackend.dtype
-
-
-def test_GridDataset_array_representation_from_Backend(TestGridBackend):
-    """Tests if GridDataset represent same array as backend"""
-    backend = TestGridBackend(raise_on_read=False)
-    ds = GridDataset(backend)
-    np.testing.assert_array_equal(ds, np.arange(4 * 5 * 6).reshape((4, 5, 6)))
+@pytest.mark.filterwarnings("ignore:invalid value")
+def test_GridDAtaset___array_ufunc__(func, args, kwargs):
+    ds = GridDataset.from_array(np.linspace(0.1, 0.9))
     np.testing.assert_array_equal(
-        ds.data, np.arange(4 * 5 * 6).reshape((4, 5, 6))
+        func(ds, *args, **kwargs), func(np.linspace(0.1, 0.9), *args, **kwargs)
     )
 
 
-def test_GridDataset_array_representation_from_MultiBackend(MultipleBackends):
-    """Tests if GridDataset represent same array in multi case"""
-    ds = GridDataset("MultiGridBackend.0")
-    # using append here -> only way to construct multi dataset from backend
-    ds.append(GridDataset("MultiGridBackend.10"))
-    ds.append(GridDataset("MultiGridBackend.20"))
-    ds.append(GridDataset("MultiGridBackend.30"))
-
-    assert len(ds) == 4
-    np.testing.assert_array_equal(
-        ds, np.array([np.arange(4 * 5 * 6).reshape((4, 5, 6))] * 4)
-    )
-    np.testing.assert_array_equal(
-        ds.data, np.array([np.arange(4 * 5 * 6).reshape((4, 5, 6))] * 4)
-    )
+_array_function_test_cases = [
+    (np.fft.fft, (), {}),
+]
 
 
 @pytest.mark.parametrize(
-    "attr, value",
-    [
-        ("backend", None),
-        ("name", "unnamed"),
-        ("label", "unnamed"),
-        ("unit", ""),
-    ],
-    ids=["backend", "name", "label", "unit"],
+    "func, args, kwargs",
+    _array_function_test_cases,
+    ids=[str(case[0].__name__) for case in _array_function_test_cases],
 )
-def test_GridDataset_attr_from_array_init(TestGridBackend, attr, value):
-    """Parameterize check for different props from random array"""
-    ds = GridDataset(np.random.random_sample((4, 5, 6)))
-    assert getattr(ds, attr) == value
+@pytest.mark.filterwarnings("ignore:invalid value")
+def test_GridDAtaset___array_function__(func, args, kwargs):
+    ds = GridDataset.from_array(np.linspace(0.1, 0.9))
+    np.testing.assert_array_equal(
+        func(ds, *args, **kwargs), func(np.linspace(0.1, 0.9), *args, **kwargs)
+    )
 
 
-_GridDataset_getitem_tests = {}
-_GridDataset_getitem_tests["1d, single time step, [int]"] = (
-    # indexing
-    np.s_[2],
-    # data
-    np.arange(10).reshape((1, 10)),
-    # iteration
-    Axis(0),
-    # time
-    Axis(0),
-    # grid_axes
-    [GridAxis(np.arange(10).reshape((1, 10)))],
-    # expected data
-    np.array(2),
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [],
-)
-_GridDataset_getitem_tests["1d, single time step, [:]"] = (
-    # indexing
-    np.s_[:],
-    # data
-    np.arange(10).reshape((1, 10)),
-    # iteration
-    Axis(0),
-    # time
-    Axis(0),
-    # grid_axes
-    [GridAxis(np.arange(10).reshape((1, 10)))],
-    # expected data
-    np.arange(10).reshape((1, 10)),
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [GridAxis(np.arange(10).reshape((1, 10)))],
-)
-_GridDataset_getitem_tests["1d, single time step, [range]"] = (
-    # indexing
-    np.s_[1:7],
-    # data
-    np.arange(10).reshape((1, 10)),
-    # iteration
-    Axis(0),
-    # time
-    Axis(0),
-    # grid_axes
-    [GridAxis(np.arange(10).reshape((1, 10)))],
-    # expected data
-    np.arange(10).reshape((1, 10))[:, 1:7],
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [GridAxis(np.arange(10).reshape((1, 10))[:, 1:7])],
-)
-_GridDataset_getitem_tests["1d, multiple time steps, [int]"] = (
-    # indexing
-    np.s_[1],
-    # data
-    np.arange(21).reshape((3, 7)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-    # expected data
-    np.arange(21).reshape((3, 7))[1],
-    # expected iteration
-    Axis(1),
-    # expected time
-    Axis(1),
-    # expected grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))[1]],
-)
-_GridDataset_getitem_tests["1d, multiple time steps, [:]"] = (
-    # indexing
-    np.s_[:],
-    # data
-    np.arange(21).reshape((3, 7)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-    # expected data
-    np.arange(21).reshape((3, 7)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-)
-_GridDataset_getitem_tests["1d, multiple time steps, [range]"] = (
-    # indexing
-    np.s_[0:1],
-    # data
-    np.arange(21).reshape((3, 7)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-    # expected data
-    np.arange(7).reshape((1, 7)),
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [GridAxis(np.arange(7).reshape((1, 7)))],
-)
-_GridDataset_getitem_tests["1d, multiple time steps, [int, int]"] = (
-    # indexing
-    np.s_[0, 5],
-    # data
-    np.arange(21).reshape((3, 7)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-    # expected data
-    np.array(5),
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [],
-)
-_GridDataset_getitem_tests["1d, multiple time steps, [:, int]"] = (
-    # indexing
-    np.s_[:, 5],
-    # data
-    np.arange(21).reshape((3, 7)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-    # expected data
-    np.array([5, 12, 19]),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [],
-)
-_GridDataset_getitem_tests["1d, multiple time steps, [int, :]"] = (
-    # indexing
-    np.s_[1, :],
-    # data
-    np.arange(21).reshape((3, 7)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-    # expected data
-    np.arange(21).reshape((3, 7))[1, :],
-    # expected iteration
-    Axis(1),
-    # expected time
-    Axis(1),
-    # expected grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))[1]],
-)
-_GridDataset_getitem_tests["2d, multiple time steps, [:, :, :]"] = (
-    # indexing
-    np.s_[:, :, :],
-    # data
-    np.arange(105).reshape((3, 7, 5)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-    ],
-    # expected data
-    np.arange(105).reshape((3, 7, 5)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-    ],
-)
-_GridDataset_getitem_tests["2d, multiple time steps, [int, :, :]"] = (
-    # indexing
-    np.s_[1, :, :],
-    # data
-    np.arange(105).reshape((3, 7, 5)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-    ],
-    # expected data
-    np.arange(105).reshape((3, 7, 5))[1, :, :],
-    # expected iteration
-    Axis(1),
-    # expected time
-    Axis(1),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7)))[1],
-        GridAxis(np.arange(15).reshape((3, 5)))[1],
-    ],
-)
-_GridDataset_getitem_tests["2d, multiple time steps, [:, int, :]"] = (
-    # indexing
-    np.s_[:, 4, :],
-    # data
-    np.arange(105).reshape((3, 7, 5)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-    ],
-    # expected data
-    np.arange(105).reshape((3, 7, 5))[:, 4, :],
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [GridAxis(np.arange(15).reshape((3, 5)))],
-)
-_GridDataset_getitem_tests["2d, multiple time steps, [:, :, int]"] = (
-    # indexing
-    np.s_[:, :, 2],
-    # data
-    np.arange(105).reshape((3, 7, 5)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-    ],
-    # expected data
-    np.arange(105).reshape((3, 7, 5))[:, :, 2],
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [GridAxis(np.arange(21).reshape((3, 7)))],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [:, :, :, :, :]"] = (
-    # indexing
-    np.s_[:, :, :, :, :],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [:, ...]"] = (
-    # indexing
-    np.s_[:, ..., :],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [:, ..., int]"] = (
-    # indexing
-    np.s_[:, ..., 4],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((3, 7, 5, 2, 6))[:, ..., 4],
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-    ],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [...]"] = (
-    # indexing
-    np.s_[...],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [newaxis, ...]"] = (
-    # indexing
-    np.s_[np.newaxis, ...],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((1, 3, 7, 5, 2, 6)),
-    # expected iteration
-    Axis([[0, 1, 2]]),
-    # expected time
-    Axis([[0, 1, 2]]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [:, newaxis, ...]"] = (
-    # indexing
-    np.s_[:, np.newaxis, ...],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((3, 1, 7, 5, 2, 6)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        None,
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [:, :, newaxis, ...]"] = (
-    # indexing
-    np.s_[:, :, np.newaxis, ...],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((3, 7, 1, 5, 2, 6)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        None,
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-)
-_GridDataset_getitem_tests["4d, multiple time steps, [..., newaxis]"] = (
-    # indexing
-    np.s_[..., np.newaxis],
-    # data
-    np.arange(1260).reshape((3, 7, 5, 2, 6)),
-    # iteration
-    Axis([0, 1, 2]),
-    # time
-    Axis([0, 1, 2]),
-    # grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-    ],
-    # expected data
-    np.arange(1260).reshape((3, 7, 5, 2, 6, 1)),
-    # expected iteration
-    Axis([0, 1, 2]),
-    # expected time
-    Axis([0, 1, 2]),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(21).reshape((3, 7))),
-        GridAxis(np.arange(15).reshape((3, 5))),
-        GridAxis(np.arange(6).reshape((3, 2))),
-        GridAxis(np.arange(18).reshape((3, 6))),
-        None,
-    ],
-)
-_GridDataset_getitem_tests["3d, single time step, [newaxis, ...]"] = (
-    # indexing
-    # np.s_[np.newaxis, ...],
-    np.s_[np.newaxis, ...],
-    # data
-    np.arange(60).reshape((1, 3, 4, 5)),
-    # iteration
-    Axis(0),
-    # time
-    Axis(0),
-    # grid_axes
-    [
-        GridAxis(np.arange(3).reshape((1, 3))),
-        GridAxis(np.arange(4).reshape((1, 4))),
-        GridAxis(np.arange(5).reshape((1, 5))),
-    ],
-    # expected data
-    np.arange(60).reshape((1, 1, 3, 4, 5)),
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [
-        None,
-        GridAxis(np.arange(3).reshape((1, 3))),
-        GridAxis(np.arange(4).reshape((1, 4))),
-        GridAxis(np.arange(5).reshape((1, 5))),
-    ],
-)
-_GridDataset_getitem_tests["3d, single time step, [:, newaxis, ...]"] = (
-    # indexing
-    np.s_[:, np.newaxis, ...],
-    # data
-    np.arange(60).reshape((1, 3, 4, 5)),
-    # iteration
-    Axis(0),
-    # time
-    Axis(0),
-    # grid_axes
-    [
-        GridAxis(np.arange(3).reshape((1, 3))),
-        GridAxis(np.arange(4).reshape((1, 4))),
-        GridAxis(np.arange(5).reshape((1, 5))),
-    ],
-    # expected data
-    np.arange(60).reshape((1, 3, 1, 4, 5)),
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(3).reshape((1, 3))),
-        None,
-        GridAxis(np.arange(4).reshape((1, 4))),
-        GridAxis(np.arange(5).reshape((1, 5))),
-    ],
-)
-_GridDataset_getitem_tests["3d, single time step, [..., newaxis]"] = (
-    # indexing
-    np.s_[..., np.newaxis],
-    # data
-    np.arange(60).reshape((1, 3, 4, 5)),
-    # iteration
-    Axis(0),
-    # time
-    Axis(0),
-    # grid_axes
-    [
-        GridAxis(np.arange(3).reshape((1, 3))),
-        GridAxis(np.arange(4).reshape((1, 4))),
-        GridAxis(np.arange(5).reshape((1, 5))),
-    ],
-    # expected data
-    np.arange(60).reshape((1, 3, 4, 5, 1)),
-    # expected iteration
-    Axis(0),
-    # expected time
-    Axis(0),
-    # expected grid_axes
-    [
-        GridAxis(np.arange(3).reshape((1, 3))),
-        GridAxis(np.arange(4).reshape((1, 4))),
-        GridAxis(np.arange(5).reshape((1, 5))),
-        None,
-    ],
-)
+_testCases_GridDataset_getitem = {}
+_testCases_GridDataset_getitem["(axis,) [int]"] = {
+    "arr": np.arange(123),
+    "indexing": np.s_[2],
+    "expected_arr": np.array(2),
+}
+_testCases_GridDataset_getitem["(axis,) [:]"] = {
+    "arr": np.arange(123),
+    "indexing": np.s_[:],
+    "expected_arr": np.arange(123),
+}
+_testCases_GridDataset_getitem["(axis,) [range]"] = {
+    "arr": np.arange(123),
+    "indexing": np.s_[8:-12],
+    "expected_arr": np.arange(123)[8:-12],
+}
+_testCases_GridDataset_getitem["(axis,) [newaxis]"] = {
+    "arr": np.arange(123),
+    "indexing": np.s_[np.newaxis],
+    "expected_arr": np.arange(123).reshape((1, 123)),
+    "expected_kwargs": {
+        "grid_axes": [Axis([0], name="newaxis0"), Axis(np.arange(123), name="axis0")]
+    },
+}
+_testCases_GridDataset_getitem["(axis,) [..., newaxis]"] = {
+    "arr": np.arange(123),
+    "indexing": np.s_[..., np.newaxis],
+    "expected_arr": np.arange(123).reshape((123, 1)),
+    "expected_kwargs": {
+        "grid_axes": [Axis(np.arange(123), name="axis0"), Axis([0], name="newaxis0")]
+    },
+}
+_testCases_GridDataset_getitem["(time, axis) [int]"] = {
+    "arr": np.arange(4 * 5).reshape((4, 5)),
+    "kwargs": {
+        "grid_axes": [
+            Axis(np.arange(4), name="time", label="time", axis_dim=0),
+            Axis(
+                np.arange(5).reshape((1, 5)).repeat(4, axis=0),
+                name="axis0",
+                label="axis0",
+                axis_dim=1,
+            ),
+        ]
+    },
+    "indexing": np.s_[2],
+    "expected_arr": np.arange(4 * 5).reshape((4, 5))[2],
+    "expected_kwargs": {
+        "time": Axis(2, name="time", label="time", axis_dim=0),
+        "grid_axes": [Axis(np.arange(5), name="axis0", label="axis0", axis_dim=1)],
+    },
+}
+_testCases_GridDataset_getitem["(time, axis) [newaxis]"] = {
+    "arr": np.arange(4 * 5).reshape((4, 5)),
+    "kwargs": {
+        "grid_axes": [
+            Axis(np.arange(4), name="time", label="time", axis_dim=0),
+            Axis(
+                np.arange(5).reshape((1, 5)).repeat(4, axis=0),
+                name="axis0",
+                label="axis0",
+                axis_dim=1,
+            ),
+        ]
+    },
+    "indexing": np.s_[np.newaxis],
+    "expected_arr": np.arange(4 * 5).reshape((1, 4, 5)),
+    "expected_kwargs": {
+        "grid_axes": [
+            Axis(
+                np.arange(1).reshape((1, 1)).repeat(4, axis=0),
+                name="newaxis0",
+                axis_dim=1,
+            ),
+            Axis(np.arange(4), name="time", label="time", axis_dim=0),
+            Axis(
+                np.arange(5).reshape((1, 5)).repeat(4, axis=0),
+                name="axis0",
+                label="axis0",
+                axis_dim=1,
+            ),
+        ],
+    },
+}
+_testCases_GridDataset_getitem["(iteration, axis) [int]"] = {
+    "arr": np.arange(4 * 5).reshape((4, 5)),
+    "kwargs": {
+        "grid_axes": [
+            Axis(np.arange(4), name="iteration", label="iteration", axis_dim=0),
+            Axis(
+                np.arange(4 * 5).reshape((4, 5)),
+                name="axis0",
+                label="axis0",
+                axis_dim=1,
+            ),
+        ]
+    },
+    "indexing": np.s_[2],
+    "expected_arr": np.arange(4 * 5).reshape((4, 5))[2],
+    "expected_kwargs": {
+        "iteration": Axis(2, name="iteration", label="iteration", axis_dim=0),
+        "grid_axes": [
+            Axis(
+                np.arange(4 * 5).reshape((4, 5))[2],
+                name="axis0",
+                label="axis0",
+                axis_dim=1,
+            ),
+        ],
+    },
+}
 
 
 @pytest.mark.parametrize(
-    [
-        "indexing",
-        "data",
-        "iteration",
-        "time",
-        "grid_axes",
-        "expected_data",
-        "expected_iteration",
-        "expected_time",
-        "expected_grid_axes",
-    ],
-    [v for v in _GridDataset_getitem_tests.values()],
-    ids=[k for k in _GridDataset_getitem_tests.keys()],
+    "case",
+    _testCases_GridDataset_getitem.values(),
+    ids=_testCases_GridDataset_getitem.keys(),
 )
-def test_GridDataset_getitem(
-    indexing,
-    data,
-    iteration,
-    time,
-    grid_axes,
-    expected_data,
-    expected_iteration,
-    expected_time,
-    expected_grid_axes,
-):
-    # some valid names GridDatset
-    name = "some_name"
-    label = "some_label"
-    unit = "some_unit"
+def test_GridDataset_getitem(case):
+    arr = case["arr"]
+    kwargs = case["kwargs"] if "kwargs" in case else {}
 
-    grid = GridDataset(
-        data,
-        iteration=iteration,
-        time=time,
-        grid_axes=grid_axes,
-        name=name,
-        label=label,
-        unit=unit,
-    )
+    indexing = case["indexing"]
 
-    expected_subgrid = GridDataset(
-        expected_data,
-        iteration=expected_iteration,
-        time=expected_time,
-        grid_axes=expected_grid_axes,
-        name=name,
-        label=label,
-        unit=unit,
-    )
+    expected_arr = case["expected_arr"]
+    expected_args = case["expected_args"] if "expected_args" in case else ()
+    expected_kwargs = case["expected_kwargs"] if "expected_kwargs" in case else {}
 
+    grid = GridDataset.from_array(arr, **kwargs)
     subgrid = grid[indexing]
+    expected_subgrid = GridDataset.from_array(
+        expected_arr, *expected_args, **expected_kwargs
+    )
 
     assert isinstance(subgrid, GridDataset)
-
-    # will check equivalence of axis as well
-    # do it two different ways as equivalent is not guaranteed to be commutative
-    assert subgrid.equivalent(expected_subgrid)
-    assert expected_subgrid.equivalent(subgrid)
-
-    # data
+    assert subgrid.is_equiv_to(expected_subgrid)
     np.testing.assert_array_equal(subgrid, expected_subgrid)
 
-    # iteration
-    np.testing.assert_array_equal(
-        subgrid.axes["iteration"], expected_subgrid.axes["iteration"]
-    )
-    # time
-    np.testing.assert_array_equal(
-        subgrid.axes["time"], expected_subgrid.axes["time"]
-    )
+    if expected_subgrid.axes.time:
+        assert subgrid.axes.time.is_equiv_to(expected_subgrid.axes.time, verbose=True)
+        np.testing.assert_array_equal(subgrid.axes.time, expected_subgrid.axes.time)
+    else:
+        assert subgrid.axes.time is None
 
-    # grid_axes
-    assert len(subgrid.axes["grid_axes"]) == len(
-        expected_subgrid.axes["grid_axes"]
-    )
-    for grid_axis, expected_grid_axis in zip(
-        subgrid.axes["grid_axes"], expected_subgrid.axes["grid_axes"]
-    ):
-        np.testing.assert_array_equal(grid_axis, expected_grid_axis)
-
-
-def test_GridDataset_change_name():
-    """Check for changing the name of GridDataset"""
-    grid = GridDataset(0, name="old")
-    assert grid.name == "old"
-    grid.name = "new"
-    assert grid.name == "new"
-
-
-def test_GridDataset_change_label():
-    """Check for changing the label of GridDataset"""
-    grid = GridDataset(0, label="old")
-    assert grid.label == "old"
-    grid.label = "new"
-    assert grid.label == "new"
-
-
-def test_GridDataset_change_unit():
-    """Check for changing the unit of GridDataset"""
-    grid = GridDataset(0, unit="old")
-    assert grid.unit == "old"
-    grid.unit = "new"
-    assert grid.unit == "new"
-
-
-@pytest.mark.skip
-def test_GridDataset_repr():
-    """Check repr is correct"""
-    pass  # TODO
-
-
-@pytest.mark.skip
-def test_GridDataset_from_path():
-    """Init GridDataset from path"""
-    pass  # TODO
-
-
-@pytest.mark.skip
-def test_GridDataset_from_array():
-    """Init GridDataset from array"""
-    pass  # TODO
-
-
-def test_GridDataset_basic_numerical_operations_scalar():
-    """Check basic numerical operation for GridDataset"""
-    arr = np.random.random_sample((4, 3, 5))
-    value = float(np.random.random_sample())
-    grid = GridDataset(arr[np.newaxis])
-
-    # ensure a new object is returned
-    assert (grid + value) is not grid
-    assert isinstance((grid + value), GridDataset)
-
-    np.testing.assert_array_equal(grid + value, arr + value)
-    np.testing.assert_array_equal(grid - value, arr - value)
-    np.testing.assert_array_equal(grid * value, arr * value)
-    np.testing.assert_array_equal(grid / value, arr / value)
-    np.testing.assert_array_equal(grid ** value, arr ** value)
-
-
-def test_GridDataset_basic_numerical_operations_matrix():
-    """Check basic numerical operation using other GridDataset"""
-    arr1 = np.random.random_sample((4, 3, 5))
-    grid1 = GridDataset(arr1[np.newaxis])
-    arr2 = np.random.random_sample((4, 3, 5))
-    grid2 = GridDataset(arr2[np.newaxis])
-
-    # ensure a new object is returned
-    assert (grid1 + grid2) is not grid1
-    assert isinstance((grid1 + grid2), GridDataset)
-
-    # operation keep shape
-    assert (grid1 + grid2).shape == grid1.shape
-
-    np.testing.assert_array_equal(grid1 + grid2, arr1 + arr2)
-    np.testing.assert_array_equal(grid1 - grid2, arr1 - arr2)
-    np.testing.assert_array_equal(grid1 * grid2, arr1 * arr2)
-    np.testing.assert_array_equal(grid1 / grid2, arr1 / arr2)
-    np.testing.assert_array_equal(grid1 ** grid2, arr1 ** arr2)
-
-
-@pytest.mark.skip
-def test_GridDataset_basic_numerical_operation_in_place():
-    """Check if basic numerical operation can be applied in place"""
-    pass  # TODO
+    if expected_subgrid.axes.iteration:
+        assert subgrid.axes.iteration.is_equiv_to(
+            expected_subgrid.axes.iteration, verbose=True
+        )
+        np.testing.assert_array_equal(
+            subgrid.axes.iteration, expected_subgrid.axes.iteration
+        )
+    else:
+        assert subgrid.axes.iteration is None

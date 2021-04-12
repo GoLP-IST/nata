@@ -1,94 +1,72 @@
 [tool.poetry]
-name = "nata"
-version = "0.0.2"
-description = "Post-processing and visualization for PIC codes"
 authors = [
-  "Anton Helm <anton.helm@tecnico.ulisboa.pt>"
+  "Anton Helm <anton.helm@tecnico.ulisboa.pt>",
 ]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+]
+description = "Post-processing and visualization for PIC codes"
+documentation = "https://github.com/GoLP-IST/nata"
+homepage = "https://github.com/GoLP-IST/nata"
+keywords = ["post-processing", "visualization", "particle-in-cell"]
+license = "MIT"
 maintainers = [
   "Anton Helm <anton.helm@tecnico.ulisboa.pt>",
-  "Fabio Cruz <fabio.cruz@tecnico.ulisboa.pt>"
+  "Fabio Cruz <fabio.cruz@tecnico.ulisboa.pt>",
 ]
-license = "MIT"
+name = "nata"
 readme = "README.md"
-homepage = "https://github.com/GoLP-IST/nata"
 repository = "https://github.com/GoLP-IST/nata"
-documentation = "https://github.com/GoLP-IST/nata"
-keywords = ["post-processing", "visualization", "particle-in-cell"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Education",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: Physics",
-    "Topic :: Scientific/Engineering :: Visualization",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-]
+version = "0.0.2"
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/GoLP-IST/nata/issues"
 
 [tool.poetry.dependencies]
-python = "^3.6"
-numpy = "^1.18.1"
-matplotlib = "^3.1.2"
-h5py = "^2.10.0"
-typing_extensions = {version = "^3.7.4", python = "<3.8"}
-ipywidgets = "^7.5.1"
-dataclasses = {version = "^0.7", python = ">=3.6 <3.7"}
-sphinx = {version = "^3.0.3", optional = true}
-sphinx-rtd-theme = {version = "^0.4.3", optional = true}
-recommonmark = {version = "^0.6.0", optional = true}
-jupyterlab = {version = "^2.1.2", optional = true}
-ndindex = "^1.3.1"
+dask = {extras = ["array"], version = "^2.26.0"}
+h5py = "^3.1.0"
+matplotlib = "^3.3.4"
+ndindex = "^1.4"
+numpy = "^1.20.1"
+python = "^3.8"
+jupyterlab = {version = "^3.0.10", optional = true}
+ipywidgets = {version = "^7.6.3", optional = true}
+jupyter = {version = "^1.0.0", optional = true}
 
 [tool.poetry.dev-dependencies]
-pytest = ">5.0"
-pytest-cov = "^2.8.1"
-pre-commit = "^2.0.1"
-tox = "^3.14.3"
 hypothesis = "^5.10.4"
-black = "^19.10b0"
+pytest = ">5.0"
+recommonmark = {version = "^0.6.0", optional = true}
+sphinx = {version = "^3.0.3", optional = true}
+sphinx-rtd-theme = {version = "^0.4.3", optional = true}
+ipdb = {version = "^0.13.7", optional = true}
 
 [tool.poetry.extras]
 docs = ["sphinx", "sphinx-rtd-theme", "recommonmark"]
-# all the tooling required for developing nata
-wiptools = ["jupyterlab"]
+jupyter = ["jupyterlab", "ipywidgets", "jupyter"]
+devtools = ["ipdb"]
 
 [tool.isort]
-atomic=true
-force_single_line=true
-line_length=80
-known_first_party="nata"
-known_third_party=["attr", "h5py", "matplotlib", "numpy", "pytest", "hypothesis"]
+atomic = true
+force_single_line = true
+known_first_party = "nata"
+known_third_party = ["attr", "h5py", "matplotlib", "numpy", "pytest", "hypothesis"]
+line_length = 88
 
 [tool.black]
-line-length = 80
-target-version = ['py36', 'py37', 'py38']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  # The following are specific to Black, you probably don't want those.
-  | blib2to3
-  | tests/data
-  | profiling
-)/
-'''
+line-length = 88
+target-version = ['py38']
 
 [build-system]
-requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+requires = ["poetry>=0.12"]

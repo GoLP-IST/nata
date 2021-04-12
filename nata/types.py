@@ -18,6 +18,8 @@ from typing import Union
 
 import numpy as np
 
+import dask.array as da
+
 # "Protocol" and "runtime_checkable" are builtin for 3.8+
 # otherwise use "typing_extension" package
 if sys.version_info >= (3, 8):
@@ -53,7 +55,7 @@ Number = Union[float, int]
 
 #: Type which can be supplied to `numpy.array` and the resulting output is an
 #: array
-ArrayLike = Union[np.ndarray, Sequence[Number]]
+Array = Union[np.ndarray, da.core.Array]
 
 #: Type for basic indexing
 BasicIndex = Union[int, slice]
@@ -83,10 +85,13 @@ class BackendType(Protocol):
 
     #: Location of the data. This attribute can be used inside a backend to
     #: point to data, either to open a file or to retrieve it.
-    location: Optional[Union[str, Path]]
+    location: Optional[FileLocation]
+
+    def __init__(self, location: FileLocation) -> None:
+        ...
 
     @staticmethod
-    def is_valid_backend(location: Union[Path, str]) -> bool:
+    def is_valid_backend(location: FileLocation) -> bool:
         """Determine if a backend is a valid backend.
 
         Parameters
@@ -329,7 +334,7 @@ class DatasetType(Protocol):
         """
         ...
 
-    def equivalent(self, other: "DatasetType") -> bool:
+    def is_equiv_to(self, other: "DatasetType") -> bool:
         """Checks for equivalence of two datasets.
 
         Parameters
@@ -396,7 +401,7 @@ class AxisType(Protocol):
         """
         ...
 
-    def equivalent(self, other: "AxisType") -> bool:
+    def is_equiv_to(self, other: "AxisType") -> bool:
         """Checks for equivalence of two axes.
 
         Parameters
@@ -443,7 +448,7 @@ class QuantityType(Protocol):
         """
         ...
 
-    def equivalent(self, other: "QuantityType") -> bool:
+    def is_equiv_to(self, other: "QuantityType") -> bool:
         """Checks for equivalence of two particle quantaties.
 
         Parameters
@@ -460,7 +465,7 @@ class QuantityType(Protocol):
         ...
 
 
-class GridDatasetAxes(TypedDict):
+class GridDatasetAxesType(TypedDict):
     """Typed dictionary containing axes for grid datasets.
 
     Typed dictionary `typing.TypedDict` which correspond to a `dict` at
@@ -494,7 +499,7 @@ class GridDatasetType(DatasetType, Protocol):
     unit: str
 
     #: Axes for `GridDatasetType`. It is a dictionary of type `GridDatasetAxes`.
-    axes: GridDatasetAxes
+    axes: GridDatasetAxesType
     #: Shape of the grid. The grid shape corresponds to the underlaying grid
     #: and does not include temporal infortions.
     grid_shape: Tuple[int, ...]

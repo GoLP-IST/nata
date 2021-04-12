@@ -5,3 +5,7 @@ class NataInvalidContainer(Exception):
 
 class NataInvalidPlot(Exception):
     pass
+
+
+class DimensionError(Exception):
+    pass
