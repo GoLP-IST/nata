@@ -2,7 +2,7 @@
 from .axis import Axis
 
 from .grid import GridDataset
-from .grid import GridDatasetAxes
+from .grid import GridAxes
 
 from .ParticleDataset import ParticleQuantity
 from .ParticleDataset import ParticleDataset

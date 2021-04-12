@@ -3,8 +3,8 @@ import numpy as np
 import pytest
 
 from nata.axes import Axis
+from nata.containers import GridAxes
 from nata.containers import GridDataset
-from nata.containers import GridDatasetAxes
 
 
 def test_GridDataset_from_array():
@@ -16,9 +16,9 @@ def test_GridDataset_from_array():
     assert grid.unit == ""
 
     # array and grid information
-    assert grid.ndim == grid.grid_ndim == 2
-    assert grid.shape == grid.grid_shape == (2, 3)
-    assert grid.dtype == np.int64
+    assert grid.ndim == 2
+    assert grid.shape == (2, 3)
+    assert grid.dtype == int
 
     # axis info
     assert grid.axes[0].name == "axis0"
@@ -55,28 +55,31 @@ def test_GridDataset_raise_invalid_name():
         grid.name = "some invalid name"
 
 
-def test_GridDataset_from_array_with_time_axis():
-    grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]], time=[15, 20])
+def test_GridDataset_from_array_with_indexable_axes():
+    grid = GridDataset.from_array(
+        [[1, 2, 3], [3, 4, 5]],
+        indexable_axes=[[0.0, 0.1, 0.2], [10, 20, 30]],
+    )
 
     assert grid.ndim == 2
-    assert grid.grid_ndim == 1
     assert grid.shape == (2, 3)
-    assert grid.grid_shape == (3,)
 
-    assert grid.axes[0].name == "time"
-    assert grid.axes[1].name == "axis0"
+    assert grid.axes[0].name == "axis0"
+    assert grid.axes[1].name == "axis1"
 
 
-def test_GridDataset_from_array_with_iteration_axis():
-    grid = GridDataset.from_array([[1, 2, 3], [3, 4, 5]], iteration=[1, 5])
+def test_GridDataset_from_array_with_non_indexable_axes():
+    grid = GridDataset.from_array(
+        [[1, 2, 3], [3, 4, 5]],
+        hidden_axes=[0, 1, 2, 3, 4, 5],
+    )
 
     assert grid.ndim == 2
-    assert grid.grid_ndim == 1
     assert grid.shape == (2, 3)
-    assert grid.grid_shape == (3,)
 
-    assert grid.axes[0].name == "iteration"
-    assert grid.axes[1].name == "axis0"
+    assert grid.axes[0].name == "axis0"
+    assert grid.axes[1].name == "axis1"
+    assert grid.axes.hidden[0] == "hidden0"
 
 
 def test_GridDataset_from_array_time_precedence():
@@ -98,8 +101,8 @@ def test_GridDataset_from_array_time_precedence():
 def test_GridDataset_from_array_passing_GridDatasetAxes():
     grid = GridDataset.from_array(
         [[1, 2, 3], [3, 4, 5]],
-        dataset_axes=GridDatasetAxes(
-            axes=[
+        dataset_axes=GridAxes(
+            indexable=[
                 Axis([1.2, 3.4], name="my_custom_axis0"),
                 Axis([-4, 8, 3], name="my_custom_axis1"),
             ],
