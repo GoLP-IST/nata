@@ -8,8 +8,13 @@
 	"extensions": [
 		"ms-python.python",
 		"ms-python.vscode-pylance",
-		"bungcip.better-toml"
+		"bungcip.better-toml",
+		"eamodio.gitlens",
+		"github.vscode-pull-request-github"
 	],
 	"remoteUser": "natadev",
-	"postCreateCommand": "pip install ipdb"
+	"containerEnv": {
+		"PYTHONBREAKPOINT": "ipdb.set_trace"
+	},
+	"postCreateCommand": "poetry install && poetry install -E jupyter && poetry run pip install ipdb"
 }
