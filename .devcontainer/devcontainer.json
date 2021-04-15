@@ -16,5 +16,5 @@
 	"containerEnv": {
 		"PYTHONBREAKPOINT": "ipdb.set_trace"
 	},
-	"postCreateCommand": "poetry install && poetry install -E jupyter && poetry run pip install ipdb"
+	"postCreateCommand": ".devcontainer/postCreateScript.sh"
 }
