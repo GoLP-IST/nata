@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+from pathlib import Path
+from typing import Union
+
 import dask.array as da
 import numpy as np
 import pytest
 
 from nata.containers import GridArray
+from nata.containers.grid import GridBackendType
 
 
 def test_GridArray_from_array_default():
@@ -112,3 +116,66 @@ def test_GridArray_change_unit_by_prop():
 
     grid_arr.unit = "new unit"
     assert grid_arr.unit == "new unit"
+
+
+@pytest.fixture(name="valid_grid_backend")
+def _dummy_backend():
+    class DummyBackend:
+        name = "dummy_backend"
+        location = Path()
+
+        def __init__(self, location: Union[str, Path]) -> None:
+            raise NotImplementedError
+
+        @staticmethod
+        def is_valid_backend(location: Union[str, Path]) -> bool:
+            ...
+
+        dataset_name = str()
+        dataset_label = str()
+        dataset_unit = str()
+
+        axes_names = []
+        axes_labels = []
+        axes_units = []
+        axes_min = np.empty(0)
+        axes_max = np.empty(0)
+
+        iteration = int()
+        time_step = float()
+        time_unit = str()
+
+        shape = tuple()
+        dtype = np.dtype("i")
+        ndim = int()
+
+    assert isinstance(DummyBackend, GridBackendType)
+    yield DummyBackend
+
+    if DummyBackend.name in GridArray.get_backends():
+        GridArray.remove_backend(DummyBackend)
+
+
+def test_GridArray_is_valid_backend(valid_grid_backend: GridBackendType):
+    assert GridArray.is_valid_backend(valid_grid_backend)
+    assert not GridArray.is_valid_backend(object)
+
+
+def test_GridArray_add_remove_backend(valid_grid_backend: GridBackendType):
+    assert valid_grid_backend.name not in GridArray.get_backends()
+    GridArray.add_backend(valid_grid_backend)
+
+    assert valid_grid_backend.name in GridArray.get_backends()
+    GridArray.remove_backend(valid_grid_backend)
+
+    assert valid_grid_backend.name not in GridArray.get_backends()
+
+
+def test_GridArray_get_valid_backend(valid_grid_backend: GridBackendType):
+    valid_grid_backend.is_valid_backend = staticmethod(lambda p: p == Path())
+
+    # register backend
+    GridArray.add_backend(valid_grid_backend)
+
+    assert GridArray.get_valid_backend(Path()) is valid_grid_backend
+    assert GridArray.get_valid_backend(Path("some/invalid/path")) is None

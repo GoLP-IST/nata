@@ -8,6 +8,7 @@ from typing import List
 from typing import Optional
 from typing import Protocol
 from typing import Sequence
+from typing import Set
 from typing import Tuple
 from typing import Union
 from typing import runtime_checkable
@@ -566,6 +567,8 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
 
 class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
+    _backends: Set[GridBackendType] = set()
+
     def __init__(
         self,
         data: da.Array,
@@ -685,3 +688,37 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
     @unit.setter
     def unit(self, new: str) -> None:
         self._unit = new
+
+    @classmethod
+    def add_backend(cls, backend: GridBackendType) -> None:
+        """Classmethod to add Backend to GridDatasets"""
+        if cls.is_valid_backend(backend):
+            cls._backends.add(backend)
+        else:
+            raise ValueError("Invalid backend provided")
+
+    @classmethod
+    def remove_backend(cls, backend: GridBackendType) -> None:
+        """Remove a backend which is stored in ``GridDatasets``."""
+        cls._backends.remove(backend)
+
+    @staticmethod
+    def is_valid_backend(backend: GridBackendType) -> bool:
+        """Check if a backend is a valid backend for ``GridDatasets``."""
+        return isinstance(backend, GridBackendType)
+
+    @classmethod
+    def get_backends(cls) -> Dict[str, GridBackendType]:
+        """Dictionary of registered backends for :class:`.GridDataset`"""
+        backends_dict = {}
+        for backend in cls._backends:
+            backends_dict[backend.name] = backend
+        return backends_dict
+
+    @classmethod
+    def get_valid_backend(cls, path: Path) -> Optional[GridBackendType]:
+        for backend in cls._backends:
+            if backend.is_valid_backend(path):
+                return backend
+        else:
+            return None
