@@ -563,3 +563,125 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
     def as_dask(self) -> da.core.Array:
         return self._data
+
+
+class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
+    def __init__(
+        self,
+        data: da.Array,
+        axes: Tuple[Axis, ...],
+        time: Axis,
+        name: str,
+        label: str,
+        unit: str,
+    ):
+        # name property has to be a valid identifier
+        if not name.isidentifier():
+            raise ValueError("'name' has to be a valid identifier")
+
+        # time axis has to be unsized
+        if time.ndim != 0:
+            raise ValueError("time axis has to be 0 dimensional")
+
+        # ensure that every dimension has a corresponding axis
+        if len(axes) != data.ndim:
+            raise ValueError("number of axes mismatches with dimensionality of data")
+
+        # ensure consistency between .data and .axes
+        for ax, s in zip(axes, data.shape):
+            if ax.ndim != 1:
+                raise ValueError("only 1D axis for GridArray are supported")
+
+            if ax.shape[0] != s:
+                raise ValueError("inconsistency between data and axis shape")
+
+        self._data = data
+        self._axes = axes
+        self._time = time
+        self._name = name
+        self._label = label
+        self._unit = unit
+
+    @classmethod
+    def from_array(
+        cls,
+        data: ArrayLike,
+        *,
+        name: str = "unnamed",
+        label: str = "unlabeled",
+        unit: str = "",
+        axes: Optional[Sequence[ArrayLike]] = None,
+        time: Optional[Union[Axis, int, float]] = None,
+    ):
+        if not isinstance(data, da.Array):
+            data = da.asanyarray(data)
+
+        if axes is None:
+            axes = ()
+            for i, l in enumerate(data.shape):
+                axes += (Axis(da.arange(l), name=f"axis{i}"),)
+        else:
+            # ensure that every element in axes is an axis
+            if any(not isinstance(ax, Axis) for ax in axes):
+                tmp = []
+                for i, ax in enumerate(axes):
+                    if not isinstance(ax, Axis):
+                        ax = Axis(da.asanyarray(ax), name=f"axis{i}")
+                    tmp.append(ax)
+
+                axes = tuple(tmp)
+
+        if time is None:
+            time = Axis(0.0, name="time", label="time")
+        else:
+            if not isinstance(time, Axis):
+                time = Axis(time, name="time", label="time")
+
+        return cls(data, axes, time, name, label, unit)
+
+    @property
+    def dtype(self) -> np.dtype:
+        return self._data.dtype
+
+    @property
+    def ndim(self) -> int:
+        return self._data.ndim
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return self._data.shape
+
+    @property
+    def axes(self) -> Tuple[Axis, ...]:
+        return self._axes
+
+    @property
+    def time(self) -> Axis:
+        return self._time
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, new: str) -> None:
+        new = new if isinstance(new, str) else str(new, encoding="utf-8")
+        if not new.isidentifier():
+            raise ValueError("name has to be an identifier")
+        self._name = new
+
+    @property
+    def label(self) -> str:
+        return self._label
+
+    @label.setter
+    def label(self, new: str) -> None:
+        self._label = new
+
+    @property
+    def unit(self) -> str:
+        return self._unit
+
+    @unit.setter
+    def unit(self, new: str) -> None:
+        self._unit = new
