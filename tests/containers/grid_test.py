@@ -243,3 +243,11 @@ def test_GridArray_repr_html():
     """
 
     assert grid._repr_markdown_() == dedent(expected_markdown)
+
+
+def test_GridArray_len():
+    assert len(GridArray.from_array(np.zeros((3,)))) == 3
+    assert len(GridArray.from_array(np.zeros((5, 3)))) == 5
+
+    with pytest.raises(TypeError, match="unsized object"):
+        len(GridArray.from_array(np.zeros(())))

@@ -651,6 +651,9 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
 
         return super().__getattribute__(name)
 
+    def __len__(self) -> int:
+        return len(self._data)
+
     @classmethod
     def from_array(
         cls,
