@@ -3,6 +3,7 @@ from copy import copy
 from functools import partial
 from pathlib import Path
 from textwrap import dedent
+from types import FunctionType
 from typing import AbstractSet
 from typing import Any
 from typing import Callable
@@ -13,6 +14,7 @@ from typing import Protocol
 from typing import Sequence
 from typing import Set
 from typing import Tuple
+from typing import Type
 from typing import Union
 from typing import runtime_checkable
 
@@ -572,8 +574,12 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
 class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
     _backends: Set[GridBackendType] = set()
+
     _plugin_as_property: Dict[str, Callable] = {}
     _plugin_as_method: Dict[str, Callable] = {}
+
+    _handled_array_ufunc: Dict[np.ufunc, Callable] = {}
+    _handled_array_function: Dict[FunctionType, Callable] = {}
 
     def __init__(
         self,
@@ -656,6 +662,92 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
 
     def __len__(self) -> int:
         return len(self._data)
+
+    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        if dtype:
+            return self._data.compute().astype(dtype)
+        else:
+            return self._data.compute()
+
+    @classmethod
+    def implements(cls, numpy_function: Union[np.ufunc, FunctionType]):
+        def decorator(func):
+            if isinstance(numpy_function, np.ufunc):
+                cls._handled_array_ufunc[numpy_function] = func
+            else:
+                cls._handled_array_function[numpy_function] = func
+
+            return func
+
+        return decorator
+
+    @classmethod
+    def get_handled_ufuncs(cls) -> Set[np.ufunc]:
+        return set(func for func in cls._handled_array_ufunc)
+
+    @classmethod
+    def remove_handled_ufuncs(cls, function: np.ufunc) -> None:
+        del cls._handled_array_ufunc[function]
+
+    @classmethod
+    def get_handled_array_function(cls) -> Set[np.ufunc]:
+        return set(func for func in cls._handled_array_function)
+
+    @classmethod
+    def remove_handled_array_function(cls, function: np.ufunc) -> None:
+        del cls._handled_array_function[function]
+
+    def __array_ufunc__(
+        self,
+        ufunc: np.ufunc,
+        method: str,
+        *inputs: Tuple[Any, ...],
+        **kwargs: Dict[str, Any],
+    ):
+        if ufunc in self._handled_array_ufunc:
+            return self._handled_array_ufunc[ufunc](method, inputs, kwargs)
+
+        # repack inputs to mimic passing as dask array
+        inputs = tuple(self._data if input_ is self else input_ for input_ in inputs)
+
+        # required additional repacking if in-place
+        if "out" in kwargs:
+            output = tuple(self._data if arg is self else arg for arg in kwargs["out"])
+            kwargs["out"] = output
+
+        data = self._data.__array_ufunc__(ufunc, method, *inputs, **kwargs)
+
+        # __array_ufunc__ return not implemented by dask
+        if data is NotImplemented:
+            raise NotImplementedError(f"ufunc '{ufunc}' not implemented!")
+
+        # in-place scenario
+        elif data is None:
+            self._data = kwargs["out"][0]
+            return self
+        else:
+            return self.__class__(
+                data, self.axes, self.time, self.name, self.label, self.unit
+            )
+
+    def __array_function__(
+        self,
+        func: FunctionType,
+        types: Tuple[Type],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+    ):
+        if func in self._handled_array_function:
+            return self._handled_array_function[func](types, args, kwargs)
+
+        # repack arguments
+        types = tuple(type(self._data) if t is type(self) else t for t in types)
+        args = tuple(self._data if arg is self else arg for arg in args)
+        data = self._data.__array_function__(func, types, args, kwargs)
+
+        return self.__class__(
+            data, self.axes, self.time, self.name, self.label, self.unit
+        )
 
     @classmethod
     def from_array(

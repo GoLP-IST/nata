@@ -254,3 +254,52 @@ def test_GridArray_len():
 
     with pytest.raises(TypeError, match="unsized object"):
         len(GridArray.from_array(np.zeros(())))
+
+
+def test_GridArray_array():
+    grid = GridArray.from_array([1, 2])
+    np.testing.assert_array_equal(grid, [1, 2])
+
+
+def test_GridArray_implements_ufunc():
+    assert np.add not in GridArray.get_handled_ufuncs()
+
+    @GridArray.implements(np.add)
+    def my_function(*args, **kwargs):
+        return "my_function implementation"
+
+    assert np.add in GridArray.get_handled_ufuncs()
+    assert (GridArray.from_array([]) + 1) == "my_function implementation"
+    GridArray.remove_handled_ufuncs(np.add)
+
+    assert np.add not in GridArray.get_handled_ufuncs()
+
+
+def test_GridArray_implements_array_function():
+    assert np.fft.fft not in GridArray.get_handled_array_function()
+
+    @GridArray.implements(np.fft.fft)
+    def my_function(*args, **kwargs):
+        return "my_function implementation"
+
+    assert np.fft.fft in GridArray.get_handled_array_function()
+    assert np.fft.fft(GridArray.from_array([])) == "my_function implementation"
+    GridArray.remove_handled_array_function(np.fft.fft)
+
+    assert np.fft.fft not in GridArray.get_handled_array_function()
+
+
+def test_GridArray_ufunc_proxy():
+    grid = GridArray.from_array([1, 2])
+
+    # creation of new object
+    np.testing.assert_array_equal(grid + 1, [2, 3])
+
+    # in-place operation
+    grid += 1
+    np.testing.assert_array_equal(grid, [2, 3])
+
+
+def test_GridArray_array_function_proxy():
+    grid = GridArray.from_array([1, 2])
+    np.testing.assert_array_equal(np.fft.fft(grid), np.fft.fft([1, 2]))
