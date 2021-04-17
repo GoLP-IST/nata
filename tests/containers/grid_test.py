@@ -214,3 +214,16 @@ def test_GridArray_remove_plugin():
     assert "dummy_plugin" in GridArray.get_plugins()
     GridArray.remove_plugin("dummy_plugin")
     assert "dummy_plugin" not in GridArray.get_plugins()
+
+
+def test_GridArray_repr():
+    grid = GridArray.from_array(np.arange(12, dtype=np.int32).reshape((4, 3)))
+    expected_repr = (
+        "GridArray<"
+        "shape=(4, 3), "
+        "dtype=int32, "
+        "time=0.0, "
+        "axes=(Axis(axis0), Axis(axis1))"
+        ">"
+    )
+    assert repr(grid) == expected_repr

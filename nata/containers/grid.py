@@ -610,6 +610,17 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
         self._label = label
         self._unit = unit
 
+    def __repr__(self) -> str:
+        repr_ = (
+            "GridArray<"
+            f"shape={self.shape}, "
+            f"dtype={self.dtype}, "
+            f"time={self.time.as_numpy()}, "
+            f"axes=({', '.join(f'Axis({ax.name})' for ax in self.axes)})"
+            ">"
+        )
+        return repr_
+
     def __getattribute__(self, name: str) -> Any:
         if name == "_plugin_as_property":
             return super().__getattribute__(name)
