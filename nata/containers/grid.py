@@ -615,7 +615,7 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
         unit: str = "",
         axes: Optional[Sequence[ArrayLike]] = None,
         time: Optional[Union[Axis, int, float]] = None,
-    ):
+    ) -> "GridArray":
         if not isinstance(data, da.Array):
             data = da.asanyarray(data)
 
