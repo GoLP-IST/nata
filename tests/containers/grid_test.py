@@ -235,10 +235,13 @@ def test_GridArray_repr_html():
     expected_markdown = """
     | **GridArray** | |
     | ---: | :--- |
-    | shape | (4, 3) |
-    | dtype | int32 |
-    | time  | 0.0 |
-    | axes  | Axis(axis0), Axis(axis1) |
+    | **name**  | unnamed |
+    | **label** | unlabeled |
+    | **unit**  | '' |
+    | **shape** | (4, 3) |
+    | **dtype** | int32 |
+    | **time**  | 0.0 |
+    | **axes**  | Axis(axis0), Axis(axis1) |
 
     """
 

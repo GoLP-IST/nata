@@ -626,10 +626,13 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
         md = f"""
         | **GridArray** | |
         | ---: | :--- |
-        | shape | {self.shape} |
-        | dtype | {self.dtype} |
-        | time  | {self.time.as_numpy()} |
-        | axes  | {', '.join(f"Axis({ax.name})" for ax in self.axes)} |
+        | **name**  | {self.name} |
+        | **label** | {self.label} |
+        | **unit**  | {self.unit or "''"} |
+        | **shape** | {self.shape} |
+        | **dtype** | {self.dtype} |
+        | **time**  | {self.time.as_numpy()} |
+        | **axes**  | {', '.join(f"Axis({ax.name})" for ax in self.axes)} |
 
         """
         return dedent(md)
