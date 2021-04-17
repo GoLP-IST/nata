@@ -179,3 +179,38 @@ def test_GridArray_get_valid_backend(valid_grid_backend: GridBackendType):
 
     assert GridArray.get_valid_backend(Path()) is valid_grid_backend
     assert GridArray.get_valid_backend(Path("some/invalid/path")) is None
+
+
+def test_GridArray_register_plugin():
+    GridArray.register_plugin("my_custom_plugin", lambda _: None)
+
+    assert GridArray.get_plugins()["my_custom_plugin"] == ""
+
+
+def test_GridArray_calling_plugin_as_method():
+    def plugin_function(obj: GridArray, should_return_obj: bool):
+        """my custom docs"""
+        return obj if should_return_obj else None
+
+    GridArray.register_plugin("return_self_as_method", plugin_function, "method")
+    grid = GridArray.from_array([])
+
+    assert grid.return_self_as_method(True) is grid
+    assert grid.return_self_as_method(False) is None
+
+    # check plugin perserves docs
+    assert grid.return_self_as_method.__doc__ == plugin_function.__doc__
+
+
+def test_GridArray_calling_plugin_as_property():
+    GridArray.register_plugin("return_self_as_property", lambda s: s, "property")
+    grid = GridArray.from_array([])
+    assert grid.return_self_as_property is grid
+
+
+def test_GridArray_remove_plugin():
+    assert "dummy_plugin" not in GridArray.get_plugins()
+    GridArray.register_plugin("dummy_plugin", lambda s: s, "property")
+    assert "dummy_plugin" in GridArray.get_plugins()
+    GridArray.remove_plugin("dummy_plugin")
+    assert "dummy_plugin" not in GridArray.get_plugins()

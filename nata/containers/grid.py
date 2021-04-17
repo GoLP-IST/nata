@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from copy import copy
+from functools import partial
 from pathlib import Path
 from typing import AbstractSet
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -24,6 +26,7 @@ from nata.utils.types import BasicIndexing
 from nata.utils.types import FileLocation
 
 from .axis import Axis
+from .utils import get_doc_heading
 
 __all__ = ["GridAxes", "GridDataset"]
 
@@ -568,6 +571,8 @@ class GridDataset(np.lib.mixins.NDArrayOperatorsMixin):
 
 class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
     _backends: Set[GridBackendType] = set()
+    _plugin_as_property: Dict[str, Callable] = {}
+    _plugin_as_method: Dict[str, Callable] = {}
 
     def __init__(
         self,
@@ -604,6 +609,23 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
         self._name = name
         self._label = label
         self._unit = unit
+
+    def __getattribute__(self, name: str) -> Any:
+        if name == "_plugin_as_property":
+            return super().__getattribute__(name)
+
+        if name == "_plugin_as_method":
+            return super().__getattribute__(name)
+
+        if name in self._plugin_as_property:
+            return self._plugin_as_property[name](self)
+
+        if name in self._plugin_as_method:
+            func = partial(self._plugin_as_method[name], self)
+            func.__doc__ = self._plugin_as_method[name].__doc__
+            return func
+
+        return super().__getattribute__(name)
 
     @classmethod
     def from_array(
@@ -722,3 +744,45 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
                 return backend
         else:
             return None
+
+    @classmethod
+    def register_plugin(
+        cls,
+        plugin_name: str,
+        plugin: Callable,
+        plugin_type: str = "property",
+    ) -> None:
+        if (
+            plugin_name in cls._plugin_as_property
+            or plugin_name in cls._plugin_as_method
+        ):
+            raise ValueError(f"plugin '{plugin_name}' already registerd")
+
+        if plugin_type not in ("property", "method"):
+            raise ValueError("'plugin_type' can only be 'property' or 'method'")
+
+        if not plugin_name.isidentifier():
+            raise ValueError("plugin name has to be an identifier")
+
+        if plugin_type == "property":
+            cls._plugin_as_property[plugin_name] = plugin
+        else:
+            cls._plugin_as_method[plugin_name] = plugin
+
+    @classmethod
+    def remove_plugin(cls, plugin_name: str) -> None:
+        if (
+            plugin_name not in cls._plugin_as_property
+            and plugin_name not in cls._plugin_as_method
+        ):
+            raise ValueError(f"plugin '{plugin_name}' not registerd")
+
+        if plugin_name in cls._plugin_as_property:
+            del cls._plugin_as_property[plugin_name]
+        else:
+            del cls._plugin_as_method[plugin_name]
+
+    @classmethod
+    def get_plugins(cls) -> Dict[str, str]:
+        plugins = {**cls._plugin_as_method, **cls._plugin_as_property}
+        return {name: get_doc_heading(plugin) for name, plugin in plugins.items()}
