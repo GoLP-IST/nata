@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+from textwrap import dedent
 from typing import Union
 
 import dask.array as da
@@ -227,3 +228,18 @@ def test_GridArray_repr():
         ">"
     )
     assert repr(grid) == expected_repr
+
+
+def test_GridArray_repr_html():
+    grid = GridArray.from_array(np.arange(12, dtype=np.int32).reshape((4, 3)))
+    expected_markdown = """
+    | **GridArray** | |
+    | ---: | :--- |
+    | shape | (4, 3) |
+    | dtype | int32 |
+    | time  | 0.0 |
+    | axes  | Axis(axis0), Axis(axis1) |
+
+    """
+
+    assert grid._repr_markdown_() == dedent(expected_markdown)
