@@ -377,6 +377,19 @@ def test_GridArray_from_path(grid_files):
     assert grid.axes[0].label == "dummy label axis0"
     assert grid.axes[1].label == "dummy label axis1"
     assert grid.axes[0].unit == "dummy unit axis0"
-    assert grid.axes[1].unit == "dummy unit axis1"
 
     np.testing.assert_array_equal(grid, np.arange(32).reshape((4, 8)))
+
+
+def test_GridArray_from_path_check_time_axis(grid_files):
+    # using time axis implicit
+    grid = GridArray.from_path(grid_files / "grid.0")
+    assert grid.time.name == "time"
+
+    # using time axis explicit
+    grid = GridArray.from_path(grid_files / "grid.0", time_axis="time")
+    assert grid.time.name == "time"
+
+    # using time axis explicit
+    grid = GridArray.from_path(grid_files / "grid.0", time_axis="iteration")
+    assert grid.time.name == "iteration"
