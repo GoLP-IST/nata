@@ -786,6 +786,58 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
 
         return cls(data, axes, time, name, label, unit)
 
+    @staticmethod
+    def _unpack_backend(
+        backend: GridBackendType, path: Path, time_axis: str
+    ) -> Tuple[da.Array, Tuple[Axis, ...], Axis, str, str, str]:
+        grid = backend(path)
+        data = da.from_array(grid)
+
+        name = grid.dataset_name
+        label = grid.dataset_label
+        unit = grid.dataset_unit
+
+        if time_axis == "time":
+            time = Axis(grid.time_step, name="time", label="time", unit=grid.time_unit)
+        else:
+            time = Axis(grid.iteration, name="iteration", label="iteration")
+
+        axes = ()
+        for min_, max_, ax_pts, ax_name, ax_label, ax_unit in zip(
+            grid.axes_min,
+            grid.axes_max,
+            grid.shape,
+            grid.axes_names,
+            grid.axes_labels,
+            grid.axes_units,
+        ):
+            axes += (
+                Axis.from_limits(
+                    min_, max_, ax_pts, name=ax_name, label=ax_label, unit=ax_unit
+                ),
+            )
+
+        return data, axes, time, name, label, unit
+
+    @classmethod
+    def from_path(cls, path: Union[str, Path], time_axis: str = "time") -> "GridArray":
+        if not isinstance(path, Path):
+            path = Path(path)
+
+        # check validity of passed arguments
+        if not path.is_file():
+            raise ValueError("only a single file is supported")
+
+        if time_axis not in ("time", "iteration"):
+            raise ValueError("only 'time' and 'iteration' are supported for time axis")
+
+        # get valid backend
+        backend = cls.get_valid_backend(path)
+        if not backend:
+            raise ValueError(f"no valid backend for '{path}' found")
+
+        return cls(*cls._unpack_backend(backend, path, time_axis))
+
     @property
     def dtype(self) -> np.dtype:
         return self._data.dtype

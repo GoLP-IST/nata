@@ -1,14 +1,112 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
+from typing import Optional
 from typing import Union
 
 import dask.array as da
 import numpy as np
 import pytest
+from numpy.typing import ArrayLike
 
 from nata.containers import GridArray
 from nata.containers.grid import GridBackendType
+from nata.utils.container_tools import register_backend
+
+
+@pytest.fixture(name="valid_grid_backend")
+def _valid_grid_backend():
+    class DummyBackend:
+        name = "dummy_backend"
+        location = Path()
+
+        def __init__(self, location: Union[str, Path]) -> None:
+            raise NotImplementedError
+
+        @staticmethod
+        def is_valid_backend(location: Union[str, Path]) -> bool:
+            ...
+
+        dataset_name = str()
+        dataset_label = str()
+        dataset_unit = str()
+
+        axes_names = []
+        axes_labels = []
+        axes_units = []
+        axes_min = np.empty(0)
+        axes_max = np.empty(0)
+
+        iteration = int()
+        time_step = float()
+        time_unit = str()
+
+        shape = tuple()
+        dtype = np.dtype("i")
+        ndim = int()
+
+    assert isinstance(DummyBackend, GridBackendType)
+    yield DummyBackend
+
+    if DummyBackend.name in GridArray.get_backends():
+        GridArray.remove_backend(DummyBackend)
+
+
+@pytest.fixture(name="grid_files")
+def _grid_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # make checking for 'is_valid_backend' always succeed
+    monkeypatch.setattr(GridArray, "is_valid_backend", lambda _: True)
+
+    # make 'basedir'
+    basedir = tmp_path / "grid_files"
+    basedir.mkdir(parents=True, exist_ok=True)
+
+    # create dummy files
+    dummy_data = np.arange(32).reshape((4, 8))
+    np.savetxt(basedir / "grid.0", dummy_data, delimiter=",")
+    np.savetxt(basedir / "grid.1", dummy_data, delimiter=",")
+    np.savetxt(basedir / "grid.2", dummy_data, delimiter=",")
+
+    @register_backend(GridArray)
+    class Dummy_GridFile:
+        name: str = "dummy_backend"
+
+        def __init__(self, location: Union[str, Path]) -> None:
+            self.location = Path(location)
+            self.name = "dummy_backend"
+            self.data = np.loadtxt(location, delimiter=",")
+            self.dataset_name = "dummy_grid"
+            self.dataset_label = "dummy grid label"
+            self.dataset_unit = "dummy unit"
+            self.ndim = dummy_data.ndim
+            self.shape = dummy_data.shape
+            self.dtype = dummy_data.dtype
+            self.axes_min = (0, 1)
+            self.axes_max = (1, 2)
+            self.axes_names = ("dummy_axis0", "dummy_axis1")
+            self.axes_labels = ("dummy label axis0", "dummy label axis1")
+            self.axes_units = ("dummy unit axis0", "dummy unit axis1")
+            self.iteration = 0
+            self.time_step = 1.0
+            self.time_unit = "dummy time unit"
+
+        @staticmethod
+        def is_valid_backend(location: Union[str, Path]) -> bool:
+            location = Path(location)
+            if location.stem == "grid" and location.suffix in (".0", ".1", ".2"):
+                return True
+            else:
+                return False
+
+        def get_data(self, indexing: Optional[Any] = None) -> ArrayLike:
+            if indexing:
+                return self.data[indexing]
+            else:
+                return self.data
+
+    yield basedir
+    GridArray.remove_backend(Dummy_GridFile)
 
 
 def test_GridArray_from_array_default():
@@ -117,44 +215,6 @@ def test_GridArray_change_unit_by_prop():
 
     grid_arr.unit = "new unit"
     assert grid_arr.unit == "new unit"
-
-
-@pytest.fixture(name="valid_grid_backend")
-def _dummy_backend():
-    class DummyBackend:
-        name = "dummy_backend"
-        location = Path()
-
-        def __init__(self, location: Union[str, Path]) -> None:
-            raise NotImplementedError
-
-        @staticmethod
-        def is_valid_backend(location: Union[str, Path]) -> bool:
-            ...
-
-        dataset_name = str()
-        dataset_label = str()
-        dataset_unit = str()
-
-        axes_names = []
-        axes_labels = []
-        axes_units = []
-        axes_min = np.empty(0)
-        axes_max = np.empty(0)
-
-        iteration = int()
-        time_step = float()
-        time_unit = str()
-
-        shape = tuple()
-        dtype = np.dtype("i")
-        ndim = int()
-
-    assert isinstance(DummyBackend, GridBackendType)
-    yield DummyBackend
-
-    if DummyBackend.name in GridArray.get_backends():
-        GridArray.remove_backend(DummyBackend)
 
 
 def test_GridArray_is_valid_backend(valid_grid_backend: GridBackendType):
@@ -303,3 +363,20 @@ def test_GridArray_ufunc_proxy():
 def test_GridArray_array_function_proxy():
     grid = GridArray.from_array([1, 2])
     np.testing.assert_array_equal(np.fft.fft(grid), np.fft.fft([1, 2]))
+
+
+def test_GridArray_from_path(grid_files):
+    grid = GridArray.from_path(grid_files / "grid.0")
+
+    assert grid.name == "dummy_grid"
+    assert grid.label == "dummy grid label"
+    assert grid.unit == "dummy unit"
+
+    assert grid.axes[0].name == "dummy_axis0"
+    assert grid.axes[1].name == "dummy_axis1"
+    assert grid.axes[0].label == "dummy label axis0"
+    assert grid.axes[1].label == "dummy label axis1"
+    assert grid.axes[0].unit == "dummy unit axis0"
+    assert grid.axes[1].unit == "dummy unit axis1"
+
+    np.testing.assert_array_equal(grid, np.arange(32).reshape((4, 8)))
