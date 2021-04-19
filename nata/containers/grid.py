@@ -664,10 +664,15 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
         return len(self._data)
 
     def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        # ensures it is a ndarray -> tries to avoid copying, hence `np.asanyarray`
+        arr = self.to_numpy()
+        if not isinstance(arr, np.ndarray):
+            arr = np.asanyarray(self._data.compute())
+
         if dtype:
-            return self._data.compute().astype(dtype)
+            return arr.astype(dtype)
         else:
-            return self._data.compute()
+            return arr
 
     @classmethod
     def implements(cls, numpy_function: Union[np.ufunc, FunctionType]):
@@ -748,6 +753,30 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
         return self.__class__(
             data, self.axes, self.time, self.name, self.label, self.unit
         )
+
+    def __getitem__(self, key: Any) -> "GridArray":
+        index = ndx.ndindex(key).expand(self.shape).raw
+
+        new_axis_excluded = tuple(ind for ind in index if ind is not None)
+        indices_of_new_axis = tuple(i for i, ind in enumerate(index) if ind is None)
+        reductions = tuple(isinstance(idx, int) for idx in new_axis_excluded)
+
+        axes = []
+        for ax, ind, red in zip(self.axes, new_axis_excluded, reductions):
+            if not red:
+                axes.append(ax[ind])
+
+        for pos in indices_of_new_axis:
+            axes.insert(pos, Axis([0]))
+
+        data = self._data[index]
+        axes = tuple(axes)
+        time = self.time
+        name = self.name
+        label = self.label
+        unit = self.unit
+
+        return GridArray(data, axes, time, name, label, unit)
 
     @classmethod
     def from_array(
@@ -884,6 +913,12 @@ class GridArray(np.lib.mixins.NDArrayOperatorsMixin):
     @unit.setter
     def unit(self, new: str) -> None:
         self._unit = new
+
+    def to_dask(self) -> da.Array:
+        return self._data
+
+    def to_numpy(self) -> np.ndarray:
+        return self._data.compute()
 
     @classmethod
     def add_backend(cls, backend: GridBackendType) -> None:

@@ -11,6 +11,7 @@ import pytest
 from numpy.typing import ArrayLike
 
 from nata.containers import GridArray
+from nata.containers.axis import Axis
 from nata.containers.grid import GridBackendType
 from nata.utils.container_tools import register_backend
 
@@ -393,3 +394,61 @@ def test_GridArray_from_path_check_time_axis(grid_files):
     # using time axis explicit
     grid = GridArray.from_path(grid_files / "grid.0", time_axis="iteration")
     assert grid.time.name == "iteration"
+
+
+_testCases_getitem = {}
+_testCases_getitem["(4,), [int]"] = {
+    "arr": [1, 2, 3, 4],
+    "indexing": np.s_[1],
+}
+_testCases_getitem["(4,), [:]"] = {
+    "arr": [1, 2, 3, 4],
+    "indexing": np.s_[:],
+}
+_testCases_getitem["(4,), [1:3]"] = {
+    "arr": [1, 2, 3, 4],
+    "indexing": np.s_[1:3],
+    "expected_axes": (Axis([1, 2], name="axis0"),),
+}
+_testCases_getitem["(4,), [np.newaxis]"] = {
+    "arr": [1, 2, 3, 4],
+    "indexing": np.s_[np.newaxis],
+    "expected_axes": (Axis([0]), Axis(np.arange(4), name="axis0")),
+}
+_testCases_getitem["(3, 4, 5), [1, 2, 3]"] = {
+    "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
+    "indexing": np.s_[1, 2, 3],
+}
+_testCases_getitem["(3, 4, 5, 6, 7), [:, ..., np.newaxis, ...]"] = {
+    "arr": np.arange(3 * 4 * 5 * 6 * 7).reshape((3, 4, 5, 6, 7)),
+    "indexing": np.s_[1:3, np.newaxis, ..., 4],
+    "expected_axes": (
+        Axis([1, 2], name="axis0"),
+        Axis([0]),
+        Axis(np.arange(4), name="axis1"),
+        Axis(np.arange(5), name="axis2"),
+        Axis(np.arange(6), name="axis3"),
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    "case", _testCases_getitem.values(), ids=_testCases_getitem.keys()
+)
+def test_GridArray_getitem(case):
+    arr = np.array(case["arr"])
+    indexing = case["indexing"]
+    expected_arr = case["expected_arr"] if "expected_arr" in case else arr[indexing]
+    expected_axes = case["expected_axes"] if "expected_axes" in case else None
+
+    grid = GridArray.from_array(arr)
+    subgrid = grid[indexing]
+    expected_grid = GridArray.from_array(expected_arr, axes=expected_axes)
+
+    for ax, expected_ax in zip(subgrid.axes, expected_grid.axes):
+        assert ax.name == expected_ax.name
+        assert ax.label == expected_ax.label
+        assert ax.unit == expected_ax.unit
+        np.testing.assert_array_equal(ax, expected_ax)
+
+    np.testing.assert_array_equal(subgrid, expected_grid)

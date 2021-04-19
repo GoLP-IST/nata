@@ -189,8 +189,8 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         #       default option
         return self.__class__(data)
 
-    def __getitem__(self, key: Any) -> da.Array:
-        return self.__class__(self._data[key])
+    def __getitem__(self, key: Any) -> "Axis":
+        return Axis(self._data[key], name=self.name, label=self.label, unit=self.unit)
 
     @staticmethod
     def _log_axis(
