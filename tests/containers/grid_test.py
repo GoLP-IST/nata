@@ -11,6 +11,7 @@ import pytest
 from numpy.typing import ArrayLike
 
 from nata.containers import GridArray
+from nata.containers import GridDataset
 from nata.containers.axis import Axis
 from nata.containers.grid import GridBackendType
 from nata.utils.container_tools import register_backend
@@ -452,3 +453,28 @@ def test_GridArray_getitem(case):
         np.testing.assert_array_equal(ax, expected_ax)
 
     np.testing.assert_array_equal(subgrid, expected_grid)
+
+
+@pytest.mark.skip
+def test_GridDataset_from_array_default():
+    grid_ds = GridDataset.from_array(da.arange(12, dtype=int).reshape((4, 3)))
+
+    assert grid_ds.shape == (4, 3)
+    assert grid_ds.ndim == 2
+    assert grid_ds.dtype == int
+
+    assert grid_ds.axes[0].name == "time"
+    assert grid_ds.axes[0].label == "time"
+    assert grid_ds.axes[0].unit == ""
+    assert grid_ds.axes[0].shape == (4,)
+
+    assert grid_ds.axes[1].name == "axis0"
+    assert grid_ds.axes[1].label == "unlabeled"
+    assert grid_ds.axes[1].unit == ""
+    assert grid_ds.axes[1].shape == (4, 3)
+
+    assert grid_ds.time is grid_ds.axes[0]
+
+    assert grid_ds.name == "unnamed"
+    assert grid_ds.label == "unlabeled"
+    assert grid_ds.unit == ""
