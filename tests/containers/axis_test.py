@@ -21,6 +21,7 @@ def test_Axis_repr():
     assert repr(axis) == expected
 
 
+@pytest.mark.skip
 def test_Axis_repr_html():
     """Ensures correct repr_html formatting"""
     axis = Axis(())
@@ -74,25 +75,25 @@ def test_Axis_change_unit():
     assert axis.unit == "some new unit"
 
 
-def test_Axis_as_dask():
-    """Check that '.as_dask' returns a dask array"""
+def test_Axis_to_dask():
+    """Check that '.to_dask' returns a dask array"""
     axis = Axis(())
-    assert isinstance(axis.as_dask(), da.Array)
+    assert isinstance(axis.to_dask(), da.Array)
 
 
-def test_Axis_as_numpy():
-    """Check that '.as_numpy' returns a numpy array"""
+def test_Axis_to_numpy():
+    """Check that '.to_numpy' returns a numpy array"""
     axis = Axis(())
-    assert isinstance(axis.as_numpy(), np.ndarray)
+    assert isinstance(axis.to_numpy(), np.ndarray)
 
 
 def test_Axis_len():
     """Check length represents appendable dimension."""
     axis = Axis([1, 2, 3])
-    assert len(axis) == 1
-
-    axis = Axis([1, 2, 3], has_appendable_dim=True)
     assert len(axis) == 3
+
+    axis = Axis([[1, 2, 3]])
+    assert len(axis) == 1
 
 
 def test_Axis_array_props():
@@ -108,44 +109,18 @@ def test_Axis_array_method():
     np.testing.assert_almost_equal(np.array(axis), [0, 1, 2])
 
 
-def test_Axis_append():
-    axis = Axis(0)
-
-    axis.append(1)
-    np.testing.assert_array_equal(axis, [0, 1])
-
-    axis.append(2)
-    np.testing.assert_array_equal(axis, [0, 1, 2])
-
-    axis.append([3, 4])
-    np.testing.assert_array_equal(axis, [0, 1, 2, 3, 4])
-
-
-def test_Axis_append_other_Axis():
-    some_axis = Axis(0, name="some_axis")
-    some_other_axis = Axis(1, name="some_other_axis")
-
-    some_axis.append(some_other_axis)
-
-    assert some_axis.name == "some_axis"
-    np.testing.assert_array_equal(some_axis, [0, 1])
-
-
 def test_Axis_getitem():
     axis = Axis(np.arange(12).reshape((4, 3)))
     sub_axis = axis[3]
     np.testing.assert_array_equal(sub_axis, [9, 10, 11])
-    assert len(sub_axis) == 1
 
     axis = Axis(np.arange(12).reshape((4, 3)))
     sub_axis = axis[1:3]
     np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
-    assert len(sub_axis) == 1
 
-    axis = Axis(np.arange(12).reshape((4, 3)), has_appendable_dim=True)
+    axis = Axis(np.arange(12).reshape((4, 3)))
     sub_axis = axis[1:3]
     np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
-    assert len(sub_axis) == 2
 
 
 _testCases_from_limits = {}

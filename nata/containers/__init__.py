@@ -2,8 +2,10 @@
 from .axis import Axis
 
 from .grid import GridDataset
-from .grid import GridAxes
+from .grid import GridArray
 
 from .ParticleDataset import ParticleQuantity
 from .ParticleDataset import ParticleDataset
 from .DatasetCollection import DatasetCollection
+
+from .grid import stack

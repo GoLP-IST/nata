@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from textwrap import dedent
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -8,7 +9,6 @@ from typing import Type
 from typing import Union
 
 import dask.array as da
-import ndindex as ndx
 import numpy as np
 
 from .formatting import Table
@@ -25,10 +25,8 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         name: str = "unnamed",
         label: str = "unlabeled",
         unit: str = "",
-        has_appendable_dim: bool = False,
     ) -> None:
         self._data = data if isinstance(data, da.Array) else da.asanyarray(data)
-        self._has_appendable_dim = has_appendable_dim
 
         if not name.isidentifier():
             raise ValueError("Argument 'name' has to be a valid identifier")
@@ -38,10 +36,10 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         self._unit = unit
 
     def __len__(self) -> int:
-        if self._has_appendable_dim:
-            return len(self._data)
+        if self._data.ndim == 0:
+            return 0
         else:
-            return 1
+            return len(self._data)
 
     def __repr__(self) -> str:
         return f"Axis(name='{self.name}', label='{self.label}', unit='{self.unit}')"
@@ -60,6 +58,19 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
             fold_closed=False,
         ).render_as_html()
         return html
+
+    def _repr_markdown_(self) -> str:
+        md = f"""
+        | **{type(self).__name__}** | |
+        | ---: | :--- |
+        | **name**  | {self.name} |
+        | **label** | {self.label} |
+        | **unit**  | {self.unit or "''"} |
+        | **shape** | {self.shape} |
+        | **dtype** | {self.dtype} |
+
+        """
+        return dedent(md)
 
     @property
     def name(self) -> str:
@@ -100,10 +111,10 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def dtype(self) -> np.dtype:
         return self._data.dtype
 
-    def as_dask(self) -> da.Array:
+    def to_dask(self) -> da.Array:
         return self._data
 
-    def as_numpy(self) -> np.ndarray:
+    def to_numpy(self) -> np.ndarray:
         return self._data.compute()
 
     def __array__(self, dtype: Optional[np.dtype] = None):
@@ -162,7 +173,6 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
                 name=self.name,
                 label=self.label,
                 unit=self.unit,
-                has_appendable_dim=self._has_appendable_dim,
             )
 
     def __array_function__(
@@ -191,38 +201,10 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
 
         # TODO: Are name, label, and unit required to be passed here or should we have
         #       default option
-        return self.__class__(data, has_appendable_dim=self._has_appendable_dim)
+        return self.__class__(data)
 
-    def __getitem__(self, key: Any) -> da.Array:
-        # check if appendable dimension is being reduced
-        if self._has_appendable_dim:
-            index = ndx.ndindex(key).expand(self._data.shape).raw
-            has_appendable_dim = True if not isinstance(index[0], int) else False
-        else:
-            has_appendable_dim = False
-
-        selection = self._data[key]
-        return self.__class__(selection, has_appendable_dim=has_appendable_dim)
-
-    def append(self, new_data: Union[da.Array, Any]) -> None:
-        if isinstance(new_data, Axis):
-            new_data = new_data.as_dask()
-
-        if not isinstance(new_data, da.Array):
-            new_data = da.asanyarray(new_data)
-
-        if self._has_appendable_dim:
-            if new_data.ndim == (self._data.ndim - 1):
-                new_data = new_data[np.newaxis]
-
-            self._data = da.concatenate((self._data, new_data), axis=0)
-        else:
-            # add new dimension along which 'new_data' will be appended
-            self._data = self._data[np.newaxis]
-            self._has_appendable_dim = True
-            new_data = new_data[np.newaxis]
-
-            self._data = da.concatenate((self._data, new_data), axis=0)
+    def __getitem__(self, key: Any) -> "Axis":
+        return Axis(self._data[key], name=self.name, label=self.label, unit=self.unit)
 
     @staticmethod
     def _log_axis(
@@ -268,6 +250,6 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
 @Axis.implements(np.concatenate)
 def concatenate(arrays, *args, **kwargs):
     arrays = tuple(
-        array if not isinstance(array, Axis) else array.as_dask() for array in arrays
+        array if not isinstance(array, Axis) else array.to_dask() for array in arrays
     )
     return Axis(np.concatenate(arrays, *args, **kwargs))
