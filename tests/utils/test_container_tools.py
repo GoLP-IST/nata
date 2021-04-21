@@ -1,96 +1,96 @@
 # -*- coding: utf-8 -*-
-from typing import Dict
+# from typing import Dict
 
-import pytest
+# import pytest
 
-from nata.types import BackendType
-from nata.types import DatasetType
-from nata.utils.container_tools import register_backend
-
-
-def test_register_backend_check_registration():
-    class SimpleDataset:
-        _backends = set()
-        backend = None
-
-        @classmethod
-        def add_backend(cls, backend: BackendType) -> None:
-            cls._backends.add(backend)
-
-        @classmethod
-        def is_valid_backend(cls, backend: BackendType) -> bool:
-            return True
-
-        @classmethod
-        def remove_backend(cls, backend: BackendType) -> None:
-            ...
-
-        @classmethod
-        def get_backends(cls) -> Dict[str, BackendType]:
-            ...
-
-        def append(self, other: "SimpleDataset") -> None:
-            ...
-
-        def equivalent(self, other: "SimpleDataset") -> bool:
-            ...
-
-    # ensures a SimpleDataset being a valid DatasetType
-    assert isinstance(SimpleDataset, DatasetType) is True
-
-    # performs registration
-    @register_backend(SimpleDataset)
-    class DummyBackend:
-        pass
-
-    assert DummyBackend in SimpleDataset._backends
+# from nata.types import BackendType
+# from nata.types import DatasetType
+# from nata.utils.container_tools import register_backend
 
 
-def test_register_backend_raise_invalid_container():
-    class InvalidDataset:
-        pass
+# def test_register_backend_check_registration():
+#     class SimpleDataset:
+#         _backends = set()
+#         backend = None
 
-    assert isinstance(InvalidDataset, DatasetType) is False
+#         @classmethod
+#         def add_backend(cls, backend: BackendType) -> None:
+#             cls._backends.add(backend)
 
-    with pytest.raises(TypeError, match="Requires container of type"):
+#         @classmethod
+#         def is_valid_backend(cls, backend: BackendType) -> bool:
+#             return True
 
-        @register_backend(InvalidDataset)
-        class DummyBackend:
-            pass
+#         @classmethod
+#         def remove_backend(cls, backend: BackendType) -> None:
+#             ...
+
+#         @classmethod
+#         def get_backends(cls) -> Dict[str, BackendType]:
+#             ...
+
+#         def append(self, other: "SimpleDataset") -> None:
+#             ...
+
+#         def equivalent(self, other: "SimpleDataset") -> bool:
+#             ...
+
+#     # ensures a SimpleDataset being a valid DatasetType
+#     assert isinstance(SimpleDataset, DatasetType) is True
+
+#     # performs registration
+#     @register_backend(SimpleDataset)
+#     class DummyBackend:
+#         pass
+
+#     assert DummyBackend in SimpleDataset._backends
 
 
-def test_register_backend_raise_invalid_backend_for_container():
-    class SimpleDataset:
-        _backends = set()
-        backend = None
+# def test_register_backend_raise_invalid_container():
+#     class InvalidDataset:
+#         pass
 
-        @classmethod
-        def add_backend(cls, backend: BackendType) -> None:
-            cls._backends.add(backend)
+#     assert isinstance(InvalidDataset, DatasetType) is False
 
-        @classmethod
-        def is_valid_backend(cls, backend: BackendType) -> bool:
-            return False
+#     with pytest.raises(TypeError, match="Requires container of type"):
 
-        @classmethod
-        def remove_backend(cls, backend: BackendType) -> None:
-            ...
+#         @register_backend(InvalidDataset)
+#         class DummyBackend:
+#             pass
 
-        @classmethod
-        def get_backends(cls) -> Dict[str, BackendType]:
-            ...
 
-        def append(self, other: "SimpleDataset") -> None:
-            ...
+# def test_register_backend_raise_invalid_backend_for_container():
+#     class SimpleDataset:
+#         _backends = set()
+#         backend = None
 
-        def equivalent(self, other: "SimpleDataset") -> bool:
-            ...
+#         @classmethod
+#         def add_backend(cls, backend: BackendType) -> None:
+#             cls._backends.add(backend)
 
-    # ensures a SimpleDataset being a valid DatasetType
-    assert isinstance(SimpleDataset, DatasetType)
+#         @classmethod
+#         def is_valid_backend(cls, backend: BackendType) -> bool:
+#             return False
 
-    with pytest.warns(UserWarning, match="Skipping backend registration!"):
+#         @classmethod
+#         def remove_backend(cls, backend: BackendType) -> None:
+#             ...
 
-        @register_backend(SimpleDataset)
-        class DummyBackend:
-            pass
+#         @classmethod
+#         def get_backends(cls) -> Dict[str, BackendType]:
+#             ...
+
+#         def append(self, other: "SimpleDataset") -> None:
+#             ...
+
+#         def equivalent(self, other: "SimpleDataset") -> bool:
+#             ...
+
+#     # ensures a SimpleDataset being a valid DatasetType
+#     assert isinstance(SimpleDataset, DatasetType)
+
+#     with pytest.warns(UserWarning, match="Skipping backend registration!"):
+
+#         @register_backend(SimpleDataset)
+#         class DummyBackend:
+#             pass

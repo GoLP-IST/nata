@@ -7,3 +7,5 @@ from .grid import GridArray
 from .ParticleDataset import ParticleQuantity
 from .ParticleDataset import ParticleDataset
 from .DatasetCollection import DatasetCollection
+
+from .grid import stack

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from operator import eq
+from operator import ne
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
+from typing import Callable
 from typing import Optional
 from typing import Union
 
@@ -15,6 +18,9 @@ from nata.containers import GridDataset
 from nata.containers.axis import Axis
 from nata.containers.grid import GridBackendType
 from nata.utils.container_tools import register_backend
+
+# TODO: restructure the test to represent individual classes rather then
+#       GridDataset/GridArray
 
 
 @pytest.fixture(name="valid_grid_backend")
@@ -455,7 +461,6 @@ def test_GridArray_getitem(case):
     np.testing.assert_array_equal(subgrid, expected_grid)
 
 
-@pytest.mark.skip
 def test_GridDataset_from_array_default():
     grid_ds = GridDataset.from_array(da.arange(12, dtype=int).reshape((4, 3)))
 
@@ -472,9 +477,271 @@ def test_GridDataset_from_array_default():
     assert grid_ds.axes[1].label == "unlabeled"
     assert grid_ds.axes[1].unit == ""
     assert grid_ds.axes[1].shape == (4, 3)
+    np.testing.assert_array_equal(grid_ds.axes[1], np.tile(np.arange(3), (4, 1)))
 
     assert grid_ds.time is grid_ds.axes[0]
 
     assert grid_ds.name == "unnamed"
     assert grid_ds.label == "unlabeled"
     assert grid_ds.unit == ""
+
+
+def test_GridDataset_from_array_check_name():
+    grid_arr = GridDataset.from_array([], name="custom_name")
+    assert grid_arr.name == "custom_name"
+
+
+def test_GridDataset_from_array_check_label():
+    grid_arr = GridDataset.from_array([], label="custom label")
+    assert grid_arr.label == "custom label"
+
+
+def test_GridDataset_from_array_check_unit():
+    grid_arr = GridDataset.from_array([], unit="custom unit")
+    assert grid_arr.unit == "custom unit"
+
+
+def test_GridDataset_from_array_check_axes():
+    grid_arr = GridDataset.from_array(
+        [[0, 1], [1, 2]],
+        axes=[[0, 1], [[10, 20], [30, 40]]],
+    )
+
+    np.testing.assert_array_equal(grid_arr.axes[0], [0, 1])
+    assert grid_arr.axes[0].name == "time"
+    assert grid_arr.axes[0].label == "time"
+    assert grid_arr.axes[0].unit == ""
+    assert grid_arr.axes[0].shape == (2,)
+
+    np.testing.assert_array_equal(grid_arr.axes[1], [[10, 20], [30, 40]])
+    assert grid_arr.axes[1].name == "axis0"
+    assert grid_arr.axes[1].label == "unlabeled"
+    assert grid_arr.axes[1].unit == ""
+    assert grid_arr.axes[1].shape == (2, 2)
+
+
+def test_GridDataset_from_array_raise_invalid_name():
+    with pytest.raises(ValueError, match="'name' has to be a valid identifier"):
+        GridDataset.from_array([], name="invalid name")
+
+
+def test_GridDataset_from_array_raise_invalid_axes():
+    # invalid number of axes
+    with pytest.raises(ValueError, match="mismatches with dimensionality of data"):
+        GridDataset.from_array([], axes=[0, 1])
+
+    # axes which are not 1D dimensional
+    with pytest.raises(ValueError, match="time axis has to be 1D"):
+        GridDataset.from_array([0, 1], axes=[[[0, 1]]])
+
+    # only 2D axes for GridDataset are supported
+    with pytest.raises(ValueError, match="axis for GridDataset are supported"):
+        GridDataset.from_array([[0, 1]], axes=[[0], [[[0, 1]]]])
+
+    # axis mismatch with shape of data
+    with pytest.raises(ValueError, match="inconsistency between data and axis shape"):
+        GridDataset.from_array([[0, 1]], axes=[[0], [[0, 1, 2, 3]]])
+
+
+def test_GridDataset_change_name_by_prop():
+    grid_ds = GridDataset.from_array([])
+    assert grid_ds.name == "unnamed"
+
+    grid_ds.name = "new_name"
+    assert grid_ds.name == "new_name"
+
+    with pytest.raises(ValueError, match="name has to be an identifier"):
+        grid_ds.name = "invalid name"
+
+
+def test_GridDataset_change_label_by_prop():
+    grid_ds = GridDataset.from_array([])
+    assert grid_ds.label == "unlabeled"
+
+    grid_ds.label = "new label"
+    assert grid_ds.label == "new label"
+
+
+def test_GridDataset_change_unit_by_prop():
+    grid_ds = GridDataset.from_array([])
+    assert grid_ds.unit == ""
+
+    grid_ds.unit = "new unit"
+    assert grid_ds.unit == "new unit"
+
+
+@pytest.mark.parametrize(
+    "left, right, operation",
+    [
+        # general
+        (GridArray.from_array([]), GridArray.from_array([]), eq),
+        # content
+        (GridArray.from_array([1]), GridArray.from_array([2]), eq),
+        # shape
+        (GridArray.from_array([]), GridArray.from_array([2]), ne),
+        # name
+        (GridArray.from_array([]), GridArray.from_array([], name="some"), ne),
+        # label
+        (GridArray.from_array([]), GridArray.from_array([], label="some"), ne),
+        # unit
+        (GridArray.from_array([]), GridArray.from_array([], unit="some"), ne),
+        # time value
+        (GridArray.from_array([], time=0), GridArray.from_array([], time=1), eq),
+        # time name
+        (
+            GridArray.from_array([], time=Axis(0)),
+            GridArray.from_array([], time=Axis(0, name="some")),
+            ne,
+        ),
+        # time label
+        (
+            GridArray.from_array([], time=Axis(0)),
+            GridArray.from_array([], time=Axis(0, label="some")),
+            ne,
+        ),
+        # time unit
+        (
+            GridArray.from_array([], time=Axis(0)),
+            GridArray.from_array([], time=Axis(0, unit="some")),
+            ne,
+        ),
+        # axes[..] value
+        (
+            GridArray.from_array([1], axes=[Axis([1])]),
+            GridArray.from_array([1], axes=[Axis([2])]),
+            eq,
+        ),
+        # axes[..].name value
+        (
+            GridArray.from_array([1], axes=[Axis([1])]),
+            GridArray.from_array([1], axes=[Axis([1], name="some")]),
+            ne,
+        ),
+        # axes[..].label value
+        (
+            GridArray.from_array([1], axes=[Axis([1])]),
+            GridArray.from_array([1], axes=[Axis([1], label="some")]),
+            ne,
+        ),
+        # axes[..].unit value
+        (
+            GridArray.from_array([1], axes=[Axis([1])]),
+            GridArray.from_array([1], axes=[Axis([1], unit="some")]),
+            ne,
+        ),
+    ],
+    ids=(
+        "general",
+        "content",
+        "shape",
+        "name",
+        "label",
+        "unit",
+        "time",
+        "time.name",
+        "time.label",
+        "time.unit",
+        "axes",
+        "axes.name",
+        "axes.label",
+        "axes.unit",
+    ),
+)
+def test_GridArray_hash(left: GridArray, right: GridArray, operation: Callable):
+    assert operation(hash(left), hash(right))
+
+
+# def test_stack_GridArrays():
+#     grid_arr_1 = GridArray.from_array([1, 2, 3])
+#     grid_arr_2 = GridArray.from_array([4, 5, 6])
+
+#     grid_ds = stack([grid_arr_1, grid_arr_2])
+
+#     assert isinstance(grid_ds, GridDataset)
+
+
+def test_GridDataset_from_path(grid_files: Path):
+    grid = GridDataset.from_path(grid_files / "*")
+
+    assert grid.name == "dummy_grid"
+    assert grid.label == "dummy grid label"
+    assert grid.unit == "dummy unit"
+
+    assert grid.axes[0].name == "time"
+    assert grid.axes[0].label == "time"
+    assert grid.axes[0].unit == "dummy time unit"
+    np.testing.assert_array_equal(grid.axes[0], [1.0, 1.0, 1.0])
+
+    assert grid.axes[1].name == "dummy_axis0"
+    assert grid.axes[2].name == "dummy_axis1"
+
+    assert grid.axes[1].label == "dummy label axis0"
+    assert grid.axes[2].label == "dummy label axis1"
+
+    assert grid.axes[1].unit == "dummy unit axis0"
+    assert grid.axes[2].unit == "dummy unit axis1"
+
+    np.testing.assert_array_equal(
+        grid, np.tile(np.arange(32).reshape((4, 8)), (3, 1, 1))
+    )
+
+
+_testCases_GridDataset_getitem = {}
+_testCases_GridDataset_getitem["(3, 4, 5), [:, :, :]"] = {
+    "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
+    "indexing": np.s_[:, :, :],
+    "instance_after_indexing": GridDataset,
+}
+_testCases_GridDataset_getitem["(3, 4, 5), [1, :, :]"] = {
+    "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
+    "indexing": np.s_[1, :, :],
+    "instance_after_indexing": GridArray,
+}
+_testCases_GridDataset_getitem["(3, 4, 5), [:, :, 0]"] = {
+    "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
+    "indexing": np.s_[:, :, 0],
+    "instance_after_indexing": GridDataset,
+}
+_testCases_GridDataset_getitem["(3, 4, 5), [1]"] = {
+    "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
+    "indexing": np.s_[1],
+    "instance_after_indexing": GridArray,
+}
+_testCases_GridDataset_getitem["(3, 4, 5), [..., np.newaxis]"] = {
+    "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
+    "indexing": np.s_[..., np.newaxis],
+    "instance_after_indexing": GridDataset,
+    "expected_axes": (
+        Axis(np.arange(3), name="time", label="time"),
+        Axis(np.tile(np.arange(4), (3, 1)), name="axis0"),
+        Axis(np.tile(np.arange(5), (3, 1)), name="axis1"),
+        Axis(np.zeros((3, 1))),
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    "case",
+    _testCases_GridDataset_getitem.values(),
+    ids=_testCases_GridDataset_getitem.keys(),
+)
+def test_GridDataset_getitem(case):
+    arr = np.array(case["arr"])
+    indexing = case["indexing"]
+    instance = case["instance_after_indexing"]
+    expected_arr = case["expected_arr"] if "expected_arr" in case else arr[indexing]
+    expected_axes = case["expected_axes"] if "expected_axes" in case else None
+
+    grid = GridDataset.from_array(arr)
+    subgrid = grid[indexing]
+    expected_grid = instance.from_array(expected_arr, axes=expected_axes)
+
+    assert isinstance(subgrid, instance)
+    assert hash(subgrid) == hash(expected_grid)
+    np.testing.assert_array_equal(subgrid, expected_grid)
+
+
+def test_GridDataset_raise_invalid_new_axis():
+    grid = GridDataset.from_array(np.arange(3 * 4 * 5).reshape((3, 4, 5)))
+    with pytest.raises(IndexError):
+        grid[np.newaxis]

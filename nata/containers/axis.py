@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from textwrap import dedent
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -58,6 +59,19 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
         ).render_as_html()
         return html
 
+    def _repr_markdown_(self) -> str:
+        md = f"""
+        | **{type(self).__name__}** | |
+        | ---: | :--- |
+        | **name**  | {self.name} |
+        | **label** | {self.label} |
+        | **unit**  | {self.unit or "''"} |
+        | **shape** | {self.shape} |
+        | **dtype** | {self.dtype} |
+
+        """
+        return dedent(md)
+
     @property
     def name(self) -> str:
         return self._name
@@ -97,10 +111,10 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
     def dtype(self) -> np.dtype:
         return self._data.dtype
 
-    def as_dask(self) -> da.Array:
+    def to_dask(self) -> da.Array:
         return self._data
 
-    def as_numpy(self) -> np.ndarray:
+    def to_numpy(self) -> np.ndarray:
         return self._data.compute()
 
     def __array__(self, dtype: Optional[np.dtype] = None):
@@ -236,6 +250,6 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
 @Axis.implements(np.concatenate)
 def concatenate(arrays, *args, **kwargs):
     arrays = tuple(
-        array if not isinstance(array, Axis) else array.as_dask() for array in arrays
+        array if not isinstance(array, Axis) else array.to_dask() for array in arrays
     )
     return Axis(np.concatenate(arrays, *args, **kwargs))

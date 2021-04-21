@@ -75,16 +75,16 @@ def test_Axis_change_unit():
     assert axis.unit == "some new unit"
 
 
-def test_Axis_as_dask():
-    """Check that '.as_dask' returns a dask array"""
+def test_Axis_to_dask():
+    """Check that '.to_dask' returns a dask array"""
     axis = Axis(())
-    assert isinstance(axis.as_dask(), da.Array)
+    assert isinstance(axis.to_dask(), da.Array)
 
 
-def test_Axis_as_numpy():
-    """Check that '.as_numpy' returns a numpy array"""
+def test_Axis_to_numpy():
+    """Check that '.to_numpy' returns a numpy array"""
     axis = Axis(())
-    assert isinstance(axis.as_numpy(), np.ndarray)
+    assert isinstance(axis.to_numpy(), np.ndarray)
 
 
 def test_Axis_len():
@@ -109,22 +109,18 @@ def test_Axis_array_method():
     np.testing.assert_almost_equal(np.array(axis), [0, 1, 2])
 
 
-@pytest.mark.skip
 def test_Axis_getitem():
     axis = Axis(np.arange(12).reshape((4, 3)))
     sub_axis = axis[3]
     np.testing.assert_array_equal(sub_axis, [9, 10, 11])
-    assert len(sub_axis) == 1
 
     axis = Axis(np.arange(12).reshape((4, 3)))
     sub_axis = axis[1:3]
     np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
-    assert len(sub_axis) == 1
 
     axis = Axis(np.arange(12).reshape((4, 3)))
     sub_axis = axis[1:3]
     np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
-    assert len(sub_axis) == 2
 
 
 _testCases_from_limits = {}
