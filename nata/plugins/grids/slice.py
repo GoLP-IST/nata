@@ -9,6 +9,23 @@ from nata.containers import GridDataset
 from nata.containers.grid import stack
 from nata.plugins.register import register_container_plugin
 
+def get_slice_axis(
+    grid: Union[GridArray, GridDataset],
+    constant: Union[str, int],
+):
+    if isinstance(constant, str):
+        try:
+            slice_axis = list(ax.name for ax in grid.axes).index(constant)
+        except ValueError:
+            raise ValueError(
+                f"axis '{constant}' could not be found in '{grid.name}'"
+            )
+    else:
+        if constant >= len(grid.axes) or constant < -len(grid.axes):
+            raise ValueError(f"invalid axis index '{constant}'")
+        slice_axis = constant
+
+    return slice_axis
 
 @register_container_plugin(GridArray, name="slice")
 def slice_grid_array(
@@ -48,31 +65,22 @@ def slice_grid_array(
     """
 
     if grid.ndim < 1:
-        raise ValueError("slice is not available for 0 dimensional GridArray")
+        raise ValueError("slice is not available for 0 dimensional GridArrays")
 
-    if isinstance(constant, str):
-        try:
-            ax_idx = list(ax.name for ax in grid.axes).index(constant)
-        except ValueError:
-            raise ValueError(
-                f"axis '{constant}' could not be found in GridArray '{grid.name}'"
-            )
-    else:
-        if constant >= len(grid.axes) or constant < -len(grid.axes):
-            raise ValueError(f"invalid axis index '{constant}'")
-        ax_idx = constant
-
-    axis = grid.axes[ax_idx]
+    # get slice axis
+    slice_axis = get_slice_axis(grid, constant)
+    
+    axis = grid.axes[slice_axis]
 
     if value < np.min(axis.to_dask()) or value >= np.max(axis.to_dask()):
         raise ValueError(f"out of range value for axis '{constant}'")
 
     # get index of nearest neighbour
-    idx = (np.abs(axis.to_dask() - value)).argmin(axis=-1)
+    slice_idx = (np.abs(axis.to_dask() - value)).argmin(axis=-1)
 
     # build data slice
     data_slice = [slice(None)] * len(grid.axes)
-    data_slice[ax_idx] = idx
+    data_slice[slice_axis] = slice_idx
 
     return GridArray.from_array(
         grid.to_dask()[tuple(data_slice)],
@@ -130,21 +138,12 @@ def slice_grid_dataset(
     """
 
     if grid.ndim < 2:
-        raise ValueError("slice is not available for 0 dimensional GridDataset")
+        raise ValueError("slice is not available for 0 dimensional GridDatasets")
 
-    if isinstance(constant, str):
-        try:
-            ax_idx = list(ax.name for ax in grid.axes).index(constant)
-        except ValueError:
-            raise ValueError(
-                f"axis '{constant}' could not be found in GridDataset '{grid.name}'"
-            )
-    else:
-        if constant >= len(grid.axes) or constant < -len(grid.axes):
-            raise ValueError(f"invalid axis index '{constant}'")
-        ax_idx = constant
+    # get slice axis
+    slice_axis = get_slice_axis(grid, constant)
 
-    axis = grid.axes[ax_idx]
+    axis = grid.axes[slice_axis]
 
     if axis is grid.time:
         raise ValueError(f"slice along the time axis `{axis.name}` is not supported")
@@ -152,5 +151,5 @@ def slice_grid_dataset(
     if np.any(value < np.min(axis.to_dask(), axis=-1)) or np.any(value >= np.max(axis.to_dask(), axis=-1)):
         raise ValueError(f"out of range value for axis '{constant}'")
 
-    # apply slices to individual grid arrays and stack them
-    return stack([i_grid.slice(constant=ax_idx-1, value=value) for i_grid in grid])
+    # apply slice to individual grid arrays and stack them
+    return stack([i_grid.slice(constant=slice_axis-1, value=value) for i_grid in grid])

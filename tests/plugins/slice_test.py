@@ -36,7 +36,7 @@ def test_array_slice_selection():
 
 def test_array_slice_invalid_ndim():
 
-    with pytest.raises(ValueError, match="0 dimensional GridArray"):
+    with pytest.raises(ValueError, match="0 dimensional GridArrays"):
         GridArray.from_array(1).slice(constant="axis0", value=0)
 
 
@@ -72,5 +72,5 @@ def test_dataset_slice_selection():
 
 def test_dataset_slice_invalid_ndim():
 
-    with pytest.raises(ValueError, match="0 dimensional GridDataset"):
+    with pytest.raises(ValueError, match="0 dimensional GridDatasets"):
         GridDataset.from_array(np.arange(5)).slice(constant="axis0", value=1)
