@@ -107,7 +107,7 @@ def slice_grid_dataset(
     ----------
     constant: ``str`` or ``int``
         Name or index that defines the axis taken to be constant in the slice.
-        Cannot refer to the time axis.
+        Must not refer to the time axis.
     comp: ``float``
         Value of the axis at which the slice is taken.
 
@@ -146,7 +146,7 @@ def slice_grid_dataset(
     axis = grid.axes[slice_axis]
 
     if axis is grid.time:
-        raise ValueError(f"slice along the time axis `{axis.name}` is not supported")
+        raise ValueError(f"slice along the time axis is not supported")
     
     if np.any(value < np.min(axis.to_dask(), axis=-1)) or np.any(value >= np.max(axis.to_dask(), axis=-1)):
         raise ValueError(f"out of range value for axis '{constant}'")
