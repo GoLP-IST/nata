@@ -29,7 +29,7 @@ def _parse_register_args(callable_or_container, **kwargs):
 
 
 def register_container_plugin(
-    callable_or_container=None, container=None, name: Optional[str] = None
+    callable_or_container=None, container=None, name: Optional[str] = None, plugin_type: str = "method"
 ):
     """Decorator for registering a plugin for a container."""
     arguments = _parse_register_args(
@@ -46,7 +46,7 @@ def register_container_plugin(
             return func(self, *args, **kwargs)
 
         container.register_plugin(
-            function_name if function_name else func.__name__, wrapper
+            function_name if function_name else func.__name__, wrapper, plugin_type=plugin_type
         )
         return func
 

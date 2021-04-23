@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-from .lineout import *
+from .slice import *
 from .fft import *
