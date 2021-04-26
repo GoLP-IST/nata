@@ -2,7 +2,6 @@
 import numpy as np
 import pytest
 
-from nata.containers import Axis
 from nata.containers import GridArray
 from nata.containers import GridDataset
 
@@ -57,7 +56,7 @@ def test_dataset_slice_dimensionality():
 def test_dataset_slice_selection():
     grid = GridDataset.from_array(np.arange(12).reshape((4, 3)))
 
-    with pytest.raises(ValueError, match=f"slice along the time axis is not supported"):
+    with pytest.raises(ValueError, match="slice along the time axis is not supported"):
         grid.slice(constant=grid.time.name, value=0)
 
 
