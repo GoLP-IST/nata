@@ -225,7 +225,7 @@ def fft_grid_dataset(
     fft_axes = get_fft_axes(grid, axes, 1)
 
     if 0 in fft_axes:
-        raise ValueError(f"fft along the time axis is not supported")
+        raise ValueError("fft along the time axis is not supported")
 
     # apply fft to individual grid arrays and stack them
     return stack(
