@@ -59,7 +59,7 @@ def filter_particle_dataset(
         if not isinstance(quantities, list) or not all(
             isinstance(quant, str) for quant in quantities
         ):
-            raise TypeError(f"'quantities' must be a list of strings.")
+            raise TypeError("'quantities' must be a list of strings.")
 
         quants = {
             quant: dataset_c.quantities[quant]
@@ -69,8 +69,7 @@ def filter_particle_dataset(
 
         if not bool(quants):
             raise ValueError(
-                f"None of the quantities in 'quantities' were found in the "
-                + "dataset."
+                "None of the quantities in 'quantities' were found in the dataset."
             )
 
     else:
@@ -78,7 +77,7 @@ def filter_particle_dataset(
 
     if mask is not None:
         if not isinstance(mask, np.ndarray) or not mask.dtype == bool:
-            raise TypeError(f"'mask' must be an 'np.ndarray' of dtype 'bool'.")
+            raise TypeError("'mask' must be an 'np.ndarray' of dtype 'bool'.")
 
         quant = next(iter(quants.values()))
         if quant.data.shape != mask.shape:
@@ -92,7 +91,7 @@ def filter_particle_dataset(
 
     if slicing is not None:
         if not isinstance(slicing, slice):
-            raise TypeError(f"'slicing' must be of type 'slice'.")
+            raise TypeError("'slicing' must be of type 'slice'.")
 
         if len(dataset_c) > 1:
             slicing = (slice(None), slicing)

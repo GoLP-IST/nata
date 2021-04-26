@@ -7,10 +7,10 @@ from typing import Optional
 from typing import Union
 
 import numpy as np
-
 from IPython.display import display
 from ipywidgets import Layout
 from ipywidgets import widgets
+
 from nata.containers import GridDataset
 from nata.plots.axes import Axes
 from nata.plots.figure import Figure
@@ -55,10 +55,25 @@ class FigurePlan:
         for a in self.axes:
             plots = []
             for p in a.plots:
-                plots.append(PlotPlan(dataset=p.dataset[key], style=p.style,))
-            axes.append(AxesPlan(plots=plots, axes=a.axes, style=a.style,))
+                plots.append(
+                    PlotPlan(
+                        dataset=p.dataset[key],
+                        style=p.style,
+                    )
+                )
+            axes.append(
+                AxesPlan(
+                    plots=plots,
+                    axes=a.axes,
+                    style=a.style,
+                )
+            )
 
-        return self.__class__(axes=axes, fig=self.fig, style=self.style,)
+        return self.__class__(
+            axes=axes,
+            fig=self.fig,
+            style=self.style,
+        )
 
     def build(self) -> Figure:
         fig = self.fig if self.fig is not None else Figure(**self.style)
@@ -69,9 +84,7 @@ class FigurePlan:
             for p in a.plots:
                 plot_type = p.dataset.plot_type()
                 plot_data = p.dataset.plot_data()
-                axes.add_plot(
-                    plot_type=plot_type, data=plot_data, style=p.style
-                )
+                axes.add_plot(plot_type=plot_type, data=plot_data, style=p.style)
 
             axes.update()
 
@@ -120,9 +133,7 @@ class FigurePlan:
                     slider.options = [f"{i:d}" for i in iteration]
                     slider.value = f"{iteration[n]:d}"
                 else:
-                    slider.options = [
-                        f"{i:n}" for i in np.arange(len(iteration))
-                    ]
+                    slider.options = [f"{i:n}" for i in np.arange(len(iteration))]
                     slider.value = f"{n:d}"
 
         dropdown.observe(dropdown_change, names=["value"], type="change")

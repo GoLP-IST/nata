@@ -50,9 +50,7 @@ def _generate_valid_Osiris_Hdf5_GridFile(tmp_path_factory):
         data = np.transpose(np.arange(24, dtype=dtype).reshape((2, 3, 4)))
 
         ds = fp.create_dataset("test ds", data=data)
-        ds.attrs["LONG_NAME"] = np.array(
-            [b"\\Latex test dataset label"], dtype="|S256"
-        )
+        ds.attrs["LONG_NAME"] = np.array([b"\\Latex test dataset label"], dtype="|S256")
         ds.attrs["UNITS"] = np.array([b"test dataset unit"], dtype="|S256")
 
         # axes
@@ -143,9 +141,7 @@ def test_Osiris_Hdf5_GridFile_reading_data(os_hdf5_grid_444_file):
 
     # subarray
     index = np.s_[1, :2, ::2]
-    np.testing.assert_array_equal(
-        backend.get_data(indexing=index), full_array[index]
-    )
+    np.testing.assert_array_equal(backend.get_data(indexing=index), full_array[index])
 
 
 @pytest.fixture(name="os_hdf5_grid_dev_file", scope="session")
@@ -159,9 +155,7 @@ def _generate_valid_Osiris_Dev_Hdf5_GridFile(tmp_path_factory):
         # root attrs
         fp.attrs["NAME"] = np.array([b"test ds"], dtype="|S256")
         fp.attrs["TYPE"] = np.array([b"grid"], dtype="|S4")
-        fp.attrs["LABEL"] = np.array(
-            [b"\\Latex test dataset label"], dtype="|S256"
-        )
+        fp.attrs["LABEL"] = np.array([b"\\Latex test dataset label"], dtype="|S256")
         fp.attrs["ITER"] = np.array([12345], dtype="i4")
         fp.attrs["TIME"] = np.array([-321.9], dtype="f4")
         fp.attrs["TIME UNITS"] = np.array([b"time unit"], dtype="|S256")
@@ -199,9 +193,7 @@ def _generate_valid_Osiris_Dev_Hdf5_GridFile(tmp_path_factory):
 
 def test_Osiris_Dev_Hdf5_GridFile_check_is_valid_backend(os_hdf5_grid_dev_file):
     """Check 'Osiris_Hdf5_GridFile' is a valid backend exclusively"""
-    assert (
-        Osiris_Dev_Hdf5_GridFile.is_valid_backend(os_hdf5_grid_dev_file) is True
-    )
+    assert Osiris_Dev_Hdf5_GridFile.is_valid_backend(os_hdf5_grid_dev_file) is True
 
     # backend are registered automatically for GridDatasets
     for (name, backend) in GridDataset.get_backends().items():
@@ -263,6 +255,4 @@ def test_Osiris_Dev_Hdf5_GridFile_reading_data(os_hdf5_grid_dev_file):
 
     # subarray
     index = np.s_[1, :2, ::2]
-    np.testing.assert_array_equal(
-        backend.get_data(indexing=index), full_array[index]
-    )
+    np.testing.assert_array_equal(backend.get_data(indexing=index), full_array[index])

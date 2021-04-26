@@ -2,12 +2,12 @@
 from typing import Union
 
 import numpy as np
-import dask.array as da
 
 from nata.containers import GridArray
 from nata.containers import GridDataset
 from nata.containers.grid import stack
 from nata.plugins.register import register_container_plugin
+
 
 def get_slice_axis(
     grid: Union[GridArray, GridDataset],
@@ -17,15 +17,14 @@ def get_slice_axis(
         try:
             slice_axis = list(ax.name for ax in grid.axes).index(constant)
         except ValueError:
-            raise ValueError(
-                f"axis '{constant}' could not be found in '{grid.name}'"
-            )
+            raise ValueError(f"axis '{constant}' could not be found in '{grid.name}'")
     else:
         if constant >= len(grid.axes) or constant < -len(grid.axes):
             raise ValueError(f"invalid axis index '{constant}'")
         slice_axis = constant
 
     return slice_axis
+
 
 @register_container_plugin(GridArray, name="slice")
 def slice_grid_array(
@@ -69,7 +68,7 @@ def slice_grid_array(
 
     # get slice axis
     slice_axis = get_slice_axis(grid, constant)
-    
+
     axis = grid.axes[slice_axis]
 
     if value < np.min(axis.to_dask()) or value >= np.max(axis.to_dask()):
@@ -146,10 +145,14 @@ def slice_grid_dataset(
     axis = grid.axes[slice_axis]
 
     if axis is grid.time:
-        raise ValueError(f"slice along the time axis is not supported")
-    
-    if np.any(value < np.min(axis.to_dask(), axis=-1)) or np.any(value >= np.max(axis.to_dask(), axis=-1)):
+        raise ValueError("slice along the time axis is not supported")
+
+    if np.any(value < np.min(axis.to_dask(), axis=-1)) or np.any(
+        value >= np.max(axis.to_dask(), axis=-1)
+    ):
         raise ValueError(f"out of range value for axis '{constant}'")
 
     # apply slice to individual grid arrays and stack them
-    return stack([i_grid.slice(constant=slice_axis-1, value=value) for i_grid in grid])
+    return stack(
+        [i_grid.slice(constant=slice_axis - 1, value=value) for i_grid in grid]
+    )

@@ -6,7 +6,10 @@ from nata.containers import DatasetCollection
 from nata.utils.io import FileList
 
 
-def load(path: Union[str, Path], recursive: bool = True,) -> DatasetCollection:
+def load(
+    path: Union[str, Path],
+    recursive: bool = True,
+) -> DatasetCollection:
     """
     Lazy function for loading simulation data.
 

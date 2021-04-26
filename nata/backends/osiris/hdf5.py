@@ -7,9 +7,9 @@ from typing import Sequence
 from typing import Union
 
 import h5py as h5
+import ndindex as ndx
 import numpy as np
 
-import ndindex as ndx
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
 from nata.types import BasicIndex
@@ -25,9 +25,7 @@ class Osiris_Hdf5_GridFile:
     location: Optional[Path] = None
 
     def __init__(self, location: Union[str, Path]) -> None:
-        self.location = (
-            location if isinstance(location, Path) else Path(location)
-        )
+        self.location = location if isinstance(location, Path) else Path(location)
 
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
@@ -39,9 +37,7 @@ class Osiris_Hdf5_GridFile:
                 self._dset_name = name_.replace("_", "")
 
             self._dataset_name = fp.attrs["NAME"].astype(str)[0]
-            self._dataset_label = (
-                fp[self._dset_name].attrs["LONG_NAME"].astype(str)[0]
-            )
+            self._dataset_label = fp[self._dset_name].attrs["LONG_NAME"].astype(str)[0]
             self._ndim = fp[self._dset_name].ndim
             self._shape = fp[self._dset_name].shape[::-1]
             self._dtype = fp[self._dset_name].dtype
@@ -53,12 +49,8 @@ class Osiris_Hdf5_GridFile:
                 min_.append(fp["AXIS/" + ax][0])
                 max_.append(fp["AXIS/" + ax][1])
                 axes_names.append(fp["AXIS/" + ax].attrs["NAME"].astype(str)[0])
-                axes_labels.append(
-                    fp["AXIS/" + ax].attrs["LONG_NAME"].astype(str)[0]
-                )
-                axes_units.append(
-                    fp["AXIS/" + ax].attrs["UNITS"].astype(str)[0]
-                )
+                axes_labels.append(fp["AXIS/" + ax].attrs["LONG_NAME"].astype(str)[0])
+                axes_units.append(fp["AXIS/" + ax].attrs["UNITS"].astype(str)[0])
 
             self._min = np.array(min_)
             self._max = np.array(max_)
@@ -84,11 +76,7 @@ class Osiris_Hdf5_GridFile:
             return False
 
         with h5.File(path, mode="r") as f:
-            if (
-                ("NAME" in f.attrs)
-                and ("TYPE" in f.attrs)
-                and ("LABEL" not in f.attrs)
-            ):
+            if ("NAME" in f.attrs) and ("TYPE" in f.attrs) and ("LABEL" not in f.attrs):
                 type_ = f.attrs["TYPE"].astype(str)[0]
                 # general naming
                 name_ = f.attrs["NAME"].astype(str)[0]
@@ -175,9 +163,7 @@ class Osiris_Dev_Hdf5_GridFile:
     location: Optional[Path] = None
 
     def __init__(self, location: FileLocation) -> None:
-        self.location = (
-            location if isinstance(location, Path) else Path(location)
-        )
+        self.location = location if isinstance(location, Path) else Path(location)
 
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
@@ -203,12 +189,8 @@ class Osiris_Dev_Hdf5_GridFile:
                 min_.append(fp["AXIS/" + ax][0])
                 max_.append(fp["AXIS/" + ax][1])
                 axes_names.append(fp["AXIS/" + ax].attrs["NAME"].astype(str)[0])
-                axes_labels.append(
-                    fp["AXIS/" + ax].attrs["LONG_NAME"].astype(str)[0]
-                )
-                axes_units.append(
-                    fp["AXIS/" + ax].attrs["UNITS"].astype(str)[0]
-                )
+                axes_labels.append(fp["AXIS/" + ax].attrs["LONG_NAME"].astype(str)[0])
+                axes_units.append(fp["AXIS/" + ax].attrs["UNITS"].astype(str)[0])
 
             self._axes_min = np.array(min_)
             self._axes_max = np.array(max_)
@@ -234,11 +216,7 @@ class Osiris_Dev_Hdf5_GridFile:
             return False
 
         with h5.File(path, mode="r") as f:
-            if (
-                ("NAME" in f.attrs)
-                and ("TYPE" in f.attrs)
-                and ("LABEL" in f.attrs)
-            ):
+            if ("NAME" in f.attrs) and ("TYPE" in f.attrs) and ("LABEL" in f.attrs):
                 type_ = f.attrs["TYPE"].astype(str)[0]
                 # general naming
                 name_ = f.attrs["NAME"].astype(str)[0]
@@ -325,9 +303,7 @@ class Osiris_Hdf5_ParticleFile:
     location: Optional[Path] = None
 
     def __init__(self, location: FileLocation) -> None:
-        self.location = (
-            location if isinstance(location, Path) else Path(location)
-        )
+        self.location = location if isinstance(location, Path) else Path(location)
 
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
@@ -426,9 +402,7 @@ class Osiris_Hdf5_ParticleFile:
     ) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
-            index = (
-                ndx.Slice(None) if indexing is None else ndx.ndindex(indexing)
-            )
+            index = ndx.Slice(None) if indexing is None else ndx.ndindex(indexing)
             index = index.reduce((self.num_particles,))
             dtype = self.dtype if fields is None else self.dtype[fields]
 
@@ -451,9 +425,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
     location: Optional[Path] = None
 
     def __init__(self, location=Union[str, Path]) -> None:
-        self.location = (
-            location if isinstance(location, Path) else Path(location)
-        )
+        self.location = location if isinstance(location, Path) else Path(location)
 
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
@@ -549,9 +521,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
     ) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
-            index = (
-                ndx.Slice(None) if indexing is None else ndx.ndindex(indexing)
-            )
+            index = ndx.Slice(None) if indexing is None else ndx.ndindex(indexing)
             index = index.reduce((self.num_particles,))
             dtype = self.dtype if fields is None else self.dtype[fields]
 

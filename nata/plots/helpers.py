@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-def filter_style(cls, style: dict = dict(),) -> dict:
+def filter_style(
+    cls,
+    style: dict = dict(),
+) -> dict:
 
     style_sel = cls.style_attrs()
     # build filtered style attributes
