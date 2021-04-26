@@ -20,9 +20,7 @@ from hypothesis.strategies import one_of
 @composite
 def intc_bounded_intergers(draw):
     return draw(
-        integers(
-            min_value=np.iinfo(np.intc).min, max_value=np.iinfo(np.intc).max
-        ),
+        integers(min_value=np.iinfo(np.intc).min, max_value=np.iinfo(np.intc).max),
     )
 
 
@@ -39,7 +37,9 @@ def bounded_intergers(draw, min_value=None, max_value=None):
         else np.iinfo(np.intc).max
     )
 
-    return draw(integers(min_value=lower_limit, max_value=upper_limit),)
+    return draw(
+        integers(min_value=lower_limit, max_value=upper_limit),
+    )
 
 
 @composite
@@ -83,9 +83,7 @@ def anyarray(
 ):
     if dtype is None:
         if include_complex_numbers:
-            dtype = one_of(
-                integer_dtypes(), floating_dtypes(), complex_number_dtypes()
-            )
+            dtype = one_of(integer_dtypes(), floating_dtypes(), complex_number_dtypes())
         else:
             dtype = one_of(integer_dtypes(), floating_dtypes())
 
@@ -108,9 +106,7 @@ def array_and_basic_indices(
     array_max_dims: int = 2,
     dtype: np.dtype = None,
 ):
-    arr = draw(
-        anyarray(min_dims=array_min_dims, max_dims=array_max_dims, dtype=dtype)
-    )
+    arr = draw(anyarray(min_dims=array_min_dims, max_dims=array_max_dims, dtype=dtype))
     ind = draw(basic_indices(arr.shape))
     return arr, ind
 

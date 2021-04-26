@@ -26,10 +26,7 @@ def test_ParticleDatasets_backends_are_registered():
     backends = ParticleDataset.get_backends()
 
     assert backends[Osiris_Hdf5_ParticleFile.name] is Osiris_Hdf5_ParticleFile
-    assert (
-        backends[Osiris_Dev_Hdf5_ParticleFile.name]
-        is Osiris_Dev_Hdf5_ParticleFile
-    )
+    assert backends[Osiris_Dev_Hdf5_ParticleFile.name] is Osiris_Dev_Hdf5_ParticleFile
     assert backends[Osiris_zdf_ParticleFile.name] is Osiris_zdf_ParticleFile
 
 
@@ -76,10 +73,7 @@ def test_Osiris_Hdf5_ParticleFile_check_is_valid_backend(
     os_hdf5_particle_444_file,
 ):
     """Check 'Osiris_Hdf5_ParticleFile' is a valid backend exclusively"""
-    assert (
-        Osiris_Hdf5_ParticleFile.is_valid_backend(os_hdf5_particle_444_file)
-        is True
-    )
+    assert Osiris_Hdf5_ParticleFile.is_valid_backend(os_hdf5_particle_444_file) is True
 
     # backend are registered automatically for ParticleDatasets
     for (name, backend) in ParticleDataset.get_backends().items():
@@ -94,9 +88,7 @@ def test_Osiris_Hdf5_ParticleFile_dataset_props(os_hdf5_particle_444_file):
     backend = Osiris_Hdf5_ParticleFile(os_hdf5_particle_444_file)
     assert backend.dataset_name == "test ds"
     assert backend.num_particles == 13
-    assert backend.dtype == np.dtype(
-        [(s, "f4") for s in ("q", "quant1", "quant2")]
-    )
+    assert backend.dtype == np.dtype([(s, "f4") for s in ("q", "quant1", "quant2")])
 
 
 def test_Osiris_Hdf5_ParticleFile_quantity_props(os_hdf5_particle_444_file):
@@ -141,9 +133,7 @@ def test_Osiris_Hdf5_ParticleFile_reading_data(os_hdf5_particle_444_file):
     # --- subdata ---
     # select every 2nd particle
     index = np.s_[::2]
-    np.testing.assert_array_equal(
-        backend.get_data(indexing=index), full_array[index]
-    )
+    np.testing.assert_array_equal(backend.get_data(indexing=index), full_array[index])
     # select two quantities
     np.testing.assert_array_equal(
         backend.get_data(fields=["quant1", "quant2"]),
@@ -151,7 +141,8 @@ def test_Osiris_Hdf5_ParticleFile_reading_data(os_hdf5_particle_444_file):
     )
     # select one quantity
     np.testing.assert_array_equal(
-        backend.get_data(fields="quant1"), full_array["quant1"],
+        backend.get_data(fields="quant1"),
+        full_array["quant1"],
     )
     # select one quantity and every 3rd particle
     np.testing.assert_array_equal(
@@ -170,9 +161,7 @@ def _generate_valid_Osiris_Dev_Hdf5_ParticleFile(tmp_path_factory):
         # root attrs
         fp.attrs["NAME"] = np.array([b"test ds"], dtype="|S256")
         fp.attrs["TYPE"] = np.array([b"particles"], dtype="|S9")
-        fp.attrs["QUANTS"] = np.array(
-            [b"q", b"quant1", b"quant2"], dtype="|S256"
-        )
+        fp.attrs["QUANTS"] = np.array([b"q", b"quant1", b"quant2"], dtype="|S256")
         fp.attrs["LABELS"] = np.array(
             [b"q label", b"quant1 label", b"quant2 label"], dtype="|S256"
         )
@@ -207,8 +196,7 @@ def test_Osiris_Dev_Hdf5_ParticleFile_check_is_valid_backend(
 ):
     """Check 'Osiris_Dev_Hdf5_ParticleFile' is a valid backend exclusively"""
     assert (
-        Osiris_Dev_Hdf5_ParticleFile.is_valid_backend(os_hdf5_particle_dev_file)
-        is True
+        Osiris_Dev_Hdf5_ParticleFile.is_valid_backend(os_hdf5_particle_dev_file) is True
     )
 
     # backend are registered automatically for ParticleDatasets
@@ -224,9 +212,7 @@ def test_Osiris_Dev_Hdf5_ParticleFile_dataset_props(os_hdf5_particle_dev_file):
     backend = Osiris_Dev_Hdf5_ParticleFile(os_hdf5_particle_dev_file)
     assert backend.dataset_name == "test ds"
     assert backend.num_particles == 13
-    assert backend.dtype == np.dtype(
-        [(s, "f4") for s in ("q", "quant1", "quant2")]
-    )
+    assert backend.dtype == np.dtype([(s, "f4") for s in ("q", "quant1", "quant2")])
 
 
 def test_Osiris_Dev_Hdf5_ParticleFile_quantity_props(os_hdf5_particle_dev_file):
@@ -273,9 +259,7 @@ def test_Osiris_Dev_Hdf5_ParticleFile_reading_data(os_hdf5_particle_dev_file):
     # --- subdata ---
     # select every 2nd particle
     index = np.s_[::2]
-    np.testing.assert_array_equal(
-        backend.get_data(indexing=index), full_array[index]
-    )
+    np.testing.assert_array_equal(backend.get_data(indexing=index), full_array[index])
     # select two quantities
     np.testing.assert_array_equal(
         backend.get_data(fields=["quant1", "quant2"]),
@@ -283,7 +267,8 @@ def test_Osiris_Dev_Hdf5_ParticleFile_reading_data(os_hdf5_particle_dev_file):
     )
     # select one quantity
     np.testing.assert_array_equal(
-        backend.get_data(fields="quant1"), full_array["quant1"],
+        backend.get_data(fields="quant1"),
+        full_array["quant1"],
     )
     # select one quantity and every 3rd particle
     np.testing.assert_array_equal(

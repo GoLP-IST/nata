@@ -29,10 +29,7 @@ def plot_collection(
 
     # check if time and iteration arrays are equal
     for check in ["iteration", "time"]:
-        arr = [
-            np.array(dataset.axes[check])
-            for dataset in collection.store.values()
-        ]
+        arr = [np.array(dataset.axes[check]) for dataset in collection.store.values()]
         if not all(np.array_equal(arr[0], i) for i in arr):
             raise ValueError(
                 f"Attribute `{check}` is not the same for all datasets "
@@ -42,26 +39,21 @@ def plot_collection(
     f_a = []
 
     for dataset in collection.store.values():
-        i_style = (
-            styles[dataset.name] if dataset.name in styles.keys() else None
-        )
+        i_style = styles[dataset.name] if dataset.name in styles.keys() else None
 
         p_plan = PlotPlan(
-            dataset=dataset, style=filter_style(dataset.plot_type(), i_style),
+            dataset=dataset,
+            style=filter_style(dataset.plot_type(), i_style),
         )
 
-        a_plan = AxesPlan(
-            axes=None, plots=[p_plan], style=filter_style(Axes, i_style)
-        )
+        a_plan = AxesPlan(axes=None, plots=[p_plan], style=filter_style(Axes, i_style))
 
         f_a.append(a_plan)
 
     f_plan = FigurePlan(
         fig=None,
         axes=f_a,
-        style=filter_style(
-            Figure, styles["fig"] if "fig" in styles.keys() else None
-        ),
+        style=filter_style(Figure, styles["fig"] if "fig" in styles.keys() else None),
     )
 
     if len(dataset) > 1 and inside_notebook() and interactive:

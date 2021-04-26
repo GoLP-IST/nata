@@ -24,9 +24,7 @@ def particle_plot_data(dataset: ParticleDataset) -> PlotData:
     d = []
 
     for quant in dataset.quantities.values():
-        new_a = PlotDataAxis(
-            name=quant.name, label=quant.label, units=quant.unit
-        )
+        new_a = PlotDataAxis(name=quant.name, label=quant.label, units=quant.unit)
 
         a.append(new_a)
         d.append(quant.data)
@@ -116,16 +114,13 @@ def plot_particle_dataset(
     """
 
     p_plan = PlotPlan(
-        dataset=dataset, style=filter_style(dataset.plot_type(), style),
+        dataset=dataset,
+        style=filter_style(dataset.plot_type(), style),
     )
 
-    a_plan = AxesPlan(
-        axes=axes, plots=[p_plan], style=filter_style(Axes, style)
-    )
+    a_plan = AxesPlan(axes=axes, plots=[p_plan], style=filter_style(Axes, style))
 
-    f_plan = FigurePlan(
-        fig=fig, axes=[a_plan], style=filter_style(Figure, style)
-    )
+    f_plan = FigurePlan(fig=fig, axes=[a_plan], style=filter_style(Figure, style))
 
     if len(dataset) > 1:
         if inside_notebook():

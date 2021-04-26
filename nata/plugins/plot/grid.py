@@ -128,17 +128,11 @@ def plot_grid_dataset(
 
     """
 
-    p_plan = PlotPlan(
-        dataset=dataset, style=filter_style(dataset.plot_type(), style)
-    )
+    p_plan = PlotPlan(dataset=dataset, style=filter_style(dataset.plot_type(), style))
 
-    a_plan = AxesPlan(
-        axes=axes, plots=[p_plan], style=filter_style(Axes, style)
-    )
+    a_plan = AxesPlan(axes=axes, plots=[p_plan], style=filter_style(Axes, style))
 
-    f_plan = FigurePlan(
-        fig=fig, axes=[a_plan], style=filter_style(Figure, style)
-    )
+    f_plan = FigurePlan(fig=fig, axes=[a_plan], style=filter_style(Figure, style))
 
     if len(dataset) > 1:
         if inside_notebook():

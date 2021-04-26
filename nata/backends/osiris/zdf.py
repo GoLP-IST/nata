@@ -21,9 +21,7 @@ class Osiris_zdf_GridFile:
     location: Optional[Path] = None
 
     def __init__(self, location: Union[str, Path]) -> None:
-        self.location = (
-            location if isinstance(location, Path) else Path(location)
-        )
+        self.location = location if isinstance(location, Path) else Path(location)
 
     @staticmethod
     def is_valid_backend(file_path: Union[Path, str]) -> bool:
@@ -180,9 +178,7 @@ class Osiris_zdf_ParticleFile:
     location: Optional[Path] = None
 
     def __init__(self, location=Union[str, Path]) -> None:
-        self.location = (
-            location if isinstance(location, Path) else Path(location)
-        )
+        self.location = location if isinstance(location, Path) else Path(location)
 
     @staticmethod
     def is_valid_backend(file_path: Path) -> bool:

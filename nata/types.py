@@ -16,20 +16,19 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
-import numpy as np
-
 import dask.array as da
+import numpy as np
 
 # "Protocol" and "runtime_checkable" are builtin for 3.8+
 # otherwise use "typing_extension" package
 if sys.version_info >= (3, 8):
     from typing import Protocol
-    from typing import runtime_checkable
     from typing import TypedDict
+    from typing import runtime_checkable
 else:
     from typing_extensions import Protocol
-    from typing_extensions import runtime_checkable
     from typing_extensions import TypedDict
+    from typing_extensions import runtime_checkable
 
 
 def is_basic_indexing(key: Any):

@@ -70,9 +70,7 @@ class Figure:
 
     def set_style(self):
         if not self.fname:
-            self.fname = resource_filename(
-                __name__, "styles/" + self.style + ".rc"
-            )
+            self.fname = resource_filename(__name__, "styles/" + self.style + ".rc")
 
     # TODO: generalize methods for arbitrary backend
     def open(self):
@@ -81,9 +79,7 @@ class Figure:
 
             if self.figsize is None:
                 size = self.fig.get_size_inches()
-                self.fig.set_size_inches(
-                    size[0] * self.ncols, size[1] * self.nrows
-                )
+                self.fig.set_size_inches(size[0] * self.ncols, size[1] * self.nrows)
 
     def close(self):
         plt.close(self.fig)
@@ -108,9 +104,7 @@ class Figure:
         self.show()
 
     # TODO: generalize this for arbitrary backend
-    def save(
-        self, path, format: Optional[str] = None, dpi: Optional[float] = 150
-    ):
+    def save(self, path, format: Optional[str] = None, dpi: Optional[float] = 150):
         """Saves the figure to a file.
 
         Parameters
@@ -195,9 +189,7 @@ class Figure:
 
         if new.figsize is None:
             size = new.fig.get_size_inches()
-            new.fig.set_size_inches(
-                size[0], size[1] * new.nrows / (new.nrows - 1)
-            )
+            new.fig.set_size_inches(size[0], size[1] * new.nrows / (new.nrows - 1))
 
         for axes in new._axes:
             axes.redo_plots()

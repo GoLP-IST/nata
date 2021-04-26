@@ -5,11 +5,12 @@ from typing import Union
 import numpy as np
 import numpy.fft as fft
 
+from nata.containers import Axis
 from nata.containers import GridArray
 from nata.containers import GridDataset
-from nata.containers import Axis
 from nata.containers.grid import stack
 from nata.plugins.register import register_container_plugin
+
 
 def get_fft_axes(
     grid: Union[GridArray, GridDataset],
@@ -40,6 +41,7 @@ def get_fft_axes(
             fft_axes.append(idx)
 
     return fft_axes
+
 
 @register_container_plugin(GridArray, name="fft")
 def fft_grid_array(
@@ -112,16 +114,13 @@ def fft_grid_array(
         if idx in fft_axes:
             # axis is fft axis, determine its fourier counterpart
             delta = (
-                (
-                    np.max(axis.to_dask())
-                    - np.min(axis.to_dask())
-                )
+                (np.max(axis.to_dask()) - np.min(axis.to_dask()))
                 / axis.shape[-1]
                 / (2.0 * np.pi)
             )
-            
+
             axis_data = fft.fftshift(fft.fftfreq(axis.shape[-1], delta))
-            
+
             new_axes.append(
                 Axis(
                     axis_data,
@@ -162,6 +161,7 @@ def fft_grid_array(
         axes=new_axes,
     )
 
+
 @register_container_plugin(GridDataset, name="fft")
 def fft_grid_dataset(
     grid: GridDataset,
@@ -200,7 +200,7 @@ def fft_grid_dataset(
      Examples
      --------
      Obtain the FFT of a one-dimensional dataset with time dependence.
-     
+
      >>> from nata.containers import GridDataset
      >>> import numpy as np
      >>> time = np.arange(3)
@@ -228,4 +228,6 @@ def fft_grid_dataset(
         raise ValueError(f"fft along the time axis is not supported")
 
     # apply fft to individual grid arrays and stack them
-    return stack([i_grid.fft(axes=[idx - 1 for idx in fft_axes], comp=comp) for i_grid in grid])
+    return stack(
+        [i_grid.fft(axes=[idx - 1 for idx in fft_axes], comp=comp) for i_grid in grid]
+    )

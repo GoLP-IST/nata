@@ -13,6 +13,7 @@ def test_array_fft_invalid_ndim():
     with pytest.raises(ValueError, match="0 dimensional GridArrays"):
         GridArray.from_array(1).fft()
 
+
 def test_array_fft_invalid_axis():
 
     for invalid_axis in [2, -3]:
@@ -78,31 +79,32 @@ def test_array_fft_peak_1d():
         fft_grid.to_dask().argmax() == (np.abs(fft_grid.axes[0].to_dask() + 1)).argmin()
     )
 
+
 def test_dataset_fft_peak_1d():
     time = np.arange(1, 3)
-    x = np.linspace(0, 10*np.pi, 101)
+    x = np.linspace(0, 10 * np.pi, 101)
 
-    k_modes = np.arange(len(time))+1
+    k_modes = np.arange(len(time)) + 1
 
     grid = GridDataset.from_array(
-        [np.sin(k_i*x) for k_i in k_modes],
-        axes=[
-            Axis(time),
-            Axis(np.tile(x, (len(time), 1)))
-        ]
+        [np.sin(k_i * x) for k_i in k_modes],
+        axes=[Axis(time), Axis(np.tile(x, (len(time), 1)))],
     )
     fft_grid = grid.fft()
 
     for k_i, fft_grid_i in zip(k_modes, fft_grid):
         assert (
-            fft_grid_i.to_dask().argmax() == (np.abs(fft_grid_i.axes[0].to_dask() + k_i)).argmin()
+            fft_grid_i.to_dask().argmax()
+            == (np.abs(fft_grid_i.axes[0].to_dask() + k_i)).argmin()
         )
+
 
 def test_dataset_fft_selection():
     grid = GridDataset.from_array(np.arange(12).reshape((4, 3)))
 
     with pytest.raises(ValueError, match=f"fft along the time axis is not supported"):
         grid.fft(axes=[0])
+
 
 def test_dataset_fft_invalid_ndim():
 

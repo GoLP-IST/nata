@@ -11,11 +11,7 @@ def array_format(data: ndarray):
         return "[" + ", ".join(str(i) for i in data) + "]"
     else:
         return (
-            "["
-            + ", ".join(str(i) for i in data[:2])
-            + ", ... "
-            + str(data[-1])
-            + "]"
+            "[" + ", ".join(str(i) for i in data[:2]) + ", ... " + str(data[-1]) + "]"
         )
 
 

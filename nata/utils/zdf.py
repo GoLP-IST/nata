@@ -221,9 +221,7 @@ class ZDFfile:
         elif dtype == 10:
             data = self.__read_float64_arr(nx)
         else:
-            print(
-                "(*error*) ZDF: Data type not yet supported.", file=sys.stderr
-            )
+            print("(*error*) ZDF: Data type not yet supported.", file=sys.stderr)
             data = False
 
         return data
@@ -350,8 +348,7 @@ class ZDFfile:
         version = rec.version()
         if version > max_version:
             print(
-                "(*error*) ZDF: Particles info version "
-                + "is higher than supported.",
+                "(*error*) ZDF: Particles info version " + "is higher than supported.",
                 file=sys.stderr,
             )
             print(
@@ -516,8 +513,7 @@ class ZDFfile:
         version = rec.id & 0x0000FFFF
         if version > max_version:
             print(
-                "(*error*) ZDF: Chunked dataset version is higher "
-                + "than supported.",
+                "(*error*) ZDF: Chunked dataset version is higher " + "than supported.",
                 file=sys.stderr,
             )
             print(
@@ -609,9 +605,7 @@ class ZDFfile:
                     file=sys.stderr,
                 )
                 print(
-                    "(*warning*) expected '{}', found '{}".format(
-                        name, rec.name
-                    ),
+                    "(*warning*) expected '{}', found '{}".format(name, rec.name),
                     file=sys.stderr,
                 )
                 self.__record_skip(rec)
@@ -686,11 +680,7 @@ class ZDFfile:
 
             # Sanity check, this should never happen
             if rec.name != q:
-                print(
-                    "(*error*) Expecting {} record, {} found".format(
-                        q, rec.name
-                    )
-                )
+                print("(*error*) Expecting {} record, {} found".format(q, rec.name))
 
             # Particle data can be either a standard dataset or a chunked
             # dataset
@@ -741,9 +731,7 @@ class ZDFfile:
 
         trackData = [None] * trackInfo.ntracks
         for i in range(trackInfo.ntracks):
-            trackData[i] = np.zeros(
-                [trackNp[i], trackInfo.nquants], dtype="<f4"
-            )
+            trackData[i] = np.zeros([trackNp[i], trackInfo.nquants], dtype="<f4")
             trackNp[i] = 0
 
         idx = 0
