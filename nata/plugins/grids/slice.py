@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Union
 
-import dask.array as da
 import numpy as np
 
 from nata.containers import GridArray
@@ -146,7 +145,7 @@ def slice_grid_dataset(
     axis = grid.axes[slice_axis]
 
     if axis is grid.time:
-        raise ValueError(f"slice along the time axis is not supported")
+        raise ValueError("slice along the time axis is not supported")
 
     if np.any(value < np.min(axis.to_dask(), axis=-1)) or np.any(
         value >= np.max(axis.to_dask(), axis=-1)
