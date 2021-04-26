@@ -102,7 +102,7 @@ def test_dataset_fft_peak_1d():
 def test_dataset_fft_selection():
     grid = GridDataset.from_array(np.arange(12).reshape((4, 3)))
 
-    with pytest.raises(ValueError, match=f"fft along the time axis is not supported"):
+    with pytest.raises(ValueError, match="fft along the time axis is not supported"):
         grid.fft(axes=[0])
 
 
