@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from typing import Union
 from typing import Optional
+from typing import Union
 
 import dask.array as da
 
@@ -11,9 +11,7 @@ from nata.plugins.register import register_container_plugin
 
 
 def get_transpose_axes(
-    grid: Union[GridArray, GridDataset],
-    axes: list,
-    offset: int = 0
+    grid: Union[GridArray, GridDataset], axes: list, offset: int = 0
 ):
     # build transpose axes
     if axes is None:
