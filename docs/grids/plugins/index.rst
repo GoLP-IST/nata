@@ -4,6 +4,6 @@ GridDataset plugins
 .. toctree::
    :caption: Available plugins
 
-   lineout
+   slice
    fft
    plot
