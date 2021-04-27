@@ -87,6 +87,7 @@ def slice_grid_array(
         label=grid.label,
         unit=grid.unit,
         axes=[ax for key, ax in enumerate(grid.axes) if ax is not axis],
+        time=grid.time,
     )
 
 
