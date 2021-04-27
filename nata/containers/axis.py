@@ -189,7 +189,7 @@ class Axis(np.lib.mixins.NDArrayOperatorsMixin):
             type_ if not issubclass(type_, Axis) else da.Array for type_ in types
         )
         repacked_args = tuple(
-            arg if not isinstance(arg, Axis) else arg.as_dask() for arg in args
+            arg if not isinstance(arg, Axis) else arg.to_dask() for arg in args
         )
 
         data = self._data.__array_function__(
