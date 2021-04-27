@@ -44,34 +44,33 @@ def transpose_grid_array(
     grid: GridArray,
     axes: Optional[list] = None,
 ) -> GridArray:
-    """Takes a slice of a `GridArray` at a constant value of a given axis.
+    """Reverses or permutes the axes of a `GridArray`.
 
     Parameters
     ----------
-    constant: ``str`` or ``int``
-        Name or index that defines the axis taken to be constant in the slice.
-    comp: ``float``
-        Value of the axis at which the slice is taken.
+    axes: ``list``, optional
+         List of integers and/or strings that identify the permutation of the
+         axes. The i'th axis of the returned `GridArray` will correspond to the
+         axis numbered/labeled axes[i] of the input. If not specified, the
+         order of the axes is reversed.
 
     Returns
     ------
     :class:`nata.containers.GridArray`:
-        Slice of ``grid``.
+        Transpose of ``grid``.
 
     Examples
     --------
-    Obtain a slice of a two-dimensional array.
+    Transpose a three-dimensional array.
 
     >>> from nata.containers import GridArray
-    >>> from nata.containers import Axis
     >>> import numpy as np
-    >>> x = np.arange(5)
-    >>> data = np.arange(25).reshape((5, 5))
-    >>> grid = GridArray.from_array(data, axes=[Axis(x), Axis(x)])
-    >>> grid.slice(constant=0, value=1).to_numpy()
-    array([5, 6, 7, 8, 9]) # the second column
-    >>> grid.slice(constant=1, value=1).to_numpy()
-    array([ 1,  6, 11, 16, 21]) # the second row
+    >>> data = np.arange(96).reshape((8, 4, 3))
+    >>> grid = GridArray.from_array(data)
+    >>> grid.transpose().shape
+    (3, 4, 8)
+    >>> grid.transpose(axes=[0,2,1]).shape
+    (8, 3, 4)
 
     """
 
@@ -96,43 +95,36 @@ def transpose_grid_dataset(
     grid: GridDataset,
     axes: Optional[list] = None,
 ) -> GridDataset:
-    """Takes a slice of a `GridDataset` at a constant value of a given axis.
-    Slices are not allowed along the time axis. In other words, `GridDataset`
-    slices always preserve the time dependence. To do slices over the time
-    axis, consider converting `grid` to a `GridArray` using the `streak()`
-    plugin.
+    """Reverses or permutes the axes of a `GridDataset`. Transpose is not
+    allowed along the time axis. In other words, `GridDataset` tranposes always
+    preserve the time dependence. To do tranposes over the time axis, consider
+    converting `grid` to a `GridArray` using the `streak()` plugin.
 
     Parameters
     ----------
-    constant: ``str`` or ``int``
-        Name or index that defines the axis taken to be constant in the slice.
-        Must not refer to the time axis.
-    comp: ``float``
-        Value of the axis at which the slice is taken.
+    axes: ``list``, optional
+         List of integers and/or strings that identify the permutation of the
+         axes. The i'th axis of the returned `GridArray` will correspond to the
+         axis numbered/labeled axes[i] of the input. If not specified, the
+         order of the axes is reversed. Must not include to the time axis.
 
     Returns
     ------
     :class:`nata.containers.GridDataset`:
-        Slice of ``grid``.
+        Transpose of ``grid``.
 
     Examples
     --------
-    Obtain a slice of a one-dimensional dataset with time dependence.
+    Transpose a three-dimensional dataset with time dependence.
 
     >>> from nata.containers import GridDataset
-    >>> from nata.containers import Axis
     >>> import numpy as np
-    >>> time, x = np.arange(5), np.tile(np.arange(4), (5,1))
-    >>> data = np.arange(20).reshape((5, 4))
-    >>> grid = GridDataset.from_array(data, axes=[Axis(time), Axis(x)])
-    >>> grid.to_numpy()
-    array([[ 0,  1,  2,  3],
-           [ 4,  5,  6,  7],
-           [ 8,  9, 10, 11],
-           [12, 13, 14, 15],
-           [16, 17, 18, 19]])
-    >>> grid.slice(constant=1, value=0).to_numpy()
-    array([ 0,  4,  8, 12, 16]) # the first column
+    >>> data = np.arange(8*6*4*2).reshape((8, 6, 4, 2))
+    >>> grid = GridDataset.from_array(data)
+    >>> grid.transpose().shape
+    (8, 2, 4, 6)
+    >>> grid.transpose(axes=[1,3,2]).shape
+    (8, 6, 2, 4)
 
     """
 
