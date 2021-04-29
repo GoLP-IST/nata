@@ -29,6 +29,7 @@ from nata.utils.types import BasicIndexing
 from nata.utils.types import FileLocation
 
 from .axis import Axis
+from .exceptions import NoValidBackend
 from .utils import get_doc_heading
 
 __all__ = ["GridArray", "GridDataset", "stack"]
@@ -65,10 +66,6 @@ def stack(grid_arrs: Sequence["GridArray"]) -> "GridDataset":
         axes.append(Axis(axes_data, name=ax.name, label=ax.label, unit=ax.unit))
 
     return GridDataset(data, (time,) + tuple(axes), name=name, label=label, unit=unit)
-
-
-class NoValidBackend(Exception):
-    pass
 
 
 @runtime_checkable
