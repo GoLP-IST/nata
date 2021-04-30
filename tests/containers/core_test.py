@@ -4,6 +4,7 @@ from typing import Protocol
 from typing import Tuple
 from typing import runtime_checkable
 
+import dask.array as da
 import numpy as np
 import pytest
 
@@ -265,3 +266,29 @@ def test_HasNumpyInterface_implements_array_func():
         pass
 
     assert ExtendedClass.get_handled_array_function()[np.fft.fft] is custom_fft
+
+
+def test_HasNumpyInterface_to_dask():
+    class ExtendedClass(HasNumpyInterface):
+        _data = da.arange(10)
+
+    assert isinstance(ExtendedClass().to_dask(), da.Array)
+    np.testing.assert_array_equal(ExtendedClass().to_dask(), np.arange(10))
+
+
+def test_HasNumpyInterface_to_numpy():
+    class ExtendedClass(HasNumpyInterface):
+        _data = da.arange(10)
+
+    assert isinstance(ExtendedClass().to_numpy(), np.ndarray)
+    np.testing.assert_array_equal(ExtendedClass().to_numpy(), np.arange(10))
+
+
+def test_HasNumpyInterface_array_props():
+    class ExtendedClass(HasNumpyInterface):
+        _data = da.arange(10, dtype=int)
+
+    assert ExtendedClass().dtype == int
+    assert ExtendedClass().ndim == 1
+    assert ExtendedClass().shape == (10,)
+    assert len(ExtendedClass()) == 10

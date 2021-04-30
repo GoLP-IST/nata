@@ -6,9 +6,12 @@ from typing import Dict
 from typing import Optional
 from typing import Protocol
 from typing import Set
+from typing import Tuple
 from typing import Union
 
 from dask.array import Array
+from numpy import dtype
+from numpy import ndarray
 from numpy import ufunc
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
@@ -180,3 +183,24 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
             return func
 
         return decorator
+
+    def to_dask(self) -> Array:
+        return self._data
+
+    def to_numpy(self) -> ndarray:
+        return self._data.compute()
+
+    @property
+    def dtype(self) -> dtype:
+        return self._data.dtype
+
+    @property
+    def ndim(self) -> int:
+        return self._data.ndim
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return self._data.shape
+
+    def __len__(self) -> int:
+        return len(self._data)
