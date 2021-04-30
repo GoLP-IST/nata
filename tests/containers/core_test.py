@@ -4,10 +4,12 @@ from typing import Protocol
 from typing import Tuple
 from typing import runtime_checkable
 
+import numpy as np
 import pytest
 
 from nata.containers.core import BackendType
 from nata.containers.core import HasBackends
+from nata.containers.core import HasNumpyInterface
 
 
 @pytest.fixture(name="ExtendedProtocol")
@@ -172,3 +174,42 @@ def test_get_valid_backend(UseBackend: HasBackends):
     assert UseBackend.get_valid_backend(Path("/DummyBackend1")) is DummyBackend1
     assert UseBackend.get_valid_backend(Path("/DummyBackend2")) is DummyBackend2
     assert UseBackend.get_valid_backend(Path("/does/not/have/valid/backend")) is None
+
+
+def test_HasNumpyInterface_handled_array_ufunc():
+    class ExtendedClass(HasNumpyInterface):
+        pass
+
+    some_ufunc = np.add
+
+    def implementation_some_ufunc():
+        pass
+
+    assert len(ExtendedClass.get_handled_array_ufunc()) == 0
+    ExtendedClass.add_handled_array_ufunc(some_ufunc, implementation_some_ufunc)
+    assert some_ufunc in ExtendedClass.get_handled_array_ufunc()
+    assert (
+        ExtendedClass.get_handled_array_ufunc()[some_ufunc] is implementation_some_ufunc
+    )
+    ExtendedClass.remove_handeld_array_ufunc(some_ufunc)
+    assert len(ExtendedClass.get_handled_array_ufunc()) == 0
+
+
+def test_HasNumpyInterface_raise_when_not_ufunc():
+    class ExtendedClass(HasNumpyInterface):
+        pass
+
+    with pytest.raises(TypeError, match="function is not of type ufunc"):
+
+        def not_ufunc():
+            pass
+
+        ExtendedClass.add_handled_array_ufunc(not_ufunc, lambda _: None)
+
+
+def test_HasNumpyInterface_raise_when_remove_invalid_for_ufunc():
+    class ExtendedClass(HasNumpyInterface):
+        pass
+
+    with pytest.raises(ValueError, match=r"ufunc '.*' is not registered"):
+        ExtendedClass.remove_handeld_array_ufunc(lambda _: None)

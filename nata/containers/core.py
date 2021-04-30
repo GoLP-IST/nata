@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import Optional
 from typing import Protocol
 from typing import Set
 from typing import Union
+
+from dask.array import Array
+from numpy import ufunc
+from numpy.lib.mixins import NDArrayOperatorsMixin
 
 
 class BackendType(Protocol):
@@ -115,3 +120,34 @@ class HasBackends:
                 return backend
         else:
             return None
+
+
+class HasNumpyInterface(NDArrayOperatorsMixin):
+    _handled_array_ufunc: Dict[ufunc, Callable]
+    _handled_array_function: Dict[Callable, Callable]
+
+    _data: Array
+
+    def __init_subclass__(cls, **kwargs: Dict[str, Any]) -> None:
+        super().__init_subclass__(**kwargs)
+
+        cls._handled_array_ufunc = {}
+        cls._handled_array_function = {}
+
+    @classmethod
+    def get_handled_array_ufunc(cls) -> Dict[ufunc, Callable]:
+        return cls._handled_array_ufunc
+
+    @classmethod
+    def add_handled_array_ufunc(cls, function: ufunc, implementation: Callable) -> None:
+        if not isinstance(function, ufunc):
+            raise TypeError("provided function is not of type ufunc")
+
+        cls._handled_array_ufunc[function] = implementation
+
+    @classmethod
+    def remove_handeld_array_ufunc(cls, function: ufunc) -> None:
+        if function not in cls._handled_array_ufunc:
+            raise ValueError(f"ufunc '{function}' is not registered")
+
+        del cls._handled_array_ufunc[function]
