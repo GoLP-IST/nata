@@ -168,3 +168,15 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
             raise ValueError(f"function '{function}' is not registered")
 
         del cls._handled_array_function[function]
+
+    @classmethod
+    def implements(cls, function: Union[ufunc, Callable]):
+        def decorator(func):
+            if isinstance(function, ufunc):
+                cls._handled_array_ufunc[function] = func
+            else:
+                cls._handled_array_function[function] = func
+
+            return func
+
+        return decorator
