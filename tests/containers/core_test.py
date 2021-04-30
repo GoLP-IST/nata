@@ -179,7 +179,9 @@ def test_get_valid_backend(UseBackend: HasBackends):
 
 def test_HasNumpyInterface_handled_array_ufunc():
     class ExtendedClass(HasNumpyInterface):
-        pass
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     some_ufunc = np.add
 
@@ -198,7 +200,9 @@ def test_HasNumpyInterface_handled_array_ufunc():
 
 def test_HasNumpyInterface_raise_when_not_ufunc():
     class ExtendedClass(HasNumpyInterface):
-        pass
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     with pytest.raises(TypeError, match="function is not of type ufunc"):
 
@@ -210,7 +214,9 @@ def test_HasNumpyInterface_raise_when_not_ufunc():
 
 def test_HasNumpyInterface_raise_when_remove_invalid_for_ufunc():
     class ExtendedClass(HasNumpyInterface):
-        pass
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     with pytest.raises(ValueError, match=r"ufunc '.*' is not registered"):
         ExtendedClass.remove_handeld_array_ufunc(lambda _: None)
@@ -218,7 +224,9 @@ def test_HasNumpyInterface_raise_when_remove_invalid_for_ufunc():
 
 def test_HasNumpyInterface_handled_array_function():
     class ExtendedClass(HasNumpyInterface):
-        pass
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     some_array_function = np.fft.fft
 
@@ -240,7 +248,9 @@ def test_HasNumpyInterface_handled_array_function():
 
 def test_HasNumpyInterface_raise_when_remove_invalid_for_array_function():
     class ExtendedClass(HasNumpyInterface):
-        pass
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     with pytest.raises(ValueError, match=r"function '.*' is not registered"):
         ExtendedClass.remove_handeld_array_function(lambda _: None)
@@ -248,7 +258,9 @@ def test_HasNumpyInterface_raise_when_remove_invalid_for_array_function():
 
 def test_HasNumpyInterface_implements_ufunc():
     class ExtendedClass(HasNumpyInterface):
-        pass
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     @ExtendedClass.implements(np.add)
     def custom_add() -> None:
@@ -259,7 +271,9 @@ def test_HasNumpyInterface_implements_ufunc():
 
 def test_HasNumpyInterface_implements_array_func():
     class ExtendedClass(HasNumpyInterface):
-        pass
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     @ExtendedClass.implements(np.fft.fft)
     def custom_fft() -> None:
@@ -272,6 +286,10 @@ def test_HasNumpyInterface_to_dask():
     class ExtendedClass(HasNumpyInterface):
         _data = da.arange(10)
 
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
+
     assert isinstance(ExtendedClass().to_dask(), da.Array)
     np.testing.assert_array_equal(ExtendedClass().to_dask(), np.arange(10))
 
@@ -279,6 +297,10 @@ def test_HasNumpyInterface_to_dask():
 def test_HasNumpyInterface_to_numpy():
     class ExtendedClass(HasNumpyInterface):
         _data = da.arange(10)
+
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
 
     assert isinstance(ExtendedClass().to_numpy(), np.ndarray)
     np.testing.assert_array_equal(ExtendedClass().to_numpy(), np.arange(10))
@@ -288,7 +310,22 @@ def test_HasNumpyInterface_array_props():
     class ExtendedClass(HasNumpyInterface):
         _data = da.arange(10, dtype=int)
 
+        @classmethod
+        def from_array(cls, *args, **kwargs):
+            raise NotImplementedError("should never be called")
+
     assert ExtendedClass().dtype == int
     assert ExtendedClass().ndim == 1
     assert ExtendedClass().shape == (10,)
     assert len(ExtendedClass()) == 10
+
+
+def test_HasNumpyInterface_requires_from_array():
+
+    with pytest.raises(
+        NotImplementedError,
+        match="'from_array' method is not implemented",
+    ):
+
+        class ExtendedClass(HasNumpyInterface):
+            pass
