@@ -213,3 +213,33 @@ def test_HasNumpyInterface_raise_when_remove_invalid_for_ufunc():
 
     with pytest.raises(ValueError, match=r"ufunc '.*' is not registered"):
         ExtendedClass.remove_handeld_array_ufunc(lambda _: None)
+
+
+def test_HasNumpyInterface_handled_array_function():
+    class ExtendedClass(HasNumpyInterface):
+        pass
+
+    some_array_function = np.fft.fft
+
+    def implementation_some_function():
+        pass
+
+    assert len(ExtendedClass.get_handled_array_function()) == 0
+    ExtendedClass.add_handled_array_function(
+        some_array_function, implementation_some_function
+    )
+    assert some_array_function in ExtendedClass.get_handled_array_function()
+    assert (
+        ExtendedClass.get_handled_array_function()[some_array_function]
+        is implementation_some_function
+    )
+    ExtendedClass.remove_handeld_array_function(some_array_function)
+    assert len(ExtendedClass.get_handled_array_function()) == 0
+
+
+def test_HasNumpyInterface_raise_when_remove_invalid_for_array_function():
+    class ExtendedClass(HasNumpyInterface):
+        pass
+
+    with pytest.raises(ValueError, match=r"function '.*' is not registered"):
+        ExtendedClass.remove_handeld_array_function(lambda _: None)

@@ -151,3 +151,20 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
             raise ValueError(f"ufunc '{function}' is not registered")
 
         del cls._handled_array_ufunc[function]
+
+    @classmethod
+    def get_handled_array_function(cls) -> Dict[Callable, Callable]:
+        return cls._handled_array_function
+
+    @classmethod
+    def add_handled_array_function(
+        cls, function: Callable, implementation: Callable
+    ) -> None:
+        cls._handled_array_function[function] = implementation
+
+    @classmethod
+    def remove_handeld_array_function(cls, function: Callable) -> None:
+        if function not in cls._handled_array_function:
+            raise ValueError(f"function '{function}' is not registered")
+
+        del cls._handled_array_function[function]
