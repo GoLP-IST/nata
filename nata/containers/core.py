@@ -7,12 +7,11 @@ from typing import Optional
 from typing import Protocol
 from typing import Set
 from typing import Tuple
+from typing import Type
 from typing import Union
 
-from dask.array import Array
-from numpy import dtype
-from numpy import ndarray
-from numpy import ufunc
+import dask.array as da
+import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
 
 
@@ -126,10 +125,10 @@ class HasBackends:
 
 
 class HasNumpyInterface(NDArrayOperatorsMixin):
-    _handled_array_ufunc: Dict[ufunc, Callable]
+    _handled_array_ufunc: Dict[np.ufunc, Callable]
     _handled_array_function: Dict[Callable, Callable]
 
-    _data: Array
+    _data: da.Array
 
     def __init_subclass__(cls, **kwargs: Dict[str, Any]) -> None:
         super().__init_subclass__(**kwargs)
@@ -141,18 +140,20 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
             raise NotImplementedError("'from_array' method is not implemented")
 
     @classmethod
-    def get_handled_array_ufunc(cls) -> Dict[ufunc, Callable]:
+    def get_handled_array_ufunc(cls) -> Dict[np.ufunc, Callable]:
         return cls._handled_array_ufunc
 
     @classmethod
-    def add_handled_array_ufunc(cls, function: ufunc, implementation: Callable) -> None:
-        if not isinstance(function, ufunc):
+    def add_handled_array_ufunc(
+        cls, function: np.ufunc, implementation: Callable
+    ) -> None:
+        if not isinstance(function, np.ufunc):
             raise TypeError("provided function is not of type ufunc")
 
         cls._handled_array_ufunc[function] = implementation
 
     @classmethod
-    def remove_handeld_array_ufunc(cls, function: ufunc) -> None:
+    def remove_handled_array_ufunc(cls, function: np.ufunc) -> None:
         if function not in cls._handled_array_ufunc:
             raise ValueError(f"ufunc '{function}' is not registered")
 
@@ -176,9 +177,9 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
         del cls._handled_array_function[function]
 
     @classmethod
-    def implements(cls, function: Union[ufunc, Callable]):
+    def implements(cls, function: Union[np.ufunc, Callable]):
         def decorator(func):
-            if isinstance(function, ufunc):
+            if isinstance(function, np.ufunc):
                 cls._handled_array_ufunc[function] = func
             else:
                 cls._handled_array_function[function] = func
@@ -187,14 +188,14 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
 
         return decorator
 
-    def to_dask(self) -> Array:
+    def to_dask(self) -> da.Array:
         return self._data
 
-    def to_numpy(self) -> ndarray:
+    def to_numpy(self) -> np.ndarray:
         return self._data.compute()
 
     @property
-    def dtype(self) -> dtype:
+    def dtype(self) -> np.dtype:
         return self._data.dtype
 
     @property
@@ -207,3 +208,70 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
 
     def __len__(self) -> int:
         return len(self._data)
+
+    def __array__(self, dtype: Optional[np.dtype] = None) -> np.ndarray:
+        arr = self.to_numpy()
+
+        # '__array__' requires to return ndarray and 'to_numpy' can produce other types
+        if not isinstance(arr, np.ndarray):
+            arr = np.asanyarray(arr)
+
+        return arr.astype(dtype) if dtype else arr
+
+    def __array_ufunc__(
+        self,
+        ufunc: np.ufunc,
+        method: str,
+        *inputs: Tuple[Any, ...],
+        **kwargs: Dict[str, Any],
+    ) -> "HasNumpyInterface":
+        if ufunc in self._handled_array_ufunc:
+            return self._handled_array_ufunc[ufunc](method, *inputs, **kwargs)
+
+        # repack inputs to mimic passing as dask array
+        repacked_inputs = ()
+        for input_ in inputs:
+            if input_ is self:
+                repacked_inputs += (self._data,)
+            elif isinstance(input_, HasNumpyInterface):
+                repacked_inputs += (input_.to_dask(),)
+            else:
+                repacked_inputs += (input_,)
+
+        # required additional repacking if in-place
+        if "out" in kwargs:
+            output = tuple(self._data if arg is self else arg for arg in kwargs["out"])
+            kwargs["out"] = output
+
+        data = self._data.__array_ufunc__(ufunc, method, *repacked_inputs, **kwargs)
+
+        # Reraise 'NotImplemented' if does dask does not implement it and let numpy take
+        # over in the dispatching process:
+        #
+        # https://numpy.org/doc/stable/reference/arrays.classes.html#numpy.class.__array_ufunc__
+        if data is NotImplemented:
+            raise NotImplemented  # noqa: F901
+
+        # Handle in-place operations scenario
+        elif data is None:
+            self._data = kwargs["out"][0]
+            return self
+        else:
+            return self.from_array(data)
+
+    def __array_function__(
+        self,
+        func: Callable,
+        types: Tuple[Type],
+        args: Tuple[Any, ...],
+        kwargs: Dict[str, Any],
+    ) -> "HasNumpyInterface":
+        if func in self._handled_array_function:
+            return self._handled_array_function[func](types, args, kwargs)
+
+        # repack arguments
+        types = tuple(type(self._data) if t is type(self) else t for t in types)
+        args = tuple(self._data if arg is self else arg for arg in args)
+        data = self._data.__array_function__(func, types, args, kwargs)
+
+        return self.from_array(data)

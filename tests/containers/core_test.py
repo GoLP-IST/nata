@@ -194,7 +194,7 @@ def test_HasNumpyInterface_handled_array_ufunc():
     assert (
         ExtendedClass.get_handled_array_ufunc()[some_ufunc] is implementation_some_ufunc
     )
-    ExtendedClass.remove_handeld_array_ufunc(some_ufunc)
+    ExtendedClass.remove_handled_array_ufunc(some_ufunc)
     assert len(ExtendedClass.get_handled_array_ufunc()) == 0
 
 
@@ -219,7 +219,7 @@ def test_HasNumpyInterface_raise_when_remove_invalid_for_ufunc():
             raise NotImplementedError("should never be called")
 
     with pytest.raises(ValueError, match=r"ufunc '.*' is not registered"):
-        ExtendedClass.remove_handeld_array_ufunc(lambda _: None)
+        ExtendedClass.remove_handled_array_ufunc(lambda _: None)
 
 
 def test_HasNumpyInterface_handled_array_function():
@@ -329,3 +329,15 @@ def test_HasNumpyInterface_requires_from_array():
 
         class ExtendedClass(HasNumpyInterface):
             pass
+
+
+@pytest.mark.skip
+def test_HasNumpyInterface_array_ufunc_dispatch():
+    # TODO: add tests
+    pass
+
+
+@pytest.mark.skip
+def test_HasNumpyInterface_array_function_dispatch():
+    # TODO: add tests
+    pass
