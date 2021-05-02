@@ -348,3 +348,36 @@ class HasPluginSystem:
             raise ValueError(f"plugin '{plugin_name}' is not registered")
 
         del cls._plugin_as_method[plugin_name]
+
+
+class HasAnnotations:
+    _name: str
+    _label: str
+    _unit: str
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, new: str) -> None:
+        new = new if isinstance(new, str) else str(new, encoding="utf-8")
+        if not new.isidentifier():
+            raise ValueError("'name' has to be an identifier")
+        self._name = new
+
+    @property
+    def label(self) -> str:
+        return self._label
+
+    @label.setter
+    def label(self, new: str) -> None:
+        self._label = new
+
+    @property
+    def unit(self) -> str:
+        return self._unit
+
+    @unit.setter
+    def unit(self, new: str) -> None:
+        self._unit = new

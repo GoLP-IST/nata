@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from nata.containers.core import BackendType
+from nata.containers.core import HasAnnotations
 from nata.containers.core import HasBackends
 from nata.containers.core import HasNumpyInterface
 from nata.containers.core import HasPluginSystem
@@ -418,3 +419,36 @@ def test_HasPluginSystem_method_pluging_raise_not_registered():
 
     with pytest.raises(ValueError, match="plugin 'not_registered' is not registered"):
         ExtendedClass.remove_method_plugin("not_registered")
+
+
+def test_HasAnnotations():
+    class ExtendedClass(HasAnnotations):
+        def __init__(self) -> None:
+            self._name = "some_name"
+            self._label = "some label"
+            self._unit = "some unit"
+
+    obj = ExtendedClass()
+
+    assert obj.name == "some_name"
+    assert obj.label == "some label"
+    assert obj.unit == "some unit"
+
+    obj.name = "some_new_name"
+    assert obj.name == "some_new_name"
+
+    obj.label = "some new label"
+    assert obj.label == "some new label"
+
+    obj.unit = "some new unit"
+    assert obj.unit == "some new unit"
+
+
+def test_HasAnnotations_raise_invalid_name():
+    class ExtendedClass(HasAnnotations):
+        pass
+
+    obj = ExtendedClass()
+
+    with pytest.raises(ValueError, match="'name' has to be an identifier"):
+        obj.name = "not an identifier"
