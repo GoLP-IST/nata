@@ -137,9 +137,6 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
         cls._handled_array_ufunc = {}
         cls._handled_array_function = {}
 
-        if not hasattr(cls, "from_array"):
-            raise NotImplementedError("'from_array' method is not implemented")
-
     @classmethod
     def get_handled_array_ufunc(cls) -> Dict[np.ufunc, Callable]:
         return cls._handled_array_ufunc
