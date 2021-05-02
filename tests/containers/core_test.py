@@ -11,6 +11,7 @@ import pytest
 from nata.containers.core import BackendType
 from nata.containers.core import HasBackends
 from nata.containers.core import HasNumpyInterface
+from nata.containers.core import HasPluginSystem
 
 
 @pytest.fixture(name="ExtendedProtocol")
@@ -341,3 +342,79 @@ def test_HasNumpyInterface_array_ufunc_dispatch():
 def test_HasNumpyInterface_array_function_dispatch():
     # TODO: add tests
     pass
+
+
+def test_HasPluginSystem_property_plugin():
+    class ExtendedClass(HasPluginSystem):
+        pass
+
+    def plug_function(obj):
+        return obj
+
+    assert len(ExtendedClass.get_property_plugin()) == 0
+    ExtendedClass.add_property_plugin("my_plugin", plug_function)
+
+    obj = ExtendedClass()
+    assert obj.my_plugin is obj
+    assert ExtendedClass.get_property_plugin()["my_plugin"] is plug_function
+    ExtendedClass.remove_property_plugin("my_plugin")
+    assert len(ExtendedClass.get_property_plugin()) == 0
+
+
+def test_HasPluginSystem_property_pluging_raise_invalid_plugin_name():
+    class ExtendedClass(HasPluginSystem):
+        pass
+
+    with pytest.raises(TypeError, match="'plugin_name' has to be a 'str'"):
+        ExtendedClass.add_property_plugin(1, lambda _: None)
+
+    with pytest.raises(
+        ValueError, match="'not identifier' has to be a valid identifier"
+    ):
+        ExtendedClass.add_property_plugin("not identifier", lambda _: None)
+
+
+def test_HasPluginSystem_property_pluging_raise_not_registered():
+    class ExtendedClass(HasPluginSystem):
+        pass
+
+    with pytest.raises(ValueError, match="plugin 'not_registered' is not registered"):
+        ExtendedClass.remove_property_plugin("not_registered")
+
+
+def test_HasPluginSystem_method_plugin():
+    class ExtendedClass(HasPluginSystem):
+        pass
+
+    def plug_function(obj):
+        return obj
+
+    assert len(ExtendedClass.get_method_plugin()) == 0
+    ExtendedClass.add_method_plugin("my_plugin", plug_function)
+
+    obj = ExtendedClass()
+    assert obj.my_plugin() is obj
+    assert ExtendedClass.get_method_plugin()["my_plugin"] is plug_function
+    ExtendedClass.remove_method_plugin("my_plugin")
+    assert len(ExtendedClass.get_method_plugin()) == 0
+
+
+def test_HasPluginSystem_method_pluging_raise_invalid_plugin_name():
+    class ExtendedClass(HasPluginSystem):
+        pass
+
+    with pytest.raises(TypeError, match="'plugin_name' has to be a 'str'"):
+        ExtendedClass.add_method_plugin(1, lambda _: None)
+
+    with pytest.raises(
+        ValueError, match="'not identifier' has to be a valid identifier"
+    ):
+        ExtendedClass.add_method_plugin("not identifier", lambda _: None)
+
+
+def test_HasPluginSystem_method_pluging_raise_not_registered():
+    class ExtendedClass(HasPluginSystem):
+        pass
+
+    with pytest.raises(ValueError, match="plugin 'not_registered' is not registered"):
+        ExtendedClass.remove_method_plugin("not_registered")

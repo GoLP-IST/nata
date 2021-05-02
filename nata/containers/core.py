@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from functools import partial
 from pathlib import Path
 from typing import Any
 from typing import Callable
@@ -275,3 +276,75 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
         data = self._data.__array_function__(func, types, args, kwargs)
 
         return self.from_array(data)
+
+
+class HasPluginSystem:
+    _plugin_as_property: Dict[str, Callable]
+    _plugin_as_method: Dict[str, Callable]
+
+    def __init_subclass__(cls, **kwargs: Dict[str, Any]) -> None:
+        super().__init_subclass__(**kwargs)
+
+        cls._plugin_as_property = {}
+        cls._plugin_as_method = {}
+
+        cls._something = None
+
+    def __getattribute__(self, name: str) -> Any:
+        if name == "_plugin_as_property":
+            return super().__getattribute__(name)
+
+        if name == "_plugin_as_method":
+            return super().__getattribute__(name)
+
+        if name in self._plugin_as_property:
+            return self._plugin_as_property[name](self)
+
+        if name in self._plugin_as_method:
+            func = partial(self._plugin_as_method[name], self)
+            func.__doc__ = self._plugin_as_method[name].__doc__
+            return func
+
+        return super().__getattribute__(name)
+
+    @classmethod
+    def get_property_plugin(cls) -> Dict[str, Callable]:
+        return cls._plugin_as_property
+
+    @classmethod
+    def add_property_plugin(cls, plugin_name: str, plugin: Callable) -> None:
+        if not isinstance(plugin_name, str):
+            raise TypeError("'plugin_name' has to be a 'str'")
+
+        if not plugin_name.isidentifier():
+            raise ValueError(f"'{plugin_name}' has to be a valid identifier")
+
+        cls._plugin_as_property[plugin_name] = plugin
+
+    @classmethod
+    def remove_property_plugin(cls, plugin_name: str) -> None:
+        if plugin_name not in cls._plugin_as_property:
+            raise ValueError(f"plugin '{plugin_name}' is not registered")
+
+        del cls._plugin_as_property[plugin_name]
+
+    @classmethod
+    def get_method_plugin(cls) -> Dict[str, Callable]:
+        return cls._plugin_as_method
+
+    @classmethod
+    def add_method_plugin(cls, plugin_name: str, plugin: Callable) -> None:
+        if not isinstance(plugin_name, str):
+            raise TypeError("'plugin_name' has to be a 'str'")
+
+        if not plugin_name.isidentifier():
+            raise ValueError(f"'{plugin_name}' has to be a valid identifier")
+
+        cls._plugin_as_method[plugin_name] = plugin
+
+    @classmethod
+    def remove_method_plugin(cls, plugin_name: str) -> None:
+        if plugin_name not in cls._plugin_as_method:
+            raise ValueError(f"plugin '{plugin_name}' is not registered")
+
+        del cls._plugin_as_method[plugin_name]
