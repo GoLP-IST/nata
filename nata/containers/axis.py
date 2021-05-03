@@ -126,11 +126,14 @@ def Axis_concatenate(
 
 class HasAxes:
     _axes: Tuple[Axis, ...]
-    _time: Axis
 
     @property
     def axes(self) -> Tuple[Axis, ...]:
         return self._axes
+
+
+class HasTimeAxis:
+    _time: Axis
 
     @property
     def time(self) -> Axis:

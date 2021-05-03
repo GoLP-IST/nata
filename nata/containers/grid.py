@@ -25,6 +25,7 @@ from nata.utils.types import FileLocation
 
 from .axis import Axis
 from .axis import HasAxes
+from .axis import HasTimeAxis
 from .core import HasAnnotations
 from .core import HasBackends
 from .core import HasNumpyInterface
@@ -112,6 +113,7 @@ class GridArray(
     HasNumpyInterface,
     HasPluginSystem,
     HasAxes,
+    HasTimeAxis,
     backend_protocol=GridBackend,
 ):
     def __init__(
@@ -305,7 +307,13 @@ class GridArray(
         return cls(*cls._unpack_backend(backend, path, time_axis))
 
 
-class GridDataset(HasAnnotations, HasNumpyInterface, HasPluginSystem, HasAxes):
+class GridDataset(
+    HasAnnotations,
+    HasNumpyInterface,
+    HasPluginSystem,
+    HasAxes,
+    HasTimeAxis,
+):
     def __init__(
         self,
         data: da.Array,
