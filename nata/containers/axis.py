@@ -54,6 +54,9 @@ class Axis(HasAnnotations, HasNumpyInterface):
             unit=self._unit,
         )
 
+    def __hash__(self) -> int:
+        return hash((self._name, self._label, self._unit))
+
     @staticmethod
     def _log_axis(
         min_: Union[float, int], max_: Union[float, int], points: int
