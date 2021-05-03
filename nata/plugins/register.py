@@ -46,11 +46,13 @@ def register_container_plugin(
         def wrapper(self, *args, **kwargs):
             return func(self, *args, **kwargs)
 
-        container.register_plugin(
-            function_name if function_name else func.__name__,
-            wrapper,
-            plugin_type=plugin_type,
-        )
+        plugin_name = function_name if function_name else func.__name__
+        if plugin_type == "method":
+            container.add_method_plugin(plugin_name, wrapper)
+        elif plugin_type == "property":
+            container.add_property_plugin(plugin_name, wrapper)
+        else:
+            raise ValueError("'plugin_type' has to be either 'property' or 'method'")
         return func
 
     if function:

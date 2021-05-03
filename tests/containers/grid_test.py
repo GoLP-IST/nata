@@ -16,7 +16,7 @@ from numpy.typing import ArrayLike
 from nata.containers import GridArray
 from nata.containers import GridDataset
 from nata.containers.axis import Axis
-from nata.containers.grid import GridBackendType
+from nata.containers.grid import GridBackend
 from nata.utils.container_tools import register_backend
 
 # TODO: restructure the test to represent individual classes rather then
@@ -54,7 +54,7 @@ def _valid_grid_backend():
         dtype = np.dtype("i")
         ndim = int()
 
-    assert isinstance(DummyBackend, GridBackendType)
+    assert isinstance(DummyBackend, GridBackend)
     yield DummyBackend
 
     if DummyBackend.name in GridArray.get_backends():
@@ -198,17 +198,6 @@ def test_GridArray_from_array_raise_invalid_axes():
         GridArray.from_array([0, 1], axes=[[0, 1, 2, 3]])
 
 
-def test_GridArray_change_name_by_prop():
-    grid_arr = GridArray.from_array([])
-    assert grid_arr.name == "unnamed"
-
-    grid_arr.name = "new_name"
-    assert grid_arr.name == "new_name"
-
-    with pytest.raises(ValueError, match="name has to be an identifier"):
-        grid_arr.name = "invalid name"
-
-
 def test_GridArray_change_label_by_prop():
     grid_arr = GridArray.from_array([])
     assert grid_arr.label == "unlabeled"
@@ -225,12 +214,12 @@ def test_GridArray_change_unit_by_prop():
     assert grid_arr.unit == "new unit"
 
 
-def test_GridArray_is_valid_backend(valid_grid_backend: GridBackendType):
+def test_GridArray_is_valid_backend(valid_grid_backend: GridBackend):
     assert GridArray.is_valid_backend(valid_grid_backend)
     assert not GridArray.is_valid_backend(object)
 
 
-def test_GridArray_add_remove_backend(valid_grid_backend: GridBackendType):
+def test_GridArray_add_remove_backend(valid_grid_backend: GridBackend):
     assert valid_grid_backend.name not in GridArray.get_backends()
     GridArray.add_backend(valid_grid_backend)
 
@@ -240,7 +229,7 @@ def test_GridArray_add_remove_backend(valid_grid_backend: GridBackendType):
     assert valid_grid_backend.name not in GridArray.get_backends()
 
 
-def test_GridArray_get_valid_backend(valid_grid_backend: GridBackendType):
+def test_GridArray_get_valid_backend(valid_grid_backend: GridBackend):
     valid_grid_backend.is_valid_backend = staticmethod(lambda p: p == Path())
 
     # register backend
@@ -248,41 +237,6 @@ def test_GridArray_get_valid_backend(valid_grid_backend: GridBackendType):
 
     assert GridArray.get_valid_backend(Path()) is valid_grid_backend
     assert GridArray.get_valid_backend(Path("some/invalid/path")) is None
-
-
-def test_GridArray_register_plugin():
-    GridArray.register_plugin("my_custom_plugin", lambda _: None)
-
-    assert GridArray.get_plugins()["my_custom_plugin"] == ""
-
-
-def test_GridArray_calling_plugin_as_method():
-    def plugin_function(obj: GridArray, should_return_obj: bool):
-        """my custom docs"""
-        return obj if should_return_obj else None
-
-    GridArray.register_plugin("return_self_as_method", plugin_function, "method")
-    grid = GridArray.from_array([])
-
-    assert grid.return_self_as_method(True) is grid
-    assert grid.return_self_as_method(False) is None
-
-    # check plugin perserves docs
-    assert grid.return_self_as_method.__doc__ == plugin_function.__doc__
-
-
-def test_GridArray_calling_plugin_as_property():
-    GridArray.register_plugin("return_self_as_property", lambda s: s, "property")
-    grid = GridArray.from_array([])
-    assert grid.return_self_as_property is grid
-
-
-def test_GridArray_remove_plugin():
-    assert "dummy_plugin" not in GridArray.get_plugins()
-    GridArray.register_plugin("dummy_plugin", lambda s: s, "property")
-    assert "dummy_plugin" in GridArray.get_plugins()
-    GridArray.remove_plugin("dummy_plugin")
-    assert "dummy_plugin" not in GridArray.get_plugins()
 
 
 def test_GridArray_repr():
@@ -327,34 +281,6 @@ def test_GridArray_len():
 def test_GridArray_array():
     grid = GridArray.from_array([1, 2])
     np.testing.assert_array_equal(grid, [1, 2])
-
-
-def test_GridArray_implements_ufunc():
-    assert np.add not in GridArray.get_handled_ufuncs()
-
-    @GridArray.implements(np.add)
-    def my_function(*args, **kwargs):
-        return "my_function implementation"
-
-    assert np.add in GridArray.get_handled_ufuncs()
-    assert (GridArray.from_array([]) + 1) == "my_function implementation"
-    GridArray.remove_handled_ufuncs(np.add)
-
-    assert np.add not in GridArray.get_handled_ufuncs()
-
-
-def test_GridArray_implements_array_function():
-    assert np.fft.fft not in GridArray.get_handled_array_function()
-
-    @GridArray.implements(np.fft.fft)
-    def my_function(*args, **kwargs):
-        return "my_function implementation"
-
-    assert np.fft.fft in GridArray.get_handled_array_function()
-    assert np.fft.fft(GridArray.from_array([])) == "my_function implementation"
-    GridArray.remove_handled_array_function(np.fft.fft)
-
-    assert np.fft.fft not in GridArray.get_handled_array_function()
 
 
 def test_GridArray_ufunc_proxy():
@@ -541,33 +467,6 @@ def test_GridDataset_from_array_raise_invalid_axes():
     # axis mismatch with shape of data
     with pytest.raises(ValueError, match="inconsistency between data and axis shape"):
         GridDataset.from_array([[0, 1]], axes=[[0], [[0, 1, 2, 3]]])
-
-
-def test_GridDataset_change_name_by_prop():
-    grid_ds = GridDataset.from_array([])
-    assert grid_ds.name == "unnamed"
-
-    grid_ds.name = "new_name"
-    assert grid_ds.name == "new_name"
-
-    with pytest.raises(ValueError, match="name has to be an identifier"):
-        grid_ds.name = "invalid name"
-
-
-def test_GridDataset_change_label_by_prop():
-    grid_ds = GridDataset.from_array([])
-    assert grid_ds.label == "unlabeled"
-
-    grid_ds.label = "new label"
-    assert grid_ds.label == "new label"
-
-
-def test_GridDataset_change_unit_by_prop():
-    grid_ds = GridDataset.from_array([])
-    assert grid_ds.unit == ""
-
-    grid_ds.unit = "new unit"
-    assert grid_ds.unit == "new unit"
 
 
 @pytest.mark.parametrize(
