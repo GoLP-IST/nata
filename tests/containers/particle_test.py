@@ -12,16 +12,16 @@ from nata.containers.particle import Quantity
 
 
 def test_Quantity():
-    quant = Quantity.from_array(123)
+    quant = Quantity.from_array(np.int32(123))
 
     assert quant.name == "unnamed"
     assert quant.label == "unlabeled"
     assert quant.unit == ""
-    assert not quant.axes
-    assert hash(quant.time) == hash(
-        Axis.from_array(0, name="time", label="time", unit="")
-    )
-    assert quant.dtype == int
+    assert quant.num == 1
+    assert quant.time.name == "time"
+    assert quant.time.label == "time"
+    assert quant.time.unit == ""
+    assert quant.dtype == np.int32
     np.testing.assert_array_equal(quant, 123)
 
 

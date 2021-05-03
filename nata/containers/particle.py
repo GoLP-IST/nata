@@ -2,19 +2,30 @@
 from textwrap import dedent
 from typing import Any
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import dask.array as da
 from numpy.typing import ArrayLike
 
 from .axis import Axis
-from .axis import HasAxes
+from .axis import HasTimeAxis
 from .core import HasAnnotations
 from .core import HasNumpyInterface
 from .core import HasPluginSystem
 
 
-class Quantity(HasNumpyInterface, HasAnnotations, HasPluginSystem, HasAxes):
+class HasParticleCount:
+    _num: Union[int, Tuple[int, ...]]
+
+    @property
+    def num(self) -> Union[int, Tuple[int, ...]]:
+        return self._num
+
+
+class Quantity(
+    HasNumpyInterface, HasAnnotations, HasPluginSystem, HasTimeAxis, HasParticleCount
+):
     def __init__(
         self, data: da.Array, time: Axis, name: str, label: str, unit: str
     ) -> None:
@@ -28,7 +39,7 @@ class Quantity(HasNumpyInterface, HasAnnotations, HasPluginSystem, HasAxes):
         self._label = label
         self._unit = unit
 
-        self._axes = ()
+        self._num = 1
         self._time = time
 
         self._data = data
