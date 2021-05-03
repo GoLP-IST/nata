@@ -52,7 +52,7 @@ def stack(grid_arrs: Sequence["GridArray"]) -> "GridDataset":
     unit = base.unit
 
     data = da.stack([grid.to_dask() for grid in grid_arrs])
-    time = Axis(
+    time = Axis.from_array(
         da.stack([grid.time.to_dask() for grid in grid_arrs]),
         name=base.time.name,
         label=base.time.label,
@@ -62,7 +62,9 @@ def stack(grid_arrs: Sequence["GridArray"]) -> "GridDataset":
     axes = []
     for i, ax in enumerate(base.axes):
         axes_data = da.stack([grid.axes[i].to_dask() for grid in grid_arrs])
-        axes.append(Axis(axes_data, name=ax.name, label=ax.label, unit=ax.unit))
+        axes.append(
+            Axis.from_array(axes_data, name=ax.name, label=ax.label, unit=ax.unit)
+        )
 
     return GridDataset(data, (time,) + tuple(axes), name=name, label=label, unit=unit)
 
@@ -161,7 +163,7 @@ class GridArray(
                 axes.append(ax[ind])
 
         for pos in indices_of_new_axis:
-            axes.insert(pos, Axis([0]))
+            axes.insert(pos, Axis.from_array([0]))
 
         data = self._data[index]
         axes = tuple(axes)
@@ -228,23 +230,23 @@ class GridArray(
         if axes is None:
             axes = ()
             for i, l in enumerate(data.shape):
-                axes += (Axis(da.arange(l), name=f"axis{i}"),)
+                axes += (Axis.from_array(da.arange(l), name=f"axis{i}"),)
         else:
             # ensure that every element in axes is an axis
             if any(not isinstance(ax, Axis) for ax in axes):
                 tmp = []
                 for i, ax in enumerate(axes):
                     if not isinstance(ax, Axis):
-                        ax = Axis(da.asanyarray(ax), name=f"axis{i}")
+                        ax = Axis.from_array(da.asanyarray(ax), name=f"axis{i}")
                     tmp.append(ax)
 
                 axes = tuple(tmp)
 
         if time is None:
-            time = Axis(0.0, name="time", label="time")
+            time = Axis.from_array(0.0, name="time", label="time")
         else:
             if not isinstance(time, Axis):
-                time = Axis(time, name="time", label="time")
+                time = Axis.from_array(time, name="time", label="time")
 
         return cls(data, axes, time, name, label, unit)
 
@@ -260,9 +262,11 @@ class GridArray(
         unit = grid.dataset_unit
 
         if time_axis == "time":
-            time = Axis(grid.time_step, name="time", label="time", unit=grid.time_unit)
+            time = Axis.from_array(
+                grid.time_step, name="time", label="time", unit=grid.time_unit
+            )
         else:
-            time = Axis(grid.iteration, name="iteration", label="iteration")
+            time = Axis.from_array(grid.iteration, name="iteration", label="iteration")
 
         axes = ()
         for min_, max_, ax_pts, ax_name, ax_label, ax_unit in zip(
@@ -409,7 +413,7 @@ class GridDataset(HasAnnotations, HasNumpyInterface, HasPluginSystem, HasAxes):
                 axes.append(ax[time_slicing, ind])
 
         for pos in indices_of_new_axis:
-            axes.insert(pos + 1, Axis(da.zeros((len(time_axis), 1))))
+            axes.insert(pos + 1, Axis.from_array(da.zeros((len(time_axis), 1))))
 
         data = self._data[index]
         name = self.name
@@ -441,11 +445,15 @@ class GridDataset(HasAnnotations, HasNumpyInterface, HasPluginSystem, HasAxes):
             for i, l in enumerate(data.shape):
                 if i == 0:
                     time_steps = l
-                    time = Axis(da.arange(time_steps), name="time", label="time")
+                    time = Axis.from_array(
+                        da.arange(time_steps), name="time", label="time"
+                    )
                     axes += (time,)
                 else:
                     axis_shape = (time_steps, 1)
-                    axis = Axis(da.tile(da.arange(l), axis_shape), name=f"axis{i-1}")
+                    axis = Axis.from_array(
+                        da.tile(da.arange(l), axis_shape), name=f"axis{i-1}"
+                    )
                     axes += (axis,)
 
         else:
@@ -458,7 +466,7 @@ class GridDataset(HasAnnotations, HasNumpyInterface, HasPluginSystem, HasAxes):
                     label = "time" if i == 0 else "unlabeled"
 
                     if not isinstance(ax, Axis):
-                        ax = Axis(da.asanyarray(ax), name=name, label=label)
+                        ax = Axis.from_array(da.asanyarray(ax), name=name, label=label)
 
                     tmp.append(ax)
 

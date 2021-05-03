@@ -8,6 +8,7 @@ from typing import Union
 
 import dask.array as da
 import numpy as np
+from numpy.typing import ArrayLike
 
 from .core import HasAnnotations
 from .core import HasNumpyInterface
@@ -17,16 +18,14 @@ class Axis(HasAnnotations, HasNumpyInterface):
     def __init__(
         self,
         data: da.Array,
-        *,
-        name: str = "unnamed",
-        label: str = "unlabeled",
-        unit: str = "",
+        name: str,
+        label: str,
+        unit: str,
     ) -> None:
-        self._data = data if isinstance(data, da.Array) else da.asanyarray(data)
-
         if not name.isidentifier():
             raise ValueError("Argument 'name' has to be a valid identifier")
 
+        self._data = data
         self._name = name
         self._label = label
         self._unit = unit
@@ -72,6 +71,18 @@ class Axis(HasAnnotations, HasNumpyInterface):
         return da.linspace(min_, max_, points)
 
     @classmethod
+    def from_array(
+        cls,
+        data: ArrayLike,
+        *,
+        name: str = "unnamed",
+        label: str = "unlabeled",
+        unit: str = "",
+    ) -> "Axis":
+        data = data if isinstance(data, da.Array) else da.asanyarray(data)
+        return cls(data, name, label, unit)
+
+    @classmethod
     def from_limits(
         cls,
         lower_limit: Union[float, int],
@@ -107,7 +118,7 @@ def Axis_concatenate(
     arrays = tuple(arr.to_dask() if isinstance(arr, Axis) else arr for arr in arrays)
     args = (arrays,) + tuple(rest)
     data = da.concatenate(*args, **kwargs)
-    return Axis(data)
+    return Axis.from_array(data)
 
 
 class HasAxes:

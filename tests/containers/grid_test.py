@@ -341,12 +341,15 @@ _testCases_getitem["(4,), [:]"] = {
 _testCases_getitem["(4,), [1:3]"] = {
     "arr": [1, 2, 3, 4],
     "indexing": np.s_[1:3],
-    "expected_axes": (Axis([1, 2], name="axis0"),),
+    "expected_axes": (Axis.from_array([1, 2], name="axis0"),),
 }
 _testCases_getitem["(4,), [np.newaxis]"] = {
     "arr": [1, 2, 3, 4],
     "indexing": np.s_[np.newaxis],
-    "expected_axes": (Axis([0]), Axis(np.arange(4), name="axis0")),
+    "expected_axes": (
+        Axis.from_array([0]),
+        Axis.from_array(np.arange(4), name="axis0"),
+    ),
 }
 _testCases_getitem["(3, 4, 5), [1, 2, 3]"] = {
     "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
@@ -356,11 +359,11 @@ _testCases_getitem["(3, 4, 5, 6, 7), [:, ..., np.newaxis, ...]"] = {
     "arr": np.arange(3 * 4 * 5 * 6 * 7).reshape((3, 4, 5, 6, 7)),
     "indexing": np.s_[1:3, np.newaxis, ..., 4],
     "expected_axes": (
-        Axis([1, 2], name="axis0"),
-        Axis([0]),
-        Axis(np.arange(4), name="axis1"),
-        Axis(np.arange(5), name="axis2"),
-        Axis(np.arange(6), name="axis3"),
+        Axis.from_array([1, 2], name="axis0"),
+        Axis.from_array([0]),
+        Axis.from_array(np.arange(4), name="axis1"),
+        Axis.from_array(np.arange(5), name="axis2"),
+        Axis.from_array(np.arange(6), name="axis3"),
     ),
 }
 
@@ -488,44 +491,44 @@ def test_GridDataset_from_array_raise_invalid_axes():
         (GridArray.from_array([], time=0), GridArray.from_array([], time=1), eq),
         # time name
         (
-            GridArray.from_array([], time=Axis(0)),
-            GridArray.from_array([], time=Axis(0, name="some")),
+            GridArray.from_array([], time=Axis.from_array(0)),
+            GridArray.from_array([], time=Axis.from_array(0, name="some")),
             ne,
         ),
         # time label
         (
-            GridArray.from_array([], time=Axis(0)),
-            GridArray.from_array([], time=Axis(0, label="some")),
+            GridArray.from_array([], time=Axis.from_array(0)),
+            GridArray.from_array([], time=Axis.from_array(0, label="some")),
             ne,
         ),
         # time unit
         (
-            GridArray.from_array([], time=Axis(0)),
-            GridArray.from_array([], time=Axis(0, unit="some")),
+            GridArray.from_array([], time=Axis.from_array(0)),
+            GridArray.from_array([], time=Axis.from_array(0, unit="some")),
             ne,
         ),
         # axes[..] value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([2])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([2])]),
             eq,
         ),
         # axes[..].name value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([1], name="some")]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1], name="some")]),
             ne,
         ),
         # axes[..].label value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([1], label="some")]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1], label="some")]),
             ne,
         ),
         # axes[..].unit value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([1], unit="some")]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1], unit="some")]),
             ne,
         ),
     ],
@@ -611,10 +614,10 @@ _testCases_GridDataset_getitem["(3, 4, 5), [..., np.newaxis]"] = {
     "indexing": np.s_[..., np.newaxis],
     "instance_after_indexing": GridDataset,
     "expected_axes": (
-        Axis(np.arange(3), name="time", label="time"),
-        Axis(np.tile(np.arange(4), (3, 1)), name="axis0"),
-        Axis(np.tile(np.arange(5), (3, 1)), name="axis1"),
-        Axis(np.zeros((3, 1))),
+        Axis.from_array(np.arange(3), name="time", label="time"),
+        Axis.from_array(np.tile(np.arange(4), (3, 1)), name="axis0"),
+        Axis.from_array(np.tile(np.arange(5), (3, 1)), name="axis1"),
+        Axis.from_array(np.zeros((3, 1))),
     ),
 }
 
