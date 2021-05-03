@@ -108,3 +108,16 @@ def Axis_concatenate(
     args = (arrays,) + tuple(rest)
     data = da.concatenate(*args, **kwargs)
     return Axis(data)
+
+
+class HasAxes:
+    _axes: Tuple[Axis, ...]
+    _time: Axis
+
+    @property
+    def axes(self) -> Tuple[Axis, ...]:
+        return self._axes
+
+    @property
+    def time(self) -> Axis:
+        return self._time
