@@ -17,26 +17,8 @@ def test_Axis_init_default():
 def test_Axis_repr():
     """Ensures correct repr formatting"""
     axis = Axis(())
-    expected = f"Axis(name='{axis.name}', label='{axis.label}', unit='{axis.unit}')"
+    expected = f"Axis<name='{axis.name}', label='{axis.label}', unit='{axis.unit}'>"
     assert repr(axis) == expected
-
-
-@pytest.mark.skip
-def test_Axis_repr_html():
-    """Ensures correct repr_html formatting"""
-    axis = Axis(())
-    expected = (
-        "<span>Axis</span>"
-        "<span style='color: var(--jp-info-color0);'>"
-        "("
-        f"name='{axis.name}', "
-        f"label='{axis.label}', "
-        f"unit='{axis.unit}'"
-        ")"
-        "</span>"
-    )
-
-    assert axis._repr_html_() == expected
 
 
 def test_Axis_change_name():
@@ -51,10 +33,6 @@ def test_Axis_change_name():
 def test_Axis_raises_not_identifier():
     with pytest.raises(ValueError, match="has to be a valid identifier"):
         Axis((), name="invalid name with space")
-
-    with pytest.raises(ValueError, match="has to be a valid identifier"):
-        axis = Axis(())
-        axis.name = "invalid name with space"
 
 
 def test_Axis_change_label():
@@ -180,5 +158,10 @@ def test_Axis_ufunc():
 
 
 def test_Axis_array_function():
+    # passing as a tuple of args
     concanated_axes = np.concatenate((Axis([0, 1]), Axis([2, 3])))
+    np.testing.assert_array_equal(concanated_axes, [0, 1, 2, 3])
+
+    # passing as a list of args
+    concanated_axes = np.concatenate([Axis([0, 1]), Axis([2, 3])])
     np.testing.assert_array_equal(concanated_axes, [0, 1, 2, 3])

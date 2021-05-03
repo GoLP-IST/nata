@@ -131,6 +131,10 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
 
     _data: da.Array
 
+    def __init__(self, data: da.Array, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._data = data if isinstance(data, da.Array) else da.asanyarray(data)
+
     def __init_subclass__(cls, **kwargs: Dict[str, Any]) -> None:
         super().__init_subclass__(**kwargs)
 
@@ -255,7 +259,7 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
             self._data = kwargs["out"][0]
             return self
         else:
-            return self.from_array(data)
+            return self.__class__(data)
 
     def __array_function__(
         self,
@@ -272,7 +276,7 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
         args = tuple(self._data if arg is self else arg for arg in args)
         data = self._data.__array_function__(func, types, args, kwargs)
 
-        return self.from_array(data)
+        return self.__class__(data)
 
 
 class HasPluginSystem:

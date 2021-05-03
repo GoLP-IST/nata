@@ -272,28 +272,31 @@ def test_HasNumpyInterface_implements_array_func():
 
 def test_HasNumpyInterface_to_dask():
     class ExtendedClass(HasNumpyInterface):
-        _data = da.arange(10)
+        pass
 
-    assert isinstance(ExtendedClass().to_dask(), da.Array)
-    np.testing.assert_array_equal(ExtendedClass().to_dask(), np.arange(10))
+    obj = ExtendedClass(da.arange(10))
+    assert isinstance(obj.to_dask(), da.Array)
+    np.testing.assert_array_equal(obj.to_dask(), np.arange(10))
 
 
 def test_HasNumpyInterface_to_numpy():
     class ExtendedClass(HasNumpyInterface):
-        _data = da.arange(10)
+        pass
 
-    assert isinstance(ExtendedClass().to_numpy(), np.ndarray)
-    np.testing.assert_array_equal(ExtendedClass().to_numpy(), np.arange(10))
+    obj = ExtendedClass(da.arange(10))
+    assert isinstance(obj.to_numpy(), np.ndarray)
+    np.testing.assert_array_equal(obj.to_numpy(), np.arange(10))
 
 
 def test_HasNumpyInterface_array_props():
     class ExtendedClass(HasNumpyInterface):
-        _data = da.arange(10, dtype=int)
+        pass
 
-    assert ExtendedClass().dtype == int
-    assert ExtendedClass().ndim == 1
-    assert ExtendedClass().shape == (10,)
-    assert len(ExtendedClass()) == 10
+    obj = ExtendedClass(da.arange(10, dtype=int))
+    assert obj.dtype == int
+    assert obj.ndim == 1
+    assert obj.shape == (10,)
+    assert len(obj) == 10
 
 
 @pytest.mark.skip
