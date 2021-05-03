@@ -9,6 +9,7 @@ import pytest
 
 from nata.containers.axis import Axis
 from nata.containers.particle import Quantity
+from nata.containers.particle import QuantityArray
 
 
 def test_Quantity():
@@ -109,3 +110,17 @@ def test_Quantity_repr_html():
     """
 
     assert grid._repr_markdown_() == dedent(expected_markdown)
+
+
+def test_QuantityArray():
+    quantArr = QuantityArray.from_array(np.array([1, 2, 3], dtype=np.int32))
+
+    assert quantArr.name == "unnamed"
+    assert quantArr.label == "unlabeled"
+    assert quantArr.unit == ""
+    assert quantArr.num == 3
+    assert quantArr.time.name == "time"
+    assert quantArr.time.label == "time"
+    assert quantArr.time.unit == ""
+    assert quantArr.dtype == np.int32
+    np.testing.assert_array_equal(quantArr, [1, 2, 3])

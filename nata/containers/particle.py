@@ -54,6 +54,9 @@ class Quantity(
         # time specific
         key += (self.time.name, self.time.label, self.time.unit)
 
+        # number of particles
+        key += (self.num,)
+
         return hash(key)
 
     def __repr__(self) -> str:
@@ -100,8 +103,27 @@ class Quantity(
         return cls(data, time, name, label, unit)
 
 
-class QuantityArray:
-    pass
+class QuantityArray(Quantity):
+    def __init__(
+        self, data: da.Array, time: Axis, name: str, label: str, unit: str
+    ) -> None:
+        if data.ndim != 1:
+            raise ValueError("only 1d data is supported")
+
+        if data.dtype.fields:
+            raise ValueError("only unstructured data types supported")
+
+        self._name = name
+        self._label = label
+        self._unit = unit
+
+        self._num = data.shape[0]
+        self._time = time
+
+        self._data = data
+
+    def __getitem__(self, key: Any) -> Union["Quantity", "QuantityArray"]:
+        raise NotImplementedError
 
 
 class Particle:
