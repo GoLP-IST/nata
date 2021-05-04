@@ -126,12 +126,52 @@ class QuantityArray(Quantity):
         raise NotImplementedError
 
 
-class Particle:
-    pass
+class Particle(Quantity):
+    def __init__(
+        self, data: da.Array, time: Axis, name: str, label: str, unit: str
+    ) -> None:
+        if data.ndim != 0:
+            raise ValueError("only 0d data is supported")
+
+        if not data.dtype.fields:
+            raise ValueError("only structured data types supported")
+
+        self._name = name
+        self._label = label
+        self._unit = unit
+
+        self._num = 1
+        self._time = time
+
+        self._data = data
+
+    def __getitem__(self, key: Any) -> Union["Quantity", "ParticleArray"]:
+        raise NotImplementedError
 
 
-class ParticleArray:
-    pass
+class ParticleArray(QuantityArray):
+    def __init__(
+        self, data: da.Array, time: Axis, name: str, label: str, unit: str
+    ) -> None:
+        if data.ndim != 1:
+            raise ValueError("only 1d data is supported")
+
+        if not data.dtype.fields:
+            raise ValueError("only structured data types supported")
+
+        self._name = name
+        self._label = label
+        self._unit = unit
+
+        self._num = data.shape[0]
+        self._time = time
+
+        self._data = data
+
+    def __getitem__(
+        self, key: Any
+    ) -> Union["Quantity", "QuantityArray", "ParticleArray"]:
+        raise NotImplementedError
 
 
 class ParticleDataset:

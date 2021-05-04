@@ -8,6 +8,8 @@ import numpy as np
 import pytest
 
 from nata.containers.axis import Axis
+from nata.containers.particle import Particle
+from nata.containers.particle import ParticleArray
 from nata.containers.particle import Quantity
 from nata.containers.particle import QuantityArray
 
@@ -124,3 +126,33 @@ def test_QuantityArray():
     assert quantArr.time.unit == ""
     assert quantArr.dtype == np.int32
     np.testing.assert_array_equal(quantArr, [1, 2, 3])
+
+
+def test_Particle():
+    arr = np.array(1, dtype=np.dtype([("q1", np.int64), ("q2", np.float16)]))
+    prt = Particle.from_array(arr)
+
+    assert prt.name == "unnamed"
+    assert prt.label == "unlabeled"
+    assert prt.unit == ""
+    assert prt.num == 1
+    assert prt.time.name == "time"
+    assert prt.time.label == "time"
+    assert prt.time.unit == ""
+    assert prt.dtype == np.dtype([("q1", np.int64), ("q2", np.float16)])
+    np.testing.assert_array_equal(prt, arr)
+
+
+def test_ParticleArray():
+    arr = np.array([1, 2, 3], dtype=np.dtype([("q1", np.int64), ("q2", np.float16)]))
+    prt = ParticleArray.from_array(arr)
+
+    assert prt.name == "unnamed"
+    assert prt.label == "unlabeled"
+    assert prt.unit == ""
+    assert prt.num == 3
+    assert prt.time.name == "time"
+    assert prt.time.label == "time"
+    assert prt.time.unit == ""
+    assert prt.dtype == np.dtype([("q1", np.int64), ("q2", np.float16)])
+    np.testing.assert_array_equal(prt, arr)
