@@ -386,3 +386,68 @@ class HasAnnotations:
     @unit.setter
     def unit(self, new: str) -> None:
         self._unit = new
+
+
+class HasName:
+    _name: str
+    _label: str
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, new: str) -> None:
+        new = new if isinstance(new, str) else str(new, encoding="utf-8")
+        if not new.isidentifier():
+            raise ValueError("'name' has to be an identifier")
+        self._name = new
+
+    @property
+    def label(self) -> str:
+        return self._label
+
+    @label.setter
+    def label(self, new: str) -> None:
+        self._label = new
+
+
+class HasUnit:
+    _unit: str
+
+    @property
+    def unit(self) -> str:
+        return self._unit
+
+    @unit.setter
+    def unit(self, new: str) -> None:
+        self._unit = new
+
+
+# TODO: make quantitites indexable and allow to change name, label, and units
+class HasQuantities:
+    _quantities: Tuple[Tuple[str, str, str], ...]
+
+    @property
+    def quantities(self) -> Tuple[Tuple[str, str, str], ...]:
+        return self._quantities
+
+    @property
+    def quantity_names(self) -> Tuple[str, ...]:
+        return tuple(q[0] for q in self._quantities)
+
+    @property
+    def quantity_labels(self) -> Tuple[str, ...]:
+        return tuple(q[1] for q in self._quantities)
+
+    @property
+    def quantity_units(self) -> Tuple[str, ...]:
+        return tuple(q[2] for q in self._quantities)
+
+
+class HasParticleCount:
+    _count: Union[int, Tuple[int, ...]]
+
+    @property
+    def count(self) -> Union[int, Tuple[int, ...]]:
+        return self._count
