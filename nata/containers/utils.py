@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 from warnings import warn
 
+import dask.array as da
+import numpy as np
+from dask import delayed
+from numpy.lib import recfunctions
+
 # TODO: remove the use of types
 from nata.types import BackendType
 from nata.types import DatasetType
@@ -23,3 +28,9 @@ def register_backend(container: DatasetType):
         return backend
 
     return add_backend_to_container
+
+
+def unstructured_to_structured(data: da.Array, new_dtype: np.dtype) -> da.Array:
+    new_shape = data.shape[:-1]
+    new_data = delayed(recfunctions.unstructured_to_structured)(data, dtype=new_dtype)
+    return da.from_delayed(new_data, new_shape, dtype=new_dtype)
