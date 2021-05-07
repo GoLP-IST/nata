@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from typing import Callable
 from warnings import warn
 
 # TODO: remove the use of types
@@ -24,16 +23,3 @@ def register_backend(container: DatasetType):
         return backend
 
     return add_backend_to_container
-
-
-def get_doc_heading(func: Callable) -> str:
-    docs = func.__doc__
-
-    if not docs:
-        return ""
-
-    for line in docs.split("\n"):
-        if line:
-            return line.strip()
-
-    return ""
