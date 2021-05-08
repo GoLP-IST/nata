@@ -229,7 +229,10 @@ class Particle(
 
     def __hash__(self) -> int:
         # general naming
-        key = (self._name, self._label, self._data.shape)
+        key = (self._name, self._label)
+
+        # data properties
+        key += (self._data.shape, self._data.dtype)
 
         # time specific
         key += (self._time.name, self._time.label, self._time.unit)
