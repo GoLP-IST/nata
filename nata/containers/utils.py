@@ -19,6 +19,8 @@ def register_backend(container: DatasetType):
     def add_backend_to_container(backend: BackendType):
         if container.is_valid_backend(backend):
             container.add_backend(backend)
+            # TODO: make sure it works well with quantities
+            #       -> labels are passed appropiate
             backend.__getitem__ = backend.get_data
         else:
             warn(
