@@ -1,23 +1,72 @@
 # -*- coding: utf-8 -*-
+from pathlib import Path
 from textwrap import dedent
 from typing import Any
 from typing import Optional
+from typing import Protocol
+from typing import Sequence
 from typing import Tuple
 from typing import Union
+from typing import runtime_checkable
 
 import dask.array as da
 import numpy as np
 from numpy.typing import ArrayLike
 
+from nata.utils.types import BasicIndexing
+from nata.utils.types import FileLocation
+
 from .axis import Axis
 from .axis import HasTimeAxis
+from .core import HasBackends
 from .core import HasName
 from .core import HasNumpyInterface
 from .core import HasParticleCount
 from .core import HasPluginSystem
 from .core import HasQuantities
 from .core import HasUnit
+from .exceptions import NoValidBackend
 from .utils import unstructured_to_structured
+
+
+@runtime_checkable
+class ParticleBackend(Protocol):
+    name: str
+    location: Path
+
+    def __init__(self, location: FileLocation) -> None:
+        ...
+
+    @staticmethod
+    def is_valid_backend(location: FileLocation) -> bool:
+        ...
+
+    dataset_name: str
+    dataset_label: str
+
+    num_particles: int
+
+    quantity_names: Sequence[str]
+    quantity_labels: Sequence[str]
+    quantity_units: Sequence[str]
+
+    iteration: int
+    time_step: float
+    time_unit: str
+
+    shape: Tuple[int, ...]
+    dtype: np.dtype
+    ndim: int
+
+
+@runtime_checkable
+class ParticleDataReader(ParticleBackend, Protocol):
+    def get_data(
+        self,
+        indexing: Optional[BasicIndexing] = None,
+        fields: Optional[Union[str, Sequence[str]]] = None,
+    ) -> np.ndarray:
+        ...
 
 
 class Quantity(
@@ -252,7 +301,11 @@ class Particle(
         return cls(data, quantities, time, name, label)
 
 
-class ParticleArray(Particle):
+class ParticleArray(
+    Particle,
+    HasBackends,
+    backend_protocol=ParticleBackend,
+):
     def __init__(
         self,
         data: da.Array,
@@ -285,6 +338,58 @@ class ParticleArray(Particle):
         self, key: Any
     ) -> Union["Quantity", "QuantityArray", "ParticleArray"]:
         raise NotImplementedError
+
+    @staticmethod
+    def _unpack_backend(
+        backend: ParticleBackend, path: Path, time_axis: str
+    ) -> Tuple[da.Array, Tuple[Tuple[str, str, str], ...], Axis, str, str]:
+        prts = backend(path)
+        data = da.from_array(prts)
+
+        name = prts.dataset_name
+        label = prts.dataset_label
+
+        if time_axis == "time":
+            time = Axis.from_array(
+                prts.time_step,
+                name="time",
+                label="time",
+                unit=prts.time_unit,
+            )
+        else:
+            time = Axis.from_array(
+                prts.iteration,
+                name="iteration",
+                label="iteration",
+            )
+
+        quantities = tuple(
+            zip(prts.quantity_names, prts.quantity_labels, prts.quantity_units)
+        )
+
+        return data, quantities, time, name, label
+
+    @classmethod
+    def from_path(
+        cls, path: Union[str, Path], time_axis: str = "time"
+    ) -> "ParticleArray":
+        if not isinstance(path, Path):
+            path = Path(path)
+
+        # check validity of passed arguments
+        if not path.is_file():
+            raise ValueError("only a single file is supported")
+
+        if time_axis not in ("time", "iteration"):
+            raise ValueError("only 'time' and 'iteration' are supported for time axis")
+
+        # get valid backend
+        backend = cls.get_valid_backend(path)
+        if not backend:
+            raise NoValidBackend(f"no valid backend for '{path}' found")
+
+        backend_data = cls._unpack_backend(backend, path, time_axis)
+        return cls(*backend_data)
 
 
 class ParticleDataset:
