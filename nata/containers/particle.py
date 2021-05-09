@@ -446,6 +446,18 @@ class ParticleDataset(
 
         return hash(key)
 
+    def __repr__(self) -> str:
+        repr_ = (
+            f"{type(self).__name__}"
+            "<"
+            f"name={self.name}, "
+            f"dtype={self.dtype}, "
+            f"quantities={self.quantity_names}, "
+            f"time={repr(self.time)}"
+            ">"
+        )
+        return repr_
+
     @classmethod
     def from_array(
         cls,

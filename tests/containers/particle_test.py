@@ -435,3 +435,15 @@ def test_ParticleDataset_hash(
     operation: Callable,
 ):
     assert operation(hash(left), hash(right))
+
+
+def test_ParticleDataset_repr():
+    prt_ds = ParticleDataset.from_array(np.arange(32, dtype=np.int64).reshape((4, 8)))
+    assert repr(prt_ds) == (
+        "ParticleDataset<"
+        "name=unnamed, "
+        "dtype=[('quant1', '<i8')], "
+        "quantities=('quant1',), "
+        "time=Axis<name='time', label='time', unit=''>"
+        ">"
+    )
