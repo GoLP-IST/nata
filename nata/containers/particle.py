@@ -1,18 +1,23 @@
 # -*- coding: utf-8 -*-
+from collections import defaultdict
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
+from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Protocol
 from typing import Sequence
 from typing import Tuple
 from typing import Union
 from typing import runtime_checkable
+from warnings import warn
 
 import dask.array as da
 import numpy as np
 from numpy.typing import ArrayLike
 
+from nata.utils.io import FileList
 from nata.utils.types import BasicIndexing
 from nata.utils.types import FileLocation
 
@@ -26,7 +31,28 @@ from .core import HasPluginSystem
 from .core import HasQuantities
 from .core import HasUnit
 from .exceptions import NoValidBackend
+from .utils import is_unique
 from .utils import unstructured_to_structured
+
+
+def stack(part_arrs: Sequence["ParticleArray"]) -> "ParticleDataset":
+    if not len(part_arrs):
+        raise ValueError("can not iterate over 0-length sequence of GridArrays")
+
+    if not is_unique(hash(prt) for prt in part_arrs):
+        raise ValueError("provided GridArrays are not equivalent to each other")
+
+    base = part_arrs[0]
+
+    data = da.stack([grid.to_dask() for grid in part_arrs])
+    time = Axis.from_array(
+        da.stack([grid.time.to_dask() for grid in part_arrs]),
+        name=base.time.name,
+        label=base.time.label,
+        unit=base.time.unit,
+    )
+
+    return ParticleDataset(data, base.quantities, time, base.name, base.label)
 
 
 @runtime_checkable
@@ -511,3 +537,30 @@ class ParticleDataset(
             quantities = tuple((f, f"{f} label", "") for f in data.dtype.fields)
 
         return cls(data, quantities, time, name, label)
+
+    @classmethod
+    def from_path(
+        cls, path: Union[str, Path], time_axis: str = "time"
+    ) -> "ParticleDataset":
+        files = FileList(path, recursive=False)
+
+        prt_arrs: Dict[int, List[Particle]] = defaultdict(list)
+
+        for f in files.paths:
+            try:
+                prt_arr = ParticleArray.from_path(f, time_axis=time_axis)
+            except NoValidBackend:
+                continue
+
+            prt_arrs[hash(prt_arr)].append(prt_arr)
+
+        parts = list(prt_arrs.values())
+
+        if not len(parts):
+            raise ValueError(f"no valid particles found for '{path}'")
+
+        # warn if multiple grids were found
+        if len(parts) > 1:
+            warn(f"found multiple particles datasets and picking '{parts[0].name}'")
+
+        return stack(parts[0])

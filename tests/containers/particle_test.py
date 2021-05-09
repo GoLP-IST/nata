@@ -465,3 +465,19 @@ def test_ParticleDataset_repr_html():
     """
 
     assert grid._repr_markdown_() == dedent(expected_markdown)
+
+
+def test_GridDataset_from_path(path_to_particle_files: Path):
+    prt_ds = ParticleDataset.from_path(path_to_particle_files / "*")
+
+    assert prt_ds.name == "dummy_prt"
+    assert prt_ds.label == "dummy prt label"
+
+    assert prt_ds.count == 8
+
+    assert prt_ds.quantity_names == tuple(f"f{i}" for i in range(4))
+    assert prt_ds.quantity_labels == tuple(f"f{i} label" for i in range(4))
+    assert prt_ds.quantity_units == tuple(f"f{i} unit" for i in range(4))
+
+    assert prt_ds.ndim == 2
+    assert prt_ds.shape == (3, 8)
