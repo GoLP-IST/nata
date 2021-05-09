@@ -229,9 +229,9 @@ def test_Particle():
     assert prt.time.to_numpy() == 0.0
 
     assert prt.count == 1
-    assert prt.quantities == (("quant1", "quant_1 label", ""),)
+    assert prt.quantities == (("quant1", "quant1 label", ""),)
     assert prt.quantity_names == ("quant1",)
-    assert prt.quantity_labels == ("quant_1 label",)
+    assert prt.quantity_labels == ("quant1 label",)
     assert prt.quantity_units == ("",)
 
     assert prt.ndim == 0
@@ -247,7 +247,7 @@ def test_Particle():
         (
             1.0,
             {},
-            (("quant1", "quant_1 label", ""),),
+            (("quant1", "quant1 label", ""),),
             np.array(1.0, dtype=np.dtype([("quant1", float)])),
         ),
         (
@@ -294,9 +294,9 @@ def test_ParticleArray():
     assert prt.time.to_numpy() == 0.0
 
     assert prt.count == 3
-    assert prt.quantities == (("quant1", "quant_1 label", ""),)
+    assert prt.quantities == (("quant1", "quant1 label", ""),)
     assert prt.quantity_names == ("quant1",)
-    assert prt.quantity_labels == ("quant_1 label",)
+    assert prt.quantity_labels == ("quant1 label",)
     assert prt.quantity_units == ("",)
 
     assert prt.ndim == 1

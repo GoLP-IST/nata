@@ -293,8 +293,8 @@ class Particle(
             if data.dtype.fields:
                 quantities = tuple((f, f, "") for f in data.dtype.fields)
             else:
-                quantities = (("quant1", "quant_1 label", ""),)
-                new_dtype = np.dtype([("quant1", float)])
+                quantities = (("quant1", "quant1 label", ""),)
+                new_dtype = np.dtype([("quant1", data.dtype)])
                 data = unstructured_to_structured(data[..., np.newaxis], new_dtype)
         else:
             if not data.dtype.fields:
