@@ -372,3 +372,66 @@ def test_ParticleDataset():
     assert prt_ds.dtype == expected_dtype
 
     np.testing.assert_array_equal(prt_ds, expected_arr)
+
+
+@pytest.mark.parametrize(
+    "left, right, operation",
+    [
+        # general
+        (ParticleDataset.from_array([[1]]), ParticleDataset.from_array([[1]]), eq),
+        # content
+        (ParticleDataset.from_array([[1]]), ParticleDataset.from_array([[2]]), eq),
+        # name
+        (
+            ParticleDataset.from_array([[1]]),
+            ParticleDataset.from_array([[1]], name="some"),
+            ne,
+        ),
+        # label
+        (
+            ParticleDataset.from_array([[1]]),
+            ParticleDataset.from_array([[1]], label="some"),
+            ne,
+        ),
+        # time value
+        (
+            ParticleDataset.from_array([[1]], time=[0]),
+            ParticleDataset.from_array([[1]], time=[1]),
+            eq,
+        ),
+        # time name
+        (
+            ParticleDataset.from_array([[1]], time=Axis.from_array([0])),
+            ParticleDataset.from_array([[1]], time=Axis.from_array([0], name="some")),
+            ne,
+        ),
+        # time label
+        (
+            ParticleDataset.from_array([[1]], time=Axis.from_array([0])),
+            ParticleDataset.from_array([[1]], time=Axis.from_array([0], label="some")),
+            ne,
+        ),
+        # time unit
+        (
+            ParticleDataset.from_array([[1]], time=Axis.from_array([0])),
+            ParticleDataset.from_array([[1]], time=Axis.from_array([0], unit="some")),
+            ne,
+        ),
+    ],
+    ids=(
+        "general",
+        "content",
+        "name",
+        "label",
+        "time",
+        "time.name",
+        "time.label",
+        "time.unit",
+    ),
+)
+def test_ParticleDataset_hash(
+    left: ParticleDataset,
+    right: ParticleDataset,
+    operation: Callable,
+):
+    assert operation(hash(left), hash(right))

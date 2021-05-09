@@ -434,6 +434,18 @@ class ParticleDataset(
         self._time = time
         self._count = data.shape[-1]
 
+    def __hash__(self) -> int:
+        # general naming
+        key = (self.name, self.label)
+
+        # data props
+        key += (self.shape,)
+
+        # time
+        key += (self.time.name, self.time.label, self.time.unit)
+
+        return hash(key)
+
     @classmethod
     def from_array(
         cls,
@@ -461,6 +473,9 @@ class ParticleDataset(
 
         if time is None:
             time = Axis.from_array(da.arange(len(data)), name="time", label="time")
+        else:
+            if not isinstance(time, Axis):
+                time = Axis.from_array(time, name="time", label="time")
 
         if quantities is None:
             quantities = tuple((f, f"{f} label", "") for f in data.dtype.fields)
