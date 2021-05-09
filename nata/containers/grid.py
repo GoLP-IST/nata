@@ -4,7 +4,6 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any
 from typing import Dict
-from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Protocol
@@ -31,12 +30,9 @@ from .core import HasBackends
 from .core import HasNumpyInterface
 from .core import HasPluginSystem
 from .exceptions import NoValidBackend
+from .utils import is_unique
 
 __all__ = ["GridArray", "GridDataset", "stack"]
-
-
-def is_unique(iterable: Iterable) -> bool:
-    return len(set(iterable)) == 1
 
 
 def stack(grid_arrs: Sequence["GridArray"]) -> "GridDataset":

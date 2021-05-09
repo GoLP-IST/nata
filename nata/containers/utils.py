@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Iterable
 from warnings import warn
 
 import dask.array as da
@@ -9,6 +10,10 @@ from numpy.lib import recfunctions
 # TODO: remove the use of types
 from nata.types import BackendType
 from nata.types import DatasetType
+
+
+def is_unique(iterable: Iterable) -> bool:
+    return len(set(iterable)) == 1
 
 
 def register_backend(container: DatasetType):
