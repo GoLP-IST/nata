@@ -18,6 +18,7 @@ from nata.containers.axis import Axis
 from nata.containers.particle import Particle
 from nata.containers.particle import ParticleArray
 from nata.containers.particle import ParticleDataReader
+from nata.containers.particle import ParticleDataset
 from nata.containers.particle import Quantity
 from nata.containers.particle import QuantityArray
 from nata.containers.utils import register_backend
@@ -336,3 +337,38 @@ def test_ParticleArray_from_path(path_to_particle_files: Path):
     assert prt_arr.dtype == expected_arr.dtype
 
     np.testing.assert_array_equal(prt_arr, expected_arr)
+
+
+def test_ParticleDataset():
+    # passed array has to fulfill following shape requirements
+    # array.shape == (t_steps, n_particles, n_quantities)
+    #
+    #           `t_step`: number of time steps, REQUIRED
+    #      `n_particles`: number of particles, REQUIRED
+    #     `n_quantities`: number of quantities, OPTIONAL
+
+    prt_ds = ParticleDataset.from_array([[1, 2, 3], [3, 4, 5]])
+    expected_dtype = np.dtype([("quant1", int)])
+    expected_arr = unstructured_to_structured(
+        np.array([[1, 2, 3], [3, 4, 5]])[..., np.newaxis], dtype=expected_dtype
+    )
+
+    assert prt_ds.name == "unnamed"
+    assert prt_ds.label == "unlabeled"
+
+    assert prt_ds.time.name == "time"
+    assert prt_ds.time.label == "time"
+    assert prt_ds.time.unit == ""
+    np.testing.assert_array_equal(prt_ds.time, [0, 1])
+
+    assert prt_ds.count == 3
+    assert prt_ds.quantities == (("quant1", "quant1 label", ""),)
+    assert prt_ds.quantity_names == ("quant1",)
+    assert prt_ds.quantity_labels == ("quant1 label",)
+    assert prt_ds.quantity_units == ("",)
+
+    assert prt_ds.ndim == 2
+    assert prt_ds.shape == (2, 3)
+    assert prt_ds.dtype == expected_dtype
+
+    np.testing.assert_array_equal(prt_ds, expected_arr)

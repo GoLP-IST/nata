@@ -395,5 +395,74 @@ class ParticleArray(
         return cls(*backend_data)
 
 
-class ParticleDataset:
-    pass
+class ParticleDataset(
+    HasNumpyInterface,
+    HasQuantities,
+    HasPluginSystem,
+    HasName,
+    HasTimeAxis,
+    HasParticleCount,
+):
+    def __init__(
+        self,
+        data: da.Array,
+        quantities: Tuple[Tuple[str, str, str], ...],
+        time: Axis,
+        name: str,
+        label: str,
+    ) -> None:
+        if data.ndim != 2:
+            raise ValueError("only 2d data is supported")
+
+        if not data.dtype.fields:
+            raise ValueError("only structured data types supported")
+
+        if (len(data.dtype.fields) != len(quantities)) or any(
+            q[0] != f for q, f in zip(quantities, data.dtype.fields)
+        ):
+            raise ValueError("mismatch betweend fields and quantities")
+
+        if time.ndim != 1:
+            raise ValueError("only 1d time axis are supported")
+
+        self._data = data
+        self._quantities = quantities
+
+        self._name = name
+        self._label = label
+
+        self._time = time
+        self._count = data.shape[-1]
+
+    @classmethod
+    def from_array(
+        cls,
+        data: da.Array,
+        *,
+        name: str = "unnamed",
+        label: str = "unlabeled",
+        quantities: Optional[Tuple[Tuple[str, str, str], ...]] = None,
+        time: Optional[Union[Axis, int, float]] = None,
+    ) -> "ParticleDataset":
+        if not isinstance(data, da.Array):
+            data = da.asanyarray(data)
+
+        if data.ndim not in (2, 3):
+            raise ValueError("data array has to be at least 2d")
+
+        if not data.dtype.fields:
+            if data.ndim == 2:
+                data = data[..., np.newaxis]
+
+            dtype_list = [(f"quant{i+1}", data.dtype) for i in range(data.shape[-1])]
+            new_dtype = np.dtype(dtype_list)
+
+            data = unstructured_to_structured(data, new_dtype)
+
+        if time is None:
+            time = Axis.from_array(da.arange(len(data)), name="time", label="time")
+
+        if quantities is None:
+            quantities = tuple((f, f"{f} label", "") for f in data.dtype.fields)
+
+        return cls(data, quantities, time, name, label)
