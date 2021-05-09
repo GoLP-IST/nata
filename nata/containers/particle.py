@@ -458,6 +458,21 @@ class ParticleDataset(
         )
         return repr_
 
+    def _repr_markdown_(self) -> str:
+        md = f"""
+        | **{type(self).__name__}** | |
+        | ---: | :--- |
+        | **name**       | {self.name} |
+        | **label**      | {self.label} |
+        | **count**      | {self.count} |
+        | **shape**      | {self.shape} |
+        | **dtype**      | {self.dtype} |
+        | **quantities** | {self.quantity_names} |
+        | **time**       | {self.time} |
+
+        """
+        return dedent(md)
+
     @classmethod
     def from_array(
         cls,

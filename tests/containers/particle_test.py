@@ -447,3 +447,21 @@ def test_ParticleDataset_repr():
         "time=Axis<name='time', label='time', unit=''>"
         ">"
     )
+
+
+def test_ParticleDataset_repr_html():
+    grid = ParticleDataset.from_array(np.arange(32, dtype=np.int64).reshape((4, 8)))
+    expected_markdown = """
+    | **ParticleDataset** | |
+    | ---: | :--- |
+    | **name**       | unnamed |
+    | **label**      | unlabeled |
+    | **count**      | 8 |
+    | **shape**      | (4, 8) |
+    | **dtype**      | [('quant1', '<i8')] |
+    | **quantities** | ('quant1',) |
+    | **time**       | Axis<name='time', label='time', unit=''> |
+
+    """
+
+    assert grid._repr_markdown_() == dedent(expected_markdown)
