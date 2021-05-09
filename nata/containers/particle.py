@@ -473,6 +473,9 @@ class ParticleDataset(
         """
         return dedent(md)
 
+    def __getitem__(self, key: Any) -> Union["ParticleDataset", "ParticleArray"]:
+        raise NotImplementedError
+
     @classmethod
     def from_array(
         cls,
