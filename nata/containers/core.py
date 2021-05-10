@@ -131,19 +131,21 @@ class HasNumpyInterface(NDArrayOperatorsMixin):
 
     _data: da.Array
 
-    def __init__(self, data: da.Array, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self._data = data if isinstance(data, da.Array) else da.asanyarray(data)
+    def __init__(self, data: da.Array) -> None:
+        if not isinstance(data, da.Array):
+            raise TypeError(f"'data' has to be of type '{type(da.Array)}'")
 
-    @classmethod
-    def from_array(cls, data: da.Array) -> "HasNumpyInterface":
-        return cls(data)
+        self._data = data
 
     def __init_subclass__(cls, **kwargs: Dict[str, Any]) -> None:
         super().__init_subclass__(**kwargs)
 
         cls._handled_array_ufunc = {}
         cls._handled_array_function = {}
+
+    @classmethod
+    def from_array(cls, data: da.Array) -> "HasNumpyInterface":
+        return cls(data)
 
     @classmethod
     def get_handled_array_ufunc(cls) -> Dict[np.ufunc, Callable]:
@@ -392,28 +394,53 @@ class HasName:
     _name: str
     _label: str
 
+    def __init__(self, name: str, label: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError("'name' has to be of type 'str'")
+
+        if not isinstance(label, str):
+            raise TypeError("'label' has to be of type 'str'")
+
+        if not name.isidentifier():
+            raise ValueError("'name' has to be valid identifier")
+
+        self._name = name
+        self._label = label
+
     @property
     def name(self) -> str:
         return self._name
 
     @name.setter
-    def name(self, new: str) -> None:
-        new = new if isinstance(new, str) else str(new, encoding="utf-8")
-        if not new.isidentifier():
-            raise ValueError("'name' has to be an identifier")
-        self._name = new
+    def name(self, new_name: str) -> None:
+        if not isinstance(new_name, str):
+            raise TypeError("'new_name' has to be of type 'str'")
+
+        if not new_name.isidentifier():
+            raise ValueError("'name' has to be valid identifier")
+
+        self._name = new_name
 
     @property
     def label(self) -> str:
         return self._label
 
     @label.setter
-    def label(self, new: str) -> None:
-        self._label = new
+    def label(self, new_label: str) -> None:
+        if not isinstance(new_label, str):
+            raise TypeError("'new_label' has to be of type 'str'")
+
+        self._label = new_label
 
 
 class HasUnit:
     _unit: str
+
+    def __init__(self, unit: str) -> None:
+        if not isinstance(unit, str):
+            raise TypeError("'unit' has to be of type 'str'")
+
+        self._unit = unit
 
     @property
     def unit(self) -> str:
@@ -427,6 +454,19 @@ class HasUnit:
 # TODO: make quantitites indexable and allow to change name, label, and units
 class HasQuantities:
     _quantities: Tuple[Tuple[str, str, str], ...]
+
+    def __init__(self, quantities: Tuple[Tuple[str, str, str], ...]) -> None:
+        if (
+            not isinstance(quantities, tuple)
+            or not all(isinstance(q, tuple) for q in quantities)
+            or not all(isinstance(v, str) for q in quantities for v in q)
+            or not all(len(q) == 3 for q in quantities)
+        ):
+            raise TypeError(
+                "'quantities' has to be a 'Tuple[Tuple[str, str, str], ...]'"
+            )
+
+        self._quantities = quantities
 
     @property
     def quantities(self) -> Tuple[Tuple[str, str, str], ...]:
@@ -447,6 +487,16 @@ class HasQuantities:
 
 class HasParticleCount:
     _count: Union[int, Tuple[int, ...]]
+
+    def __init__(self, count: Union[int, Tuple[int, ...]]) -> None:
+        if (
+            not isinstance(count, int)
+            or not isinstance(count, tuple)
+            or not all(isinstance(v, int) for v in count)
+        ):
+            raise TypeError("'count' has to be 'Union[int, Tuple[int, ...]]'")
+
+        self._count = count
 
     @property
     def count(self) -> Union[int, Tuple[int, ...]]:

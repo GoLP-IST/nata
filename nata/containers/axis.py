@@ -135,6 +135,12 @@ class HasAxes:
 class HasTimeAxis:
     _time: Axis
 
+    def __init__(self, time: Axis) -> None:
+        if not isinstance(time, Axis):
+            raise TypeError(f"'time' has to be of type '{type(Axis)}'")
+
+        self._time = time
+
     @property
     def time(self) -> Axis:
         return self._time
