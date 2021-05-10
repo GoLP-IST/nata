@@ -576,3 +576,150 @@ def test_ParticleDataset_getitem_perserve_quants(
 
     # get data from masked array
     np.testing.assert_array_equal(selection.to_numpy().data, init_arr[index])
+
+
+_u2s = unstructured_to_structured
+
+
+@pytest.mark.parametrize(
+    [
+        "init_arr",
+        "index",
+        "expected_type",
+        "expected_name",
+        "expected_label",
+        "expected_unit",
+        "expected_quantity_names",
+        "expected_quantity_labels",
+        "expected_quantity_units",
+        "expected_arr",
+    ],
+    [
+        (
+            # init_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            # index
+            np.s_[1, 1:3, ["f1", "f3"]],
+            # expected_type
+            ParticleArray,
+            # expected_name
+            "some_name",
+            # expected_label
+            "some label",
+            # expected_unit
+            None,
+            # expected_quantity_names
+            ("f1", "f3"),
+            # expected_quantity_labels
+            ("f1 label", "f3 label"),
+            # expected_quantity_units
+            ("", ""),
+            # expected_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4)))[1, 1:3][["f1", "f3"]],
+        ),
+        (
+            # init_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            # index
+            np.s_[1, 1, ["f2", "f3"]],
+            # expected_type
+            Particle,
+            # expected_name
+            "some_name",
+            # expected_label
+            "some label",
+            # expected_unit
+            None,
+            # expected_quantity_names
+            ("f2", "f3"),
+            # expected_quantity_labels
+            ("f2 label", "f3 label"),
+            # expected_quantity_units
+            ("", ""),
+            # expected_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4)))[1, 1][["f2", "f3"]],
+        ),
+        (
+            # init_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            # index
+            np.s_[1, 1, "f2"],
+            # expected_type
+            Quantity,
+            # expected_name
+            "f2",
+            # expected_label
+            "f2 label",
+            # expected_unit
+            "",
+            # expected_quantity_names
+            (),
+            # expected_quantity_labels
+            (),
+            # expected_quantity_units
+            (),
+            # expected_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4)))[1, 1]["f2"],
+        ),
+        (
+            # init_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            # index
+            np.s_[3, 2:5, "f0"],
+            # expected_type
+            QuantityArray,
+            # expected_name
+            "f0",
+            # expected_label
+            "f0 label",
+            # expected_unit
+            "",
+            # expected_quantity_names
+            (),
+            # expected_quantity_labels
+            (),
+            # expected_quantity_units
+            (),
+            # expected_arr
+            _u2s(np.arange(8 * 5 * 4).reshape((8, 5, 4)))[3, 2:5]["f0"],
+        ),
+    ],
+    ids=["t1, i1:i2, [q1, q2]", "t1, i1, [q1, q2]", "t1, i1, q1", "t1, i1:i2, q1"],
+)
+def test_ParticleDataset_getitem_reduce_quantities(
+    init_arr: np.ndarray,
+    index: Any,
+    expected_type: type,
+    expected_name: str,
+    expected_label: str,
+    expected_unit: Optional[str],
+    expected_quantity_names: Tuple[str, ...],
+    expected_quantity_labels: Tuple[str, ...],
+    expected_quantity_units: Tuple[str, ...],
+    expected_arr: np.ndarray,
+):
+    prt_ds = ParticleDataset.from_array(
+        init_arr,
+        name="some_name",
+        label="some label",
+    )
+    selection = prt_ds[index]
+
+    assert selection.name == expected_name
+    assert selection.label == expected_label
+
+    if expected_unit is not None:
+        assert selection.unit == expected_unit
+
+    assert isinstance(selection, expected_type)
+
+    if expected_quantity_names:
+        assert selection.quantity_names == expected_quantity_names
+
+    if expected_quantity_labels:
+        assert selection.quantity_labels == expected_quantity_labels
+
+    if expected_quantity_units:
+        assert selection.quantity_units == expected_quantity_units
+
+    np.testing.assert_array_equal(selection.to_numpy().data, expected_arr)

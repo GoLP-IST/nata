@@ -516,17 +516,77 @@ class ParticleDataset(
         """
         return dedent(md)
 
-    def __getitem__(self, key: Any) -> "ParticleDataset":
+    def __getitem__(
+        self, key: Any
+    ) -> Union[
+        "ParticleDataset",
+        "ParticleArray",
+        "Particle",
+        "Quantity",
+        "QuantityArray",
+    ]:
+        # ensures key is tuple of indices
+        key = np.index_exp[key]
+
+        # unpack quantity index if present in key
+        if len(key) == 3:
+            key, quantity_indexing = key[:2], key[2]
+        else:
+            quantity_indexing = []
+
         index = ndx.ndindex(key).expand(self.shape).raw
         data = self._data[index]
         time_indexing, prt_indexing = index
+
+        if isinstance(quantity_indexing, str):
+            quantity_reduction = True
+
+        else:
+            quantity_indexing = list(quantity_indexing)
+            quantity_reduction = False
+
+        if quantity_indexing and not quantity_reduction:
+            quantities = ()
+            for indexed_quant in quantity_indexing:
+                if indexed_quant not in self.quantity_names:
+                    raise IndexError(f"invalid quantity index '{indexed_quant}'")
+
+                quant_index = self.quantity_names.index(indexed_quant)
+                quantities += (self.quantities[quant_index],)
+
+            data = data[quantity_indexing]
+        elif quantity_indexing and quantity_reduction:
+            quant_index = self.quantity_names.index(quantity_indexing)
+            quantity_name, quantity_label, quantity_unit = self.quantities[quant_index]
+            data = data[quantity_indexing]
+
+        else:
+            quantities = self.quantities
+
+        if quantity_reduction:
+            if isinstance(time_indexing, int) and isinstance(prt_indexing, int):
+                return Quantity.from_array(
+                    data,
+                    name=quantity_name,
+                    label=quantity_label,
+                    unit=quantity_unit,
+                    time=self.time[time_indexing],
+                )
+            else:
+                return QuantityArray.from_array(
+                    data,
+                    name=quantity_name,
+                    label=quantity_label,
+                    unit=quantity_unit,
+                    time=self.time[time_indexing],
+                )
 
         if isinstance(time_indexing, int) and isinstance(prt_indexing, int):
             return Particle.from_array(
                 data,
                 name=self.name,
                 label=self.label,
-                quantities=self.quantities,
+                quantities=quantities,
                 time=self.time[time_indexing],
             )
 
@@ -535,7 +595,7 @@ class ParticleDataset(
                 data,
                 name=self.name,
                 label=self.label,
-                quantities=self.quantities,
+                quantities=quantities,
                 time=self.time[time_indexing],
             )
         else:
