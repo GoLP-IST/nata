@@ -15,6 +15,7 @@ from typing import runtime_checkable
 from warnings import warn
 
 import dask.array as da
+import ndindex as ndx
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -515,8 +516,36 @@ class ParticleDataset(
         """
         return dedent(md)
 
-    def __getitem__(self, key: Any) -> Union["ParticleDataset", "ParticleArray"]:
-        raise NotImplementedError
+    def __getitem__(self, key: Any) -> "ParticleDataset":
+        index = ndx.ndindex(key).expand(self.shape).raw
+        data = self._data[index]
+        time_indexing, prt_indexing = index
+
+        if isinstance(time_indexing, int) and isinstance(prt_indexing, int):
+            return Particle.from_array(
+                data,
+                name=self.name,
+                label=self.label,
+                quantities=self.quantities,
+                time=self.time[time_indexing],
+            )
+
+        elif isinstance(time_indexing, int):
+            return ParticleArray.from_array(
+                data,
+                name=self.name,
+                label=self.label,
+                quantities=self.quantities,
+                time=self.time[time_indexing],
+            )
+        else:
+            return ParticleDataset.from_array(
+                data,
+                name=self.name,
+                label=self.label,
+                quantities=self.quantities,
+                time=self.time[time_indexing],
+            )
 
     @classmethod
     def from_array(

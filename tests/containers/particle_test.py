@@ -525,3 +525,54 @@ def test_expand_arr(arr: da.Array, required_shape: Tuple[int, ...], has_mask: bo
     assert output.compute().mask.any() == has_mask
     # masked arrays have to keep same values -> testing by using aggregation
     assert np.sum(output).compute() == np.sum(arr).compute()
+
+
+@pytest.mark.parametrize(
+    "init_arr, index, expected_type",
+    [
+        (
+            unstructured_to_structured(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            np.s_[1:5],
+            ParticleDataset,
+        ),
+        (
+            unstructured_to_structured(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            np.s_[1],
+            ParticleArray,
+        ),
+        (
+            unstructured_to_structured(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            np.s_[2, 1:3],
+            ParticleArray,
+        ),
+        (
+            unstructured_to_structured(np.arange(8 * 5 * 4).reshape((8, 5, 4))),
+            np.s_[2, 3],
+            Particle,
+        ),
+    ],
+    ids=[
+        "t1:t2",
+        "t1",
+        "t1, i1:i2",
+        "t1, i1",
+    ],
+)
+def test_ParticleDataset_getitem_perserve_quants(
+    init_arr: np.ndarray, index: Any, expected_type: type
+):
+    prt_ds = ParticleDataset.from_array(
+        init_arr,
+        name="some_name",
+        label="some label",
+    )
+    selection = prt_ds[index]
+
+    assert selection.name == prt_ds.name
+    assert selection.label == prt_ds.label
+
+    assert selection.quantities == prt_ds.quantities
+    assert isinstance(selection, expected_type)
+
+    # get data from masked array
+    np.testing.assert_array_equal(selection.to_numpy().data, init_arr[index])
