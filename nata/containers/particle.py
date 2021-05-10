@@ -4,6 +4,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Protocol
@@ -35,6 +36,27 @@ from .utils import is_unique
 from .utils import unstructured_to_structured
 
 
+def expand_arr_1d(arr: da.Array, required_shape: Tuple[int]) -> da.Array:
+    missing = (required_shape[0] - arr.shape[0],)
+    values = da.block([arr, da.zeros(missing, dtype=arr.dtype)])
+    mask = da.block([da.zeros(arr.shape, dtype=bool), da.ones(missing, dtype=bool)])
+    return da.ma.masked_array(values, mask=mask)
+
+
+def expand_arr(arr: da.Array, required_shape: Tuple[int]) -> da.Array:
+    if arr.ndim == 1:
+        return expand_arr_1d(arr, required_shape)
+    else:
+        raise NotImplementedError(f"not implemented for 'ndim = {arr.ndim}'")
+
+
+def expand_and_stack(data: Iterable) -> da.Array:
+    arrays = [d if isinstance(d, da.Array) else da.asanyarray(d) for d in data]
+    max_shape = max(arr.shape for arr in arrays)
+    arrays = [expand_arr(arr, max_shape) for arr in arrays]
+    return da.stack(arrays)
+
+
 def stack(part_arrs: Sequence["ParticleArray"]) -> "ParticleDataset":
     if not len(part_arrs):
         raise ValueError("can not iterate over 0-length sequence of GridArrays")
@@ -44,7 +66,7 @@ def stack(part_arrs: Sequence["ParticleArray"]) -> "ParticleDataset":
 
     base = part_arrs[0]
 
-    data = da.stack([grid.to_dask() for grid in part_arrs])
+    data = expand_and_stack([grid.to_dask() for grid in part_arrs])
     time = Axis.from_array(
         da.stack([grid.time.to_dask() for grid in part_arrs]),
         name=base.time.name,
@@ -255,16 +277,13 @@ class Particle(
 
     def __hash__(self) -> int:
         # general naming
-        key = (self._name, self._label)
+        key = (self.name, self.label)
 
         # data properties
-        key += (self._data.shape, self._data.dtype)
+        key += (self.dtype,)
 
         # time specific
-        key += (self._time.name, self._time.label, self._time.unit)
-
-        # number of particles
-        key += (self._count,)
+        key += (self.time.name, self.time.label, self.time.unit)
 
         # quantities
         for q in self._quantities:
@@ -451,14 +470,11 @@ class ParticleDataset(
         if time.ndim != 1:
             raise ValueError("only 1d time axis are supported")
 
-        self._data = data
-        self._quantities = quantities
-
-        self._name = name
-        self._label = label
-
-        self._time = time
-        self._count = data.shape[-1]
+        HasNumpyInterface.__init__(self, data)
+        HasQuantities.__init__(self, quantities)
+        HasName.__init__(self, name, label)
+        HasTimeAxis.__init__(self, time)
+        HasParticleCount.__init__(self, data.shape[-1])
 
     def __hash__(self) -> int:
         # general naming
@@ -513,7 +529,7 @@ class ParticleDataset(
         time: Optional[Union[Axis, int, float]] = None,
     ) -> "ParticleDataset":
         if not isinstance(data, da.Array):
-            data = da.asanyarray(data)
+            data = expand_and_stack(data)
 
         if data.ndim not in (2, 3):
             raise ValueError("data array has to be at least 2d")

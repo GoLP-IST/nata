@@ -7,8 +7,10 @@ from typing import Any
 from typing import Callable
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 from typing import Union
 
+import dask.array as da
 import numpy as np
 import pytest
 from numpy.lib.recfunctions import unstructured_to_structured
@@ -21,6 +23,8 @@ from nata.containers.particle import ParticleDataReader
 from nata.containers.particle import ParticleDataset
 from nata.containers.particle import Quantity
 from nata.containers.particle import QuantityArray
+from nata.containers.particle import expand_and_stack
+from nata.containers.particle import expand_arr
 from nata.containers.utils import register_backend
 
 
@@ -37,7 +41,11 @@ def _path_to_particle_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     # create dummy files
     dummy_data = unstructured_to_structured(np.arange(32, dtype=float).reshape((8, 4)))
     np.savetxt(basedir / "prt.0", dummy_data, delimiter=",")
+
+    dummy_data = unstructured_to_structured(np.arange(64, dtype=float).reshape((16, 4)))
     np.savetxt(basedir / "prt.1", dummy_data, delimiter=",")
+
+    dummy_data = unstructured_to_structured(np.empty((0, 4), dtype=float))
     np.savetxt(basedir / "prt.2", dummy_data, delimiter=",")
 
     @register_backend(ParticleArray)
@@ -46,11 +54,13 @@ def _path_to_particle_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
 
         def __init__(self, location: Union[str, Path]) -> None:
             self.location = Path(location)
-            self.data = np.loadtxt(location, dtype=dummy_data.dtype, delimiter=",")
+            # capture UserWarnings when opening empty file
+            with pytest.warns(None):
+                self.data = np.loadtxt(location, dtype=dummy_data.dtype, delimiter=",")
             self.dataset_name = "dummy_prt"
             self.dataset_label = "dummy prt label"
 
-            self.num_particles = self.data[-1]
+            self.num_particles = self.data.shape[-1]
 
             self.quantity_names = tuple(f"f{i}" for i in range(4))
             self.quantity_labels = tuple(f"f{i} label" for i in range(4))
@@ -308,7 +318,7 @@ def test_ParticleArray():
 
 
 def test_ParticleArray_from_path(path_to_particle_files: Path):
-    particleArray_file = path_to_particle_files / "prt.2"
+    particleArray_file = path_to_particle_files / "prt.0"
 
     prt_arr = ParticleArray.from_path(particleArray_file)
     expected_arr = unstructured_to_structured(
@@ -322,7 +332,7 @@ def test_ParticleArray_from_path(path_to_particle_files: Path):
     assert prt_arr.time.name == "time"
     assert prt_arr.time.label == "time"
     assert prt_arr.time.unit == "dummy time unit"
-    assert prt_arr.time.to_numpy() == 2.0
+    assert prt_arr.time.to_numpy() == 0.0
 
     assert prt_arr.count == 8
     assert prt_arr.quantities == tuple(
@@ -473,11 +483,45 @@ def test_GridDataset_from_path(path_to_particle_files: Path):
     assert prt_ds.name == "dummy_prt"
     assert prt_ds.label == "dummy prt label"
 
-    assert prt_ds.count == 8
+    assert prt_ds.count == 16
 
     assert prt_ds.quantity_names == tuple(f"f{i}" for i in range(4))
     assert prt_ds.quantity_labels == tuple(f"f{i} label" for i in range(4))
     assert prt_ds.quantity_units == tuple(f"f{i} unit" for i in range(4))
 
     assert prt_ds.ndim == 2
-    assert prt_ds.shape == (3, 8)
+    assert prt_ds.shape == (3, 16)
+
+
+def test_GridDataset_variable_prt_number():
+    prt_ds = ParticleDataset.from_array([[1, 2, 3], [3, 5]])
+    assert prt_ds.shape == (2, 3)
+
+
+def test_expand_to_array():
+    arr = expand_and_stack([[1, 2, 3, 4], [5, 6], []])
+    assert isinstance(arr, da.Array)
+    assert arr.shape == (3, 4)
+    assert np.sum(np.arange(1, 7)) == np.sum(arr).compute()
+
+
+@pytest.mark.parametrize(
+    "arr, required_shape, has_mask",
+    [
+        (da.arange(12), (32,), True),
+        (da.arange(12), (12,), False),
+    ],
+    ids=[
+        "(12,) -> (32,)",
+        "(12,) -> (12,)",
+    ],
+)
+def test_expand_arr(arr: da.Array, required_shape: Tuple[int, ...], has_mask: bool):
+    output = expand_arr(arr, required_shape)
+
+    assert isinstance(output, da.Array)
+    assert output.shape == required_shape
+    assert isinstance(output.compute(), np.ma.MaskedArray)
+    assert output.compute().mask.any() == has_mask
+    # masked arrays have to keep
+    assert np.sum(output).compute() == np.sum(arr).compute()
