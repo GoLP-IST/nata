@@ -523,5 +523,5 @@ def test_expand_arr(arr: da.Array, required_shape: Tuple[int, ...], has_mask: bo
     assert output.shape == required_shape
     assert isinstance(output.compute(), np.ma.MaskedArray)
     assert output.compute().mask.any() == has_mask
-    # masked arrays have to keep
+    # masked arrays have to keep same values -> testing by using aggregation
     assert np.sum(output).compute() == np.sum(arr).compute()
