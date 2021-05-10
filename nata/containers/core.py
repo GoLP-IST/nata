@@ -486,18 +486,18 @@ class HasQuantities:
 
 
 class HasParticleCount:
-    _count: Union[int, Tuple[int, ...]]
+    _count: int
 
-    def __init__(self, count: Union[int, Tuple[int, ...]]) -> None:
+    def __init__(self, count: int) -> None:
         if (
             not isinstance(count, int)
             or not isinstance(count, tuple)
             or not all(isinstance(v, int) for v in count)
         ):
-            raise TypeError("'count' has to be 'Union[int, Tuple[int, ...]]'")
+            raise TypeError("'count' has to be 'int'")
 
         self._count = count
 
     @property
-    def count(self) -> Union[int, Tuple[int, ...]]:
+    def count(self) -> int:
         return self._count
