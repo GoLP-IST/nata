@@ -489,11 +489,7 @@ class HasParticleCount:
     _count: int
 
     def __init__(self, count: int) -> None:
-        if (
-            not isinstance(count, int)
-            or not isinstance(count, tuple)
-            or not all(isinstance(v, int) for v in count)
-        ):
+        if not isinstance(count, int):
             raise TypeError("'count' has to be 'int'")
 
         self._count = count
