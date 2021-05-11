@@ -383,10 +383,108 @@ class ParticleArray(
         self._time = time
         self._count = data.shape[-1]
 
+    @staticmethod
+    def _expand_key(
+        key: Any,
+        shape: Tuple[int],
+    ) -> Tuple[Union[int, slice], Union[str, List[str]]]:
+        # convert to tuple
+        key = np.index_exp[key]
+
+        if len(key) > 2:
+            raise IndexError("too many indices provided")
+
+        if len(key) == 2:
+            expanded_key = ndx.ndindex(key[:1]).expand(shape).raw + (key[1],)
+        else:
+            expanded_key = ndx.ndindex(key).expand(shape).raw + ([],)
+
+        return expanded_key
+
+    @staticmethod
+    def _determine_reduction(
+        index: Tuple[Union[int, slice], Union[str, Sequence[str]]],
+    ) -> Tuple[bool, bool, bool]:
+        return isinstance(index[0], int), isinstance(index[1], str)
+
+    def _decay_to_Quantity(self, index: Tuple[int, str]) -> "Quantity":
+        quantity_index = self.quantity_names.index(index[1])
+        name, label, unit = self.quantities[quantity_index]
+
+        return Quantity.from_array(
+            self._data[index[0]][index[1]],
+            name=name,
+            label=label,
+            unit=unit,
+            time=self.time,
+        )
+
+    def _decay_to_QuantityArray(self, index: Tuple[slice, str]) -> "QuantityArray":
+        quantity_index = self.quantity_names.index(index[1])
+        name, label, unit = self.quantities[quantity_index]
+
+        return QuantityArray.from_array(
+            self._data[index[0]][index[1]],
+            name=name,
+            label=label,
+            unit=unit,
+            time=self.time,
+        )
+
+    def _decay_to_Particle(self, index: Tuple[int, Sequence[str]]) -> "Particle":
+        # if sequence not empty -> iterate over picking up quantities
+        if index[1]:
+            new_quantities = ()
+            for quant in index[1]:
+                quant_index = self.quantity_names.index(quant)
+                new_quantities += (self.quantities[quant_index],)
+            data = self._data[index[0]][index[1]]
+        else:
+            new_quantities = self.quantities
+            data = self._data[index[0]]
+
+        return Particle.from_array(
+            data,
+            name=self.name,
+            label=self.label,
+            quantities=new_quantities,
+            time=self.time,
+        )
+
+    def _decay_to_ParticleArray(self, index: Tuple[slice, str]) -> "ParticleArray":
+        # if sequence not empty -> iterate over picking up quantities
+        if index[1]:
+            new_quantities = ()
+            for quant in index[1]:
+                quant_index = self.quantity_names.index(quant)
+                new_quantities += (self.quantities[quant_index],)
+            data = self._data[index[0]][index[1]]
+        else:
+            new_quantities = self.quantities
+            data = self._data[index[0]]
+
+        return ParticleArray.from_array(
+            data,
+            name=self.name,
+            label=self.label,
+            quantities=new_quantities,
+            time=self.time,
+        )
+
     def __getitem__(
         self, key: Any
     ) -> Union["Quantity", "QuantityArray", "ParticleArray"]:
-        raise NotImplementedError
+        key = self._expand_key(key, self.shape)
+        prt_reduction, quant_reduction = self._determine_reduction(key)
+
+        if prt_reduction and quant_reduction:
+            return self._decay_to_Quantity(key)
+        elif quant_reduction:
+            return self._decay_to_QuantityArray(key)
+        elif prt_reduction:
+            return self._decay_to_Particle(key)
+        else:
+            return self._decay_to_ParticleArray(key)
 
     @staticmethod
     def _unpack_backend(
