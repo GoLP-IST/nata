@@ -53,4 +53,4 @@ def test_to_numpy():
         TypeError,
         match=r"requires object of type '.*HasNumpyInterface.*'",
     ):
-        to_dask(ClassWithoutNumpyInterface())
+        to_numpy(ClassWithoutNumpyInterface())

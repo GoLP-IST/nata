@@ -49,7 +49,7 @@ def to_numpy(array_like: HasNumpyInterface) -> np.ndarray:
     if isinstance(array_like, HasNumpyInterface):
         return array_like.to_numpy()
     else:
-        raise TypeError(f"input has to be of type '{HasNumpyInterface}'")
+        raise TypeError(f"requires object of type '{HasNumpyInterface}'")
 
 
 def to_dask(array_like: HasNumpyInterface) -> da.Array:
