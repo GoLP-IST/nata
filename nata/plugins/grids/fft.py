@@ -159,6 +159,7 @@ def fft_grid_array(
         label=label,
         unit=grid.unit,
         axes=new_axes,
+        time=grid.time,
     )
 
 

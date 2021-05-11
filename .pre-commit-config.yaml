@@ -15,7 +15,7 @@ repos:
             # excludes all the init files from sorting
             exclude: ^.*\/__init__\.py$
     -   repo: https://github.com/psf/black
-        rev: 21.4b0
+        rev: 21.4b2
         hooks:
         -   id: black
     -   repo: https://github.com/PyCQA/flake8
