@@ -273,8 +273,60 @@ class Particle(
         self._time = time
         self._count = 1
 
+    @staticmethod
+    def _expand_key(key: Any, shape: Tuple[int, int]) -> Tuple[Union[str, List[str]]]:
+        # convert to tuple
+        key = np.index_exp[key]
+
+        if len(key) > 1:
+            raise IndexError("too many indices provided")
+
+        return key
+
+    @staticmethod
+    def _determine_reduction(index: Tuple[Union[str, Sequence[str]]]) -> bool:
+        return isinstance(index[0], str)
+
+    def _decay_to_Quantity(self, index: Tuple[str]) -> "Quantity":
+        quantity_index = self.quantity_names.index(index[0])
+        name, label, unit = self.quantities[quantity_index]
+
+        return Quantity.from_array(
+            self._data[index[0]],
+            name=name,
+            label=label,
+            unit=unit,
+            time=self.time,
+        )
+
+    def _decay_to_Particle(self, index: Tuple[Sequence[str]]) -> "Particle":
+        # if sequence not empty -> iterate over picking up quantities
+        if index[0]:
+            new_quantities = ()
+            for quant in index[0]:
+                quant_index = self.quantity_names.index(quant)
+                new_quantities += (self.quantities[quant_index],)
+            data = self._data[index[0]]
+        else:
+            new_quantities = self.quantities
+            data = self._data
+
+        return Particle.from_array(
+            data,
+            name=self.name,
+            label=self.label,
+            quantities=new_quantities,
+            time=self.time,
+        )
+
     def __getitem__(self, key: Any) -> Union["Quantity", "ParticleArray"]:
-        raise NotImplementedError
+        key = self._expand_key(key, self.shape)
+        quant_reduction = self._determine_reduction(key)
+
+        if quant_reduction:
+            return self._decay_to_Quantity(key)
+        else:
+            return self._decay_to_Particle(key)
 
     def __hash__(self) -> int:
         # general naming

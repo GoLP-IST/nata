@@ -867,3 +867,103 @@ def test_ParticleArray_getitem(
         assert selection.quantity_units == expected_quantity_units
 
     np.testing.assert_array_equal(selection.to_numpy().data, expected_arr)
+
+
+@pytest.mark.parametrize(
+    [
+        "init_arr",
+        "index",
+        "expected_type",
+        "expected_name",
+        "expected_label",
+        "expected_unit",
+        "expected_quantity_names",
+        "expected_quantity_labels",
+        "expected_quantity_units",
+        "expected_arr",
+    ],
+    [
+        (
+            # init_arr
+            _u2s(np.arange(4)),
+            # index
+            np.s_["f3"],
+            # expected_type
+            Quantity,
+            # expected_name
+            "f3",
+            # expected_label
+            "f3 label",
+            # expected_unit
+            "",
+            # expected_quantity_names
+            None,
+            # expected_quantity_labels
+            None,
+            # expected_quantity_units
+            None,
+            # expected_arr
+            _u2s(np.arange(4))["f3"],
+        ),
+        (
+            # init_arr
+            _u2s(np.arange(4)),
+            # index
+            np.s_[["f1", "f3"]],
+            # expected_type
+            Particle,
+            # expected_name
+            "some_name",
+            # expected_label
+            "some label",
+            # expected_unit
+            None,
+            # expected_quantity_names
+            ("f1", "f3"),
+            # expected_quantity_labels
+            ("f1 label", "f3 label"),
+            # expected_quantity_units
+            ("", ""),
+            # expected_arr
+            _u2s(np.arange(4))[["f1", "f3"]],
+        ),
+    ],
+    ids=["q1", "['q1']"],
+)
+def test_Particle_getitem(
+    init_arr: np.ndarray,
+    index: Any,
+    expected_type: type,
+    expected_name: str,
+    expected_label: str,
+    expected_unit: Optional[str],
+    expected_quantity_names: Tuple[str, ...],
+    expected_quantity_labels: Tuple[str, ...],
+    expected_quantity_units: Tuple[str, ...],
+    expected_arr: np.ndarray,
+):
+    prt_arr = Particle.from_array(
+        init_arr,
+        name="some_name",
+        label="some label",
+    )
+    selection = prt_arr[index]
+
+    assert selection.name == expected_name
+    assert selection.label == expected_label
+
+    if expected_unit is not None:
+        assert selection.unit == expected_unit
+
+    assert isinstance(selection, expected_type)
+
+    if expected_quantity_names:
+        assert selection.quantity_names == expected_quantity_names
+
+    if expected_quantity_labels:
+        assert selection.quantity_labels == expected_quantity_labels
+
+    if expected_quantity_units:
+        assert selection.quantity_units == expected_quantity_units
+
+    np.testing.assert_array_equal(selection.to_numpy().data, expected_arr)
