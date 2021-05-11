@@ -252,7 +252,7 @@ def test_GridArray_repr():
     assert repr(grid) == expected_repr
 
 
-def test_GridArray_repr_html():
+def test_GridArray_repr_markdown_():
     grid = GridArray.from_array(np.arange(12, dtype=np.int32).reshape((4, 3)))
     expected_markdown = """
     | **GridArray** | |

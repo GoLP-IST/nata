@@ -205,7 +205,7 @@ def test_Quantity_repr():
     assert repr(quant) == "Quantity<name=unnamed, dtype=int64, time=0.0>"
 
 
-def test_Quantity_repr_html():
+def test_Quantity_repr_markdown_():
     grid = Quantity.from_array(np.array(0, dtype=np.int64))
     expected_markdown = """
     | **Quantity** | |
@@ -454,7 +454,7 @@ def test_ParticleDataset_repr():
     )
 
 
-def test_ParticleDataset_repr_html():
+def test_ParticleDataset_repr_markdown_():
     grid = ParticleDataset.from_array(np.arange(32, dtype=np.int64).reshape((4, 8)))
     expected_markdown = """
     | **ParticleDataset** | |
