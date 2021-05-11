@@ -235,16 +235,13 @@ class GridArray(
                 tmp = []
                 for i, ax in enumerate(axes):
                     if not isinstance(ax, Axis):
-                        ax = Axis.from_array(da.asanyarray(ax), name=f"axis{i}")
+                        ax = Axis.from_array(ax, name=f"axis{i}")
                     tmp.append(ax)
 
                 axes = tuple(tmp)
 
-        if time is None:
-            time = Axis.from_array(0.0, name="time", label="time")
-        else:
-            if not isinstance(time, Axis):
-                time = Axis.from_array(time, name="time", label="time")
+        if not isinstance(time, Axis):
+            time = Axis.from_array(time, name="time", label="time")
 
         return cls(data, axes, time, name, label, unit)
 
