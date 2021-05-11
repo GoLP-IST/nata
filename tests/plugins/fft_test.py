@@ -20,14 +20,14 @@ def test_array_fft_invalid_axis():
         with pytest.raises(ValueError, match="invalid axis index"):
             GridArray.from_array(
                 np.arange(100).reshape((10, 10)),
-                axes=[Axis(np.arange(10))] * 2,
+                axes=[Axis.from_array(np.arange(10))] * 2,
             ).fft(axes=[invalid_axis])
 
     for invalid_axis in ["axis2", "abc"]:
         with pytest.raises(ValueError, match="could not be found"):
             GridArray.from_array(
                 np.arange(100).reshape((10, 10)),
-                axes=[Axis(np.arange(10))] * 2,
+                axes=[Axis.from_array(np.arange(10))] * 2,
             ).fft(axes=[invalid_axis])
 
 
@@ -35,7 +35,7 @@ def test_array_fft_shape_1d():
     x = np.arange(10)
 
     for axes in [
-        [Axis(x)],
+        [Axis.from_array(x)],
         # [Axis([x] * 2)],
     ]:
         grid = GridArray.from_array(x, axes=axes)
@@ -49,7 +49,7 @@ def test_array_fft_shape_2d():
     data = np.arange(100).reshape((10, 10))
 
     for axes in [
-        [Axis(x)] * 2,
+        [Axis.from_array(x)] * 2,
         # [Axis([x] * 2)] * 2,
     ]:
         grid = GridArray.from_array(data, axes=axes)
@@ -60,7 +60,7 @@ def test_array_fft_shape_2d():
 
 def test_array_fft_comps_1d():
     x = np.linspace(0, 10 * np.pi, 101)
-    grid = GridArray.from_array(np.sin(x), axes=[Axis(x)])
+    grid = GridArray.from_array(np.sin(x), axes=[Axis.from_array(x)])
 
     for comp, fn in zip(
         ["full", "real", "imag", "abs"], [lambda x: x, np.real, np.imag, np.abs]
@@ -72,7 +72,7 @@ def test_array_fft_comps_1d():
 
 def test_array_fft_peak_1d():
     x = np.linspace(0, 10 * np.pi, 101)
-    grid = GridArray.from_array(np.sin(x), axes=[Axis(x)])
+    grid = GridArray.from_array(np.sin(x), axes=[Axis.from_array(x)])
     fft_grid = grid.fft()
 
     assert (
@@ -88,7 +88,7 @@ def test_dataset_fft_peak_1d():
 
     grid = GridDataset.from_array(
         [np.sin(k_i * x) for k_i in k_modes],
-        axes=[Axis(time), Axis(np.tile(x, (len(time), 1)))],
+        axes=[Axis.from_array(time), Axis.from_array(np.tile(x, (len(time), 1)))],
     )
     fft_grid = grid.fft()
 

@@ -16,7 +16,7 @@ from numpy.typing import ArrayLike
 from nata.containers import GridArray
 from nata.containers import GridDataset
 from nata.containers.axis import Axis
-from nata.containers.grid import GridBackendType
+from nata.containers.grid import GridBackend
 from nata.utils.container_tools import register_backend
 
 # TODO: restructure the test to represent individual classes rather then
@@ -54,7 +54,7 @@ def _valid_grid_backend():
         dtype = np.dtype("i")
         ndim = int()
 
-    assert isinstance(DummyBackend, GridBackendType)
+    assert isinstance(DummyBackend, GridBackend)
     yield DummyBackend
 
     if DummyBackend.name in GridArray.get_backends():
@@ -198,17 +198,6 @@ def test_GridArray_from_array_raise_invalid_axes():
         GridArray.from_array([0, 1], axes=[[0, 1, 2, 3]])
 
 
-def test_GridArray_change_name_by_prop():
-    grid_arr = GridArray.from_array([])
-    assert grid_arr.name == "unnamed"
-
-    grid_arr.name = "new_name"
-    assert grid_arr.name == "new_name"
-
-    with pytest.raises(ValueError, match="name has to be an identifier"):
-        grid_arr.name = "invalid name"
-
-
 def test_GridArray_change_label_by_prop():
     grid_arr = GridArray.from_array([])
     assert grid_arr.label == "unlabeled"
@@ -225,12 +214,12 @@ def test_GridArray_change_unit_by_prop():
     assert grid_arr.unit == "new unit"
 
 
-def test_GridArray_is_valid_backend(valid_grid_backend: GridBackendType):
+def test_GridArray_is_valid_backend(valid_grid_backend: GridBackend):
     assert GridArray.is_valid_backend(valid_grid_backend)
     assert not GridArray.is_valid_backend(object)
 
 
-def test_GridArray_add_remove_backend(valid_grid_backend: GridBackendType):
+def test_GridArray_add_remove_backend(valid_grid_backend: GridBackend):
     assert valid_grid_backend.name not in GridArray.get_backends()
     GridArray.add_backend(valid_grid_backend)
 
@@ -240,7 +229,7 @@ def test_GridArray_add_remove_backend(valid_grid_backend: GridBackendType):
     assert valid_grid_backend.name not in GridArray.get_backends()
 
 
-def test_GridArray_get_valid_backend(valid_grid_backend: GridBackendType):
+def test_GridArray_get_valid_backend(valid_grid_backend: GridBackend):
     valid_grid_backend.is_valid_backend = staticmethod(lambda p: p == Path())
 
     # register backend
@@ -248,41 +237,6 @@ def test_GridArray_get_valid_backend(valid_grid_backend: GridBackendType):
 
     assert GridArray.get_valid_backend(Path()) is valid_grid_backend
     assert GridArray.get_valid_backend(Path("some/invalid/path")) is None
-
-
-def test_GridArray_register_plugin():
-    GridArray.register_plugin("my_custom_plugin", lambda _: None)
-
-    assert GridArray.get_plugins()["my_custom_plugin"] == ""
-
-
-def test_GridArray_calling_plugin_as_method():
-    def plugin_function(obj: GridArray, should_return_obj: bool):
-        """my custom docs"""
-        return obj if should_return_obj else None
-
-    GridArray.register_plugin("return_self_as_method", plugin_function, "method")
-    grid = GridArray.from_array([])
-
-    assert grid.return_self_as_method(True) is grid
-    assert grid.return_self_as_method(False) is None
-
-    # check plugin perserves docs
-    assert grid.return_self_as_method.__doc__ == plugin_function.__doc__
-
-
-def test_GridArray_calling_plugin_as_property():
-    GridArray.register_plugin("return_self_as_property", lambda s: s, "property")
-    grid = GridArray.from_array([])
-    assert grid.return_self_as_property is grid
-
-
-def test_GridArray_remove_plugin():
-    assert "dummy_plugin" not in GridArray.get_plugins()
-    GridArray.register_plugin("dummy_plugin", lambda s: s, "property")
-    assert "dummy_plugin" in GridArray.get_plugins()
-    GridArray.remove_plugin("dummy_plugin")
-    assert "dummy_plugin" not in GridArray.get_plugins()
 
 
 def test_GridArray_repr():
@@ -327,34 +281,6 @@ def test_GridArray_len():
 def test_GridArray_array():
     grid = GridArray.from_array([1, 2])
     np.testing.assert_array_equal(grid, [1, 2])
-
-
-def test_GridArray_implements_ufunc():
-    assert np.add not in GridArray.get_handled_ufuncs()
-
-    @GridArray.implements(np.add)
-    def my_function(*args, **kwargs):
-        return "my_function implementation"
-
-    assert np.add in GridArray.get_handled_ufuncs()
-    assert (GridArray.from_array([]) + 1) == "my_function implementation"
-    GridArray.remove_handled_ufuncs(np.add)
-
-    assert np.add not in GridArray.get_handled_ufuncs()
-
-
-def test_GridArray_implements_array_function():
-    assert np.fft.fft not in GridArray.get_handled_array_function()
-
-    @GridArray.implements(np.fft.fft)
-    def my_function(*args, **kwargs):
-        return "my_function implementation"
-
-    assert np.fft.fft in GridArray.get_handled_array_function()
-    assert np.fft.fft(GridArray.from_array([])) == "my_function implementation"
-    GridArray.remove_handled_array_function(np.fft.fft)
-
-    assert np.fft.fft not in GridArray.get_handled_array_function()
 
 
 def test_GridArray_ufunc_proxy():
@@ -415,12 +341,15 @@ _testCases_getitem["(4,), [:]"] = {
 _testCases_getitem["(4,), [1:3]"] = {
     "arr": [1, 2, 3, 4],
     "indexing": np.s_[1:3],
-    "expected_axes": (Axis([1, 2], name="axis0"),),
+    "expected_axes": (Axis.from_array([1, 2], name="axis0"),),
 }
 _testCases_getitem["(4,), [np.newaxis]"] = {
     "arr": [1, 2, 3, 4],
     "indexing": np.s_[np.newaxis],
-    "expected_axes": (Axis([0]), Axis(np.arange(4), name="axis0")),
+    "expected_axes": (
+        Axis.from_array([0]),
+        Axis.from_array(np.arange(4), name="axis0"),
+    ),
 }
 _testCases_getitem["(3, 4, 5), [1, 2, 3]"] = {
     "arr": np.arange(3 * 4 * 5).reshape((3, 4, 5)),
@@ -430,11 +359,11 @@ _testCases_getitem["(3, 4, 5, 6, 7), [:, ..., np.newaxis, ...]"] = {
     "arr": np.arange(3 * 4 * 5 * 6 * 7).reshape((3, 4, 5, 6, 7)),
     "indexing": np.s_[1:3, np.newaxis, ..., 4],
     "expected_axes": (
-        Axis([1, 2], name="axis0"),
-        Axis([0]),
-        Axis(np.arange(4), name="axis1"),
-        Axis(np.arange(5), name="axis2"),
-        Axis(np.arange(6), name="axis3"),
+        Axis.from_array([1, 2], name="axis0"),
+        Axis.from_array([0]),
+        Axis.from_array(np.arange(4), name="axis1"),
+        Axis.from_array(np.arange(5), name="axis2"),
+        Axis.from_array(np.arange(6), name="axis3"),
     ),
 }
 
@@ -543,33 +472,6 @@ def test_GridDataset_from_array_raise_invalid_axes():
         GridDataset.from_array([[0, 1]], axes=[[0], [[0, 1, 2, 3]]])
 
 
-def test_GridDataset_change_name_by_prop():
-    grid_ds = GridDataset.from_array([])
-    assert grid_ds.name == "unnamed"
-
-    grid_ds.name = "new_name"
-    assert grid_ds.name == "new_name"
-
-    with pytest.raises(ValueError, match="name has to be an identifier"):
-        grid_ds.name = "invalid name"
-
-
-def test_GridDataset_change_label_by_prop():
-    grid_ds = GridDataset.from_array([])
-    assert grid_ds.label == "unlabeled"
-
-    grid_ds.label = "new label"
-    assert grid_ds.label == "new label"
-
-
-def test_GridDataset_change_unit_by_prop():
-    grid_ds = GridDataset.from_array([])
-    assert grid_ds.unit == ""
-
-    grid_ds.unit = "new unit"
-    assert grid_ds.unit == "new unit"
-
-
 @pytest.mark.parametrize(
     "left, right, operation",
     [
@@ -589,44 +491,44 @@ def test_GridDataset_change_unit_by_prop():
         (GridArray.from_array([], time=0), GridArray.from_array([], time=1), eq),
         # time name
         (
-            GridArray.from_array([], time=Axis(0)),
-            GridArray.from_array([], time=Axis(0, name="some")),
+            GridArray.from_array([], time=Axis.from_array(0)),
+            GridArray.from_array([], time=Axis.from_array(0, name="some")),
             ne,
         ),
         # time label
         (
-            GridArray.from_array([], time=Axis(0)),
-            GridArray.from_array([], time=Axis(0, label="some")),
+            GridArray.from_array([], time=Axis.from_array(0)),
+            GridArray.from_array([], time=Axis.from_array(0, label="some")),
             ne,
         ),
         # time unit
         (
-            GridArray.from_array([], time=Axis(0)),
-            GridArray.from_array([], time=Axis(0, unit="some")),
+            GridArray.from_array([], time=Axis.from_array(0)),
+            GridArray.from_array([], time=Axis.from_array(0, unit="some")),
             ne,
         ),
         # axes[..] value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([2])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([2])]),
             eq,
         ),
         # axes[..].name value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([1], name="some")]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1], name="some")]),
             ne,
         ),
         # axes[..].label value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([1], label="some")]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1], label="some")]),
             ne,
         ),
         # axes[..].unit value
         (
-            GridArray.from_array([1], axes=[Axis([1])]),
-            GridArray.from_array([1], axes=[Axis([1], unit="some")]),
+            GridArray.from_array([1], axes=[Axis.from_array([1])]),
+            GridArray.from_array([1], axes=[Axis.from_array([1], unit="some")]),
             ne,
         ),
     ],
@@ -712,10 +614,10 @@ _testCases_GridDataset_getitem["(3, 4, 5), [..., np.newaxis]"] = {
     "indexing": np.s_[..., np.newaxis],
     "instance_after_indexing": GridDataset,
     "expected_axes": (
-        Axis(np.arange(3), name="time", label="time"),
-        Axis(np.tile(np.arange(4), (3, 1)), name="axis0"),
-        Axis(np.tile(np.arange(5), (3, 1)), name="axis1"),
-        Axis(np.zeros((3, 1))),
+        Axis.from_array(np.arange(3), name="time", label="time"),
+        Axis.from_array(np.tile(np.arange(4), (3, 1)), name="axis0"),
+        Axis.from_array(np.tile(np.arange(5), (3, 1)), name="axis1"),
+        Axis.from_array(np.zeros((3, 1))),
     ),
 }
 

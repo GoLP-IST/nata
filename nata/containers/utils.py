@@ -1,10 +1,19 @@
 # -*- coding: utf-8 -*-
-from typing import Callable
+from typing import Iterable
 from warnings import warn
+
+import dask.array as da
+import numpy as np
+from dask import delayed
+from numpy.lib import recfunctions
 
 # TODO: remove the use of types
 from nata.types import BackendType
 from nata.types import DatasetType
+
+
+def is_unique(iterable: Iterable) -> bool:
+    return len(set(iterable)) == 1
 
 
 def register_backend(container: DatasetType):
@@ -15,6 +24,8 @@ def register_backend(container: DatasetType):
     def add_backend_to_container(backend: BackendType):
         if container.is_valid_backend(backend):
             container.add_backend(backend)
+            # TODO: make sure it works well with quantities
+            #       -> labels are passed appropiate
             backend.__getitem__ = backend.get_data
         else:
             warn(
@@ -26,14 +37,7 @@ def register_backend(container: DatasetType):
     return add_backend_to_container
 
 
-def get_doc_heading(func: Callable) -> str:
-    docs = func.__doc__
-
-    if not docs:
-        return ""
-
-    for line in docs.split("\n"):
-        if line:
-            return line.strip()
-
-    return ""
+def unstructured_to_structured(data: da.Array, new_dtype: np.dtype) -> da.Array:
+    new_shape = data.shape[:-1]
+    new_data = delayed(recfunctions.unstructured_to_structured)(data, dtype=new_dtype)
+    return da.from_delayed(new_data, new_shape, dtype=new_dtype)

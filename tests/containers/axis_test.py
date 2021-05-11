@@ -8,7 +8,7 @@ from nata.containers.axis import Axis
 
 def test_Axis_init_default():
     """Create from an array-like object with pre-defined names, labels, and units"""
-    axis = Axis([1, 2, 3])
+    axis = Axis.from_array([1, 2, 3])
     assert axis.name == "unnamed"
     assert axis.label == "unlabeled"
     assert axis.unit == ""
@@ -16,32 +16,14 @@ def test_Axis_init_default():
 
 def test_Axis_repr():
     """Ensures correct repr formatting"""
-    axis = Axis(())
-    expected = f"Axis(name='{axis.name}', label='{axis.label}', unit='{axis.unit}')"
+    axis = Axis.from_array(())
+    expected = f"Axis<name='{axis.name}', label='{axis.label}', unit='{axis.unit}'>"
     assert repr(axis) == expected
-
-
-@pytest.mark.skip
-def test_Axis_repr_html():
-    """Ensures correct repr_html formatting"""
-    axis = Axis(())
-    expected = (
-        "<span>Axis</span>"
-        "<span style='color: var(--jp-info-color0);'>"
-        "("
-        f"name='{axis.name}', "
-        f"label='{axis.label}', "
-        f"unit='{axis.unit}'"
-        ")"
-        "</span>"
-    )
-
-    assert axis._repr_html_() == expected
 
 
 def test_Axis_change_name():
     """Makes sure name property of Axis can be changed"""
-    axis = Axis((), name="some_name")
+    axis = Axis.from_array((), name="some_name")
     assert axis.name == "some_name"
 
     axis.name = "some_new_name"
@@ -50,16 +32,12 @@ def test_Axis_change_name():
 
 def test_Axis_raises_not_identifier():
     with pytest.raises(ValueError, match="has to be a valid identifier"):
-        Axis((), name="invalid name with space")
-
-    with pytest.raises(ValueError, match="has to be a valid identifier"):
-        axis = Axis(())
-        axis.name = "invalid name with space"
+        Axis.from_array((), name="invalid name with space")
 
 
 def test_Axis_change_label():
     """Makes sure label property of Axis can be changed"""
-    axis = Axis((), label="some label")
+    axis = Axis.from_array((), label="some label")
     assert axis.label == "some label"
 
     axis.label = "some new label"
@@ -68,7 +46,7 @@ def test_Axis_change_label():
 
 def test_Axis_change_unit():
     """Makes sure unit property of Axis can be changed"""
-    axis = Axis((), unit="some unit")
+    axis = Axis.from_array((), unit="some unit")
     assert axis.unit == "some unit"
 
     axis.unit = "some new unit"
@@ -77,27 +55,27 @@ def test_Axis_change_unit():
 
 def test_Axis_to_dask():
     """Check that '.to_dask' returns a dask array"""
-    axis = Axis(())
+    axis = Axis.from_array(())
     assert isinstance(axis.to_dask(), da.Array)
 
 
 def test_Axis_to_numpy():
     """Check that '.to_numpy' returns a numpy array"""
-    axis = Axis(())
+    axis = Axis.from_array(())
     assert isinstance(axis.to_numpy(), np.ndarray)
 
 
 def test_Axis_len():
     """Check length represents appendable dimension."""
-    axis = Axis([1, 2, 3])
+    axis = Axis.from_array([1, 2, 3])
     assert len(axis) == 3
 
-    axis = Axis([[1, 2, 3]])
+    axis = Axis.from_array([[1, 2, 3]])
     assert len(axis) == 1
 
 
 def test_Axis_array_props():
-    axis = Axis([1, 2, 3])
+    axis = Axis.from_array([1, 2, 3])
 
     assert axis.shape == (3,)
     assert axis.ndim == 1
@@ -105,20 +83,20 @@ def test_Axis_array_props():
 
 
 def test_Axis_array_method():
-    axis = Axis([0, 1, 2])
+    axis = Axis.from_array([0, 1, 2])
     np.testing.assert_almost_equal(np.array(axis), [0, 1, 2])
 
 
 def test_Axis_getitem():
-    axis = Axis(np.arange(12).reshape((4, 3)))
+    axis = Axis.from_array(np.arange(12).reshape((4, 3)))
     sub_axis = axis[3]
     np.testing.assert_array_equal(sub_axis, [9, 10, 11])
 
-    axis = Axis(np.arange(12).reshape((4, 3)))
+    axis = Axis.from_array(np.arange(12).reshape((4, 3)))
     sub_axis = axis[1:3]
     np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
 
-    axis = Axis(np.arange(12).reshape((4, 3)))
+    axis = Axis.from_array(np.arange(12).reshape((4, 3)))
     sub_axis = axis[1:3]
     np.testing.assert_array_equal(sub_axis, [[3, 4, 5], [6, 7, 8]])
 
@@ -171,14 +149,19 @@ def test_Axis_from_limits(case):
 
 
 def test_Axis_ufunc():
-    axis = Axis([0, 1, 2])
+    axis = Axis.from_array([0, 1, 2])
     axis += 1
     np.testing.assert_array_equal(axis, [1, 2, 3])
 
-    axis = Axis([0, 1, 2])
+    axis = Axis.from_array([0, 1, 2])
     np.testing.assert_array_equal(axis + 1, [1, 2, 3])
 
 
 def test_Axis_array_function():
-    concanated_axes = np.concatenate((Axis([0, 1]), Axis([2, 3])))
+    # passing as a tuple of args
+    concanated_axes = np.concatenate((Axis.from_array([0, 1]), Axis.from_array([2, 3])))
+    np.testing.assert_array_equal(concanated_axes, [0, 1, 2, 3])
+
+    # passing as a list of args
+    concanated_axes = np.concatenate([Axis.from_array([0, 1]), Axis.from_array([2, 3])])
     np.testing.assert_array_equal(concanated_axes, [0, 1, 2, 3])
