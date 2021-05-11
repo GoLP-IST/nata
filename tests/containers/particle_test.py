@@ -264,7 +264,7 @@ def test_Particle():
         (
             np.array(1.0, dtype=np.dtype([("x", float)])),
             {},
-            (("x", "x", ""),),
+            (("x", "x label", ""),),
             np.array(1.0, dtype=np.dtype([("x", float)])),
         ),
         (

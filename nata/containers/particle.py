@@ -337,7 +337,7 @@ class Particle(
 
         if quantities is None:
             if data.dtype.fields:
-                quantities = tuple((f, f, "") for f in data.dtype.fields)
+                quantities = tuple((f, f"{f} label", "") for f in data.dtype.fields)
             else:
                 quantities = (("quant1", "quant1 label", ""),)
                 new_dtype = np.dtype([("quant1", data.dtype)])
