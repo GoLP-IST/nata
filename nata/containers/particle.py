@@ -516,6 +516,124 @@ class ParticleDataset(
         """
         return dedent(md)
 
+    @staticmethod
+    def _expand_key(
+        key: Any,
+        shape: Tuple[int, int],
+    ) -> Tuple[Union[int, slice], Union[int, slice], Union[str, List[str]]]:
+        # convert to tuple
+        key = np.index_exp[key]
+
+        if len(key) > 3:
+            raise IndexError("too many indices provided")
+
+        if len(key) == 3:
+            expanded_key = ndx.ndindex(key[:2]).expand(shape).raw + (key[2],)
+        else:
+            expanded_key = ndx.ndindex(key).expand(shape).raw + ([],)
+
+        return expanded_key
+
+    @staticmethod
+    def _determine_reduction(
+        index: Tuple[Union[int, slice], Union[int, slice], Union[str, Sequence[str]]],
+    ) -> Tuple[bool, bool, bool]:
+        return (
+            isinstance(index[0], int),
+            isinstance(index[1], int),
+            isinstance(index[2], str),
+        )
+
+    def _decay_to_Quantity(self, index: Tuple[int, int, str]) -> "Quantity":
+        quantity_index = self.quantity_names.index(index[2])
+        name, label, unit = self.quantities[quantity_index]
+
+        return Quantity.from_array(
+            self._data[index[0], index[1]][index[2]],
+            name=name,
+            label=label,
+            unit=unit,
+            time=self.time[index[0]],
+        )
+
+    def _decay_to_QuantityArray(self, index: Tuple[int, slice, str]) -> "QuantityArray":
+        quantity_index = self.quantity_names.index(index[2])
+        name, label, unit = self.quantities[quantity_index]
+
+        return QuantityArray.from_array(
+            self._data[index[0], index[1]][index[2]],
+            name=name,
+            label=label,
+            unit=unit,
+            time=self.time[index[0]],
+        )
+
+    def _decay_to_Particle(self, index: Tuple[int, int, Sequence[str]]) -> "Particle":
+        # if sequence not empty -> iterate over picking up quantities
+        if index[2]:
+            new_quantities = ()
+            for quant in index[2]:
+                quant_index = self.quantity_names.index(quant)
+                new_quantities += (self.quantities[quant_index],)
+            data = self._data[index[0], index[1]][index[2]]
+        else:
+            new_quantities = self.quantities
+            data = self._data[index[0], index[1]]
+
+        return Particle.from_array(
+            data,
+            name=self.name,
+            label=self.label,
+            quantities=new_quantities,
+            time=self.time[index[0]],
+        )
+
+    def _decay_to_ParticleArray(
+        self,
+        index: Tuple[int, slice, Sequence[str]],
+    ) -> "ParticleArray":
+        # if sequence not empty -> iterate over picking up quantities
+        if index[2]:
+            new_quantities = ()
+            for quant in index[2]:
+                quant_index = self.quantity_names.index(quant)
+                new_quantities += (self.quantities[quant_index],)
+            data = self._data[index[0], index[1]][index[2]]
+        else:
+            new_quantities = self.quantities
+            data = self._data[index[0], index[1]]
+
+        return ParticleArray.from_array(
+            data,
+            name=self.name,
+            label=self.label,
+            quantities=new_quantities,
+            time=self.time[index[0]],
+        )
+
+    def _decay_to_ParticleDataset(
+        self,
+        index: Tuple[slice, Union[int, slice], Sequence[str]],
+    ) -> "ParticleDataset":
+        # if sequence not empty -> iterate over picking up quantities
+        if index[2]:
+            new_quantities = ()
+            for quant in index[2]:
+                quant_index = self.quantity_names.index(quant)
+                new_quantities += (self.quantities[quant_index],)
+            data = self._data[index[0], index[1]][index[2]]
+        else:
+            new_quantities = self.quantities
+            data = self._data[index[0], index[1]]
+
+        return ParticleDataset.from_array(
+            data,
+            name=self.name,
+            label=self.label,
+            quantities=new_quantities,
+            time=self.time[index[0]],
+        )
+
     def __getitem__(
         self, key: Any
     ) -> Union[
@@ -525,87 +643,19 @@ class ParticleDataset(
         "Quantity",
         "QuantityArray",
     ]:
-        # ensures key is tuple of indices
-        key = np.index_exp[key]
+        key = self._expand_key(key, self.shape)
+        time_reduction, prt_reduction, quant_reduction = self._determine_reduction(key)
 
-        # unpack quantity index if present in key
-        if len(key) == 3:
-            key, quantity_indexing = key[:2], key[2]
+        if quant_reduction and time_reduction and prt_reduction:
+            return self._decay_to_Quantity(key)
+        elif quant_reduction and time_reduction:
+            return self._decay_to_QuantityArray(key)
+        elif time_reduction and prt_reduction:
+            return self._decay_to_Particle(key)
+        elif time_reduction:
+            return self._decay_to_ParticleArray(key)
         else:
-            quantity_indexing = []
-
-        index = ndx.ndindex(key).expand(self.shape).raw
-        data = self._data[index]
-        time_indexing, prt_indexing = index
-
-        if isinstance(quantity_indexing, str):
-            quantity_reduction = True
-
-        else:
-            quantity_indexing = list(quantity_indexing)
-            quantity_reduction = False
-
-        if quantity_indexing and not quantity_reduction:
-            quantities = ()
-            for indexed_quant in quantity_indexing:
-                if indexed_quant not in self.quantity_names:
-                    raise IndexError(f"invalid quantity index '{indexed_quant}'")
-
-                quant_index = self.quantity_names.index(indexed_quant)
-                quantities += (self.quantities[quant_index],)
-
-            data = data[quantity_indexing]
-        elif quantity_indexing and quantity_reduction:
-            quant_index = self.quantity_names.index(quantity_indexing)
-            quantity_name, quantity_label, quantity_unit = self.quantities[quant_index]
-            data = data[quantity_indexing]
-
-        else:
-            quantities = self.quantities
-
-        if quantity_reduction:
-            if isinstance(time_indexing, int) and isinstance(prt_indexing, int):
-                return Quantity.from_array(
-                    data,
-                    name=quantity_name,
-                    label=quantity_label,
-                    unit=quantity_unit,
-                    time=self.time[time_indexing],
-                )
-            else:
-                return QuantityArray.from_array(
-                    data,
-                    name=quantity_name,
-                    label=quantity_label,
-                    unit=quantity_unit,
-                    time=self.time[time_indexing],
-                )
-
-        if isinstance(time_indexing, int) and isinstance(prt_indexing, int):
-            return Particle.from_array(
-                data,
-                name=self.name,
-                label=self.label,
-                quantities=quantities,
-                time=self.time[time_indexing],
-            )
-
-        elif isinstance(time_indexing, int):
-            return ParticleArray.from_array(
-                data,
-                name=self.name,
-                label=self.label,
-                quantities=quantities,
-                time=self.time[time_indexing],
-            )
-        else:
-            return ParticleDataset.from_array(
-                data,
-                name=self.name,
-                label=self.label,
-                quantities=self.quantities,
-                time=self.time[time_indexing],
-            )
+            return self._decay_to_ParticleDataset(key)
 
     @classmethod
     def from_array(
