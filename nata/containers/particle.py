@@ -149,8 +149,8 @@ class Quantity(
 
         self._data = data
 
-    def __getitem__(self, key: Any) -> Union["Quantity", "QuantityArray"]:
-        raise NotImplementedError
+    def __getitem__(self, key: Any) -> None:
+        raise IndexError("Quantity is not indexable")
 
     def __hash__(self) -> int:
         # general naming
@@ -234,7 +234,25 @@ class QuantityArray(Quantity):
         self._data = data
 
     def __getitem__(self, key: Any) -> Union["Quantity", "QuantityArray"]:
-        raise NotImplementedError
+        index = ndx.ndindex(key).expand(self.shape).raw
+
+        if isinstance(index[0], int):
+            return Quantity.from_array(
+                self._data[index],
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+                time=self.time,
+            )
+
+        else:
+            return QuantityArray.from_array(
+                self._data[index],
+                name=self.name,
+                label=self.label,
+                unit=self.unit,
+                time=self.time,
+            )
 
 
 class Particle(

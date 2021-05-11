@@ -150,11 +150,6 @@ def test_Quantity_raise_when_fields_represent():
         Quantity.from_array(np.array(0, dtype=[("f1", int)]))
 
 
-@pytest.mark.skip
-def test_Quantity_getitem():
-    pass
-
-
 @pytest.mark.parametrize(
     "left, right, operation",
     [
@@ -967,3 +962,26 @@ def test_Particle_getitem(
         assert selection.quantity_units == expected_quantity_units
 
     np.testing.assert_array_equal(selection.to_numpy().data, expected_arr)
+
+
+@pytest.mark.parametrize(
+    "init_arr, index, expected_type",
+    [(np.arange(10), np.s_[1:3], QuantityArray), (np.arange(10), np.s_[4], Quantity)],
+    ids=["i1:i2", "i1"],
+)
+def test_QuantityArray_getitem(init_arr: np.ndarray, index: Any, expected_type: type):
+    quant_arr = QuantityArray.from_array(
+        init_arr,
+        name="some_name",
+        label="some label",
+        unit="some_unit",
+    )
+
+    selection = quant_arr[index]
+
+    assert isinstance(selection, expected_type)
+    assert selection.name == quant_arr.name
+    assert selection.label == quant_arr.label
+    assert selection.unit == quant_arr.unit
+
+    np.testing.assert_array_equal(selection, init_arr[index])
