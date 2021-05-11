@@ -245,7 +245,7 @@ def test_GridArray_repr():
         "GridArray<"
         "shape=(4, 3), "
         "dtype=int32, "
-        "time=0.0, "
+        "time=None, "
         "axes=(Axis(axis0), Axis(axis1))"
         ">"
     )
@@ -262,7 +262,7 @@ def test_GridArray_repr_html():
     | **unit**  | '' |
     | **shape** | (4, 3) |
     | **dtype** | int32 |
-    | **time**  | 0.0 |
+    | **time**  | None |
     | **axes**  | Axis(axis0), Axis(axis1) |
 
     """
