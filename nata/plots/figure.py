@@ -32,7 +32,6 @@ class Figure:
         aspect: Optional[Union[str, Numbers]] = None,
         size: Optional[Sequence[Numbers]] = None,
         theme: Theme = Theme(name="light"),
-        # legend: Optional[nata.plots.legend] = None,
     ):
 
         self.theme = theme
@@ -113,11 +112,6 @@ class Figure:
                     cb.ax.set_xticks(colorbar.ticks.values)
                     cb.ax.set_xticklabels(colorbar.ticks.labels)
 
-    #     def scatter(
-    #         self,
-    #         x, y,
-    #     ):
-    #         self.backend_ax.scatter(x, y)
     @property
     def size(self):
         return self._size
@@ -276,6 +270,10 @@ class Figure:
             new_manager = dummy.canvas.manager
             new_manager.canvas.figure = self.backend_fig
             plt.show()
+
+    def save(self, name: str, dpi: int = 150):
+        with mpl.rc_context(rc=self.theme.rc):
+            self.backend_fig.savefig(name, dpi=dpi)
 
     def _repr_html_(self):
         self.show()
