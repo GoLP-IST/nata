@@ -1,231 +1,279 @@
 # -*- coding: utf-8 -*-
-from copy import copy
-from dataclasses import dataclass
-from dataclasses import field
-from math import ceil
-from typing import Any
-from typing import Dict
-from typing import List
 from typing import Optional
-from typing import Tuple
+from typing import Sequence
+from typing import Union
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from pkg_resources import resource_filename
+import numpy as np
 
-from nata.plots.axes import Axes
+from .elements import LinearScale
+from .elements import LogScale
+from .elements import Scale
+from .elements import SymmetricalLogScale
+from .elements import Theme
+from .elements import Ticks
+
+Numbers = Union[int, float]
 
 
-@dataclass
 class Figure:
-    """Container of parameters and child objects (including plotting\
-    backend-related objects) relevant to draw a figure.
+    def __init__(
+        self,
+        xrange: Optional[Sequence[Numbers]] = None,
+        yrange: Optional[Sequence[Numbers]] = None,
+        xscale: Optional[Scale] = None,
+        yscale: Optional[Scale] = None,
+        xlabel: Optional[str] = None,
+        ylabel: Optional[str] = None,
+        xticks: Optional[Ticks] = None,
+        yticks: Optional[Ticks] = None,
+        title: Optional[str] = None,
+        aspect: Optional[Union[str, Numbers]] = None,
+        size: Optional[Sequence[Numbers]] = None,
+        theme: Theme = Theme(name="light"),
+    ):
 
-    Parameters
-    ----------
-    figsize: ``tuple`` of ``float``, optional
-        Tuple containing the width and height of the figure canvas in
-        inches. If not provided, defaults to ``(6,4)``.
+        self.theme = theme
 
-    nrows: ``int``, optional
-        Number of rows available for figure axes. If not provided, defaults
-        to ``1``.
+        with mpl.rc_context(rc=self.theme.rc):
+            self.backend_fig = plt.figure()
+            self.backend_ax = self.backend_fig.add_subplot()
 
-    ncols: ``int``, optional
-        Number of columns available for figure axes. If not provided,
-        defaults to ``1``.
+        self.xrange = xrange
+        self.yrange = yrange
+        self.xscale = xscale
+        self.yscale = yscale
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        self.xticks = xticks
+        self.yticks = yticks
+        self.title = title
+        self.size = size
+        self.aspect = aspect
 
-    style: ``{'light', 'dark'}``, optional
-        Selection of standard nata style. If not provided, defaults to
-        ``'light'``.
+    def line(self, x, y, color=None, style=None, width=None, alpha=None):
+        with mpl.rc_context(rc=self.theme.rc):
+            self.backend_ax.plot(
+                x,
+                y,
+                linestyle=style,
+                linewidth=width,
+                color=color,
+                alpha=alpha,
+            )
 
-    fname: ``str``, optional
-        Path to file with custom plotting backend parameters.
+    def scatter(
+        self, x, y, color=None, style=None, size=None, alpha=None, colorbar=None
+    ):
+        with mpl.rc_context(rc=self.theme.rc):
+            sct = self.backend_ax.scatter(
+                x,
+                y,
+                marker=style,
+                s=size,
+                c=color,
+                alpha=alpha,
+            )
 
-    rc: ``dict``, optional
-        Dictionary with custom plotting backend parameters. Overrides
-        parameters given in ``fname``.
+            if colorbar and colorbar.visible:
+                self.backend_fig.colorbar(sct, ax=self.backend_ax, label=colorbar.label)
 
-    """
+    def image(
+        self,
+        x,
+        y,
+        c,
+        crange=None,
+        cscale=None,
+        cmap=None,
+        colorbar=None,
+    ):
+        cmin = crange[0] if crange else np.min(c)
+        cmax = crange[1] if crange else np.max(c)
 
-    figsize: Optional[Tuple[float]] = None
-    nrows: Optional[int] = 1
-    ncols: Optional[int] = 1
-    style: Optional[str] = "light"
-    fname: Optional[str] = None
-    rc: Optional[Dict[str, Any]] = None
+        with mpl.rc_context(rc=self.theme.rc):
+            img = self.backend_ax.imshow(
+                np.transpose(c),
+                extent=[np.min(x), np.max(x), np.min(y), np.max(y)],
+                vmin=cmin,
+                vmax=cmax,
+                origin="lower",
+                cmap=cmap,
+                aspect=self.aspect,
+            )
 
-    # backend objects
-    fig: Any = field(init=False, repr=False, default=None)
-
-    # child axes objects
-    _axes: List[Axes] = field(init=False, repr=False, default_factory=list)
-
-    def __post_init__(self):
-        # set plotting style
-        self.set_style()
-
-        # open figure object
-        self.open()
-
-    def set_style(self):
-        if not self.fname:
-            self.fname = resource_filename(__name__, "styles/" + self.style + ".rc")
-
-    # TODO: generalize methods for arbitrary backend
-    def open(self):
-        with mpl.rc_context(fname=self.fname, rc=self.rc):
-            self.fig = plt.figure(figsize=self.figsize)
-
-            if self.figsize is None:
-                size = self.fig.get_size_inches()
-                self.fig.set_size_inches(size[0] * self.ncols, size[1] * self.nrows)
-
-    def close(self):
-        plt.close(self.fig)
-
-    def reset(self):
-        self.close()
-        self.open()
-
-    def show(self):
-        """Shows the figure."""
-
-        with mpl.rc_context(fname=self.fname, rc=self.rc):
-            dummy = plt.figure()
-            new_manager = dummy.canvas.manager
-            new_manager.canvas.figure = self.fig
-
-            self.fig.tight_layout()
-            plt.show()
-
-    def _repr_html_(self):
-        """Calls :meth:`nata.plots.Figure.show`."""
-        self.show()
-
-    # TODO: generalize this for arbitrary backend
-    def save(self, path, format: Optional[str] = None, dpi: Optional[float] = 150):
-        """Saves the figure to a file.
-
-        Parameters
-        ----------
-            path: ``tuple`` of ``float``, optional
-                Path in which to store the file.
-
-            format: ``str``, optional
-                File format, e.g. ``'png'``, ``'pdf'``, ``'svg'``. If not
-                provided, the output format is inferred from the extension of
-                ``path``.
-
-            dpi: ``float``, optional
-                Resolution in dots per inch. If not provided, defaults to
-                ``150``.
-
-        """
-        with mpl.rc_context(fname=self.fname, rc=self.rc):
-            self.fig.tight_layout()
-            self.fig.savefig(path, dpi=dpi, bbox_inches="tight")
-
-    def copy(self):
-
-        self.close()
-
-        new = copy(self)
-        new.open()
-
-        for axes in new._axes:
-            axes.fig = new
-
-        return new
-
-    def add_axes(self, style=dict()):
-
-        new_index = len(self._axes) + 1
-
-        if new_index > (self.nrows * self.ncols):
-            # increase number of rows
-            # TODO: really?
-            self.nrows += 1
-
-            if self.figsize is None:
-                size = self.fig.get_size_inches()
-                self.fig.set_size_inches(
-                    size[0], size[1] * self.nrows / (self.nrows - 1)
+            if colorbar and colorbar.visible:
+                cb = self.backend_fig.colorbar(
+                    img, ax=self.backend_ax, label=colorbar.label
                 )
 
-            for axes in self._axes:
-                axes.redo_plots()
-
-        axes = Axes(fig=self, index=new_index, **style)
-        self._axes.append(axes)
-
-        return axes
-
-    def __mul__(self, other):
-        """Combines two figures into one by superimposing the plots in axes with
-        matching indices.
-        """
-
-        new = copy(self)
-
-        for key, axes in new.axes.items():
-
-            if key in other.axes:
-                for plot in other.axes[key].plots:
-                    axes.add_plot(plot=plot)
-
-            axes.redo_plots()
-
-        new.close()
-
-        return new
-
-    def __add__(self, other):
-        """Combines two figures into one by adding new axes."""
-
-        new = self.copy()
-
-        new.nrows = ceil((len(new._axes) + len(other._axes)) / new.ncols)
-
-        if new.figsize is None:
-            size = new.fig.get_size_inches()
-            new.fig.set_size_inches(size[0], size[1] * new.nrows / (new.nrows - 1))
-
-        for axes in new._axes:
-            axes.redo_plots()
-
-        for axes in other._axes:
-            # get a copy of old axes
-            new_axes = axes.copy()
-
-            # reset parent figure object
-            new_axes.fig = new
-
-            # redo plots in new axes
-            new_axes.index = len(new._axes) + 1
-            new_axes.redo_plots()
-
-            # add axes to new list
-            new._axes.append(new_axes)
-
-        new.close()
-
-        return new
+                if colorbar.ticks:
+                    cb.ax.set_xticks(colorbar.ticks.values)
+                    cb.ax.set_xticklabels(colorbar.ticks.labels)
 
     @property
-    def axes(self) -> dict:
-        """Dictionary of child `nata.plots.Axes` objects, where the key
-        to each axes is its ``index`` property
-        """
-        return {axes.index: axes for axes in self._axes}
+    def size(self):
+        return self._size
 
-    @classmethod
-    def style_attrs(self) -> List[str]:
-        return [
-            "figsize",
-            "nrows",
-            "ncols",
-            "style",
-            "fname",
-            "rc",
-        ]
+    @size.setter
+    def size(self, size):
+        self._size = size
+        if size:
+            self.backend_fig.set_size_inches(size[0], size[1])
+
+    @property
+    def aspect(self):
+        return self._aspect
+
+    @aspect.setter
+    def aspect(self, aspect):
+        self._aspect = aspect
+        if aspect:
+            self.backend_ax.set_aspect(aspect)
+
+    @property
+    def theme(self):
+        return self._theme
+
+    @theme.setter
+    def theme(self, theme):
+        self._theme = theme
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, title):
+        self._title = title
+
+        if title:
+            self.backend_ax.set_title(title)
+
+    @property
+    def xlabel(self):
+        return self._xlabel
+
+    @xlabel.setter
+    def xlabel(self, label):
+        self._xlabel = label
+        if label:
+            self.backend_ax.set_xlabel(label)
+
+    @property
+    def ylabel(self):
+        return self._ylabel
+
+    @ylabel.setter
+    def ylabel(self, label):
+        self._ylabel = label
+        if label:
+            self.backend_ax.set_ylabel(label)
+
+    @property
+    def xscale(self):
+        return self._xscale
+
+    @xscale.setter
+    def xscale(self, scale):
+        self._xscale = scale
+
+        if isinstance(scale, LinearScale):
+            self.backend_ax.set_xscale(mpl.scale.LinearScale(axis=None))
+
+        if isinstance(scale, LogScale):
+            self.backend_ax.set_xscale(mpl.scale.LogScale(axis=None, base=scale.base))
+
+        if isinstance(scale, SymmetricalLogScale):
+            self.backend_ax.set_xscale(
+                mpl.scale.SymmetricalLogScale(
+                    axis=None, base=scale.base, linthresh=scale.linthresh or 1.0
+                )
+            )
+
+    @property
+    def yscale(self):
+        return self._yscale
+
+    @yscale.setter
+    def yscale(self, scale):
+        self._yscale = scale
+
+        if isinstance(scale, LinearScale):
+            self.backend_ax.set_yscale(mpl.scale.LinearScale(axis=None))
+
+        if isinstance(scale, LogScale):
+            self.backend_ax.set_yscale(mpl.scale.LogScale(axis=None, base=scale.base))
+
+        if isinstance(scale, SymmetricalLogScale):
+            self.backend_ax.set_yscale(
+                mpl.scale.SymmetricalLogScale(
+                    axis=None, base=scale.base, linthresh=scale.linthresh or 1.0
+                )
+            )
+
+    @property
+    def xrange(self):
+        return self._xrange
+
+    @xrange.setter
+    def xrange(self, xrange):
+        self._xrange = xrange
+
+        if xrange:
+            self.backend_ax.set_xlim(xrange)
+
+    @property
+    def yrange(self):
+        return self._yrange
+
+    @yrange.setter
+    def yrange(self, yrange):
+        self._yrange = yrange
+
+        if yrange:
+            self.backend_ax.set_ylim(yrange)
+
+    @property
+    def xticks(self):
+        return self._xticks
+
+    @xticks.setter
+    def xticks(self, ticks):
+        self._xticks = ticks
+
+        if ticks and ticks.values:
+            self.backend_ax.set_xticks(ticks.values)
+        if ticks and ticks.labels:
+            self.backend_ax.set_xticklabels(ticks.labels)
+
+    @property
+    def yticks(self):
+        return self._yticks
+
+    @yticks.setter
+    def yticks(self, ticks):
+        self._yticks = ticks
+
+        if ticks and ticks.values:
+            self.backend_ax.set_yticks(ticks.values)
+        if ticks and ticks.labels:
+            self.backend_ax.set_yticklabels(ticks.labels)
+
+    def close(self):
+        plt.close(self.backend_fig)
+
+    def show(self):
+        with mpl.rc_context(rc=self.theme.rc):
+            dummy = plt.figure()
+            new_manager = dummy.canvas.manager
+            new_manager.canvas.figure = self.backend_fig
+            plt.show()
+
+    def save(self, name: str, dpi: int = 150):
+        with mpl.rc_context(rc=self.theme.rc):
+            self.backend_fig.savefig(name, dpi=dpi)
+
+    def _repr_html_(self):
+        self.show()

@@ -1,18 +1,21 @@
 # tex
 # text.usetex : True
 
-# figure size
-figure.figsize : 6, 4
+figure.figsize    : 6, 4
+figure.autolayout : True
+figure.dpi        : 96
+
+image.aspect : auto
 
 # colors
-text.color        : white
-figure.facecolor  : black
-xtick.color       : white
-ytick.color       : white
-axes.facecolor    : black
-axes.edgecolor    : white
-axes.labelcolor   : white
-savefig.facecolor : black
+text.color        : black
+figure.facecolor  : white
+xtick.color       : black
+ytick.color       : black
+axes.facecolor    : white
+axes.edgecolor    : black
+axes.labelcolor   : black
+savefig.facecolor : white
 
 # font sizes
 font.size        : 11
