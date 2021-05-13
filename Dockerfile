@@ -36,6 +36,11 @@ RUN \
   && cd .. \
   && rm -rf hdf5-${HDF5_VERSION} hdf5-${HDF5_VERSION}.tar.bz2
 
+# graphviz
+RUN \
+  apt-get update \
+  && apt-get install -y graphviz
+
 # Pip
 RUN \
   pip install poetry \

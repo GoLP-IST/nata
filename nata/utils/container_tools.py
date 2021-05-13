@@ -16,7 +16,7 @@ def register_backend(container: DatasetType):
             backend.__getitem__ = backend.get_data
         else:
             warn(
-                f"{backend} is an invalid backend for '{container}'. "
+                f"Invalid backend '{backend.__name__}' for '{container.__name__}'. "
                 + "Skipping backend registration!"
             )
         return backend

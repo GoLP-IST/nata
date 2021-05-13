@@ -11,6 +11,8 @@ from numpy.lib import recfunctions
 from nata.types import BackendType
 from nata.types import DatasetType
 
+from .core import HasNumpyInterface
+
 
 def is_unique(iterable: Iterable) -> bool:
     return len(set(iterable)) == 1
@@ -41,3 +43,17 @@ def unstructured_to_structured(data: da.Array, new_dtype: np.dtype) -> da.Array:
     new_shape = data.shape[:-1]
     new_data = delayed(recfunctions.unstructured_to_structured)(data, dtype=new_dtype)
     return da.from_delayed(new_data, new_shape, dtype=new_dtype)
+
+
+def to_numpy(array_like: HasNumpyInterface) -> np.ndarray:
+    if isinstance(array_like, HasNumpyInterface):
+        return array_like.to_numpy()
+    else:
+        raise TypeError(f"requires object of type '{HasNumpyInterface}'")
+
+
+def to_dask(array_like: HasNumpyInterface) -> da.Array:
+    if isinstance(array_like, HasNumpyInterface):
+        return array_like.to_dask()
+    else:
+        raise TypeError(f"requires object of type '{HasNumpyInterface}'")

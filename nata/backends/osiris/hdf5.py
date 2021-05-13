@@ -4,14 +4,15 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 from typing import Union
 
 import h5py as h5
 import ndindex as ndx
 import numpy as np
 
-from nata.containers import GridDataset
-from nata.containers import ParticleDataset
+from nata.containers import GridArray
+from nata.containers import ParticleArray
 from nata.types import BasicIndex
 from nata.types import BasicIndexing
 from nata.types import FileLocation
@@ -19,7 +20,7 @@ from nata.utils.backends import sort_particle_quantities
 from nata.utils.container_tools import register_backend
 
 
-@register_backend(GridDataset)
+@register_backend(GridArray)
 class Osiris_Hdf5_GridFile:
     name = "osiris_4.4.4_grid_hdf5"
     location: Optional[Path] = None
@@ -157,7 +158,7 @@ class Osiris_Hdf5_GridFile:
         return self._time_unit
 
 
-@register_backend(GridDataset)
+@register_backend(GridArray)
 class Osiris_Dev_Hdf5_GridFile:
     name = "osiris_dev_grid_hdf5"
     location: Optional[Path] = None
@@ -297,7 +298,7 @@ class Osiris_Dev_Hdf5_GridFile:
         return self._time_unit
 
 
-@register_backend(ParticleDataset)
+@register_backend(ParticleArray)
 class Osiris_Hdf5_ParticleFile:
     name = "osiris_4.4.4_particles_hdf5"
     location: Optional[Path] = None
@@ -308,6 +309,7 @@ class Osiris_Hdf5_ParticleFile:
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             self._dataset_name = fp.attrs["NAME"].astype(str)[0]
+            self._dataset_label = fp.attrs["LABEL"].astype(str)[0]
             self._num_particles = fp["q"].shape[0] if fp["q"].shape else 0
 
             # find first all quantaties - with their names
@@ -344,6 +346,10 @@ class Osiris_Hdf5_ParticleFile:
         return self._dataset_name
 
     @property
+    def dataset_label(self) -> str:
+        return self._dataset_label
+
+    @property
     def num_particles(self) -> int:
         return self._num_particles
 
@@ -362,6 +368,14 @@ class Osiris_Hdf5_ParticleFile:
     @property
     def dtype(self) -> np.dtype:
         return self._dtype
+
+    @property
+    def ndim(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        raise NotImplementedError
 
     @property
     def iteration(self) -> int:
@@ -419,7 +433,7 @@ class Osiris_Hdf5_ParticleFile:
         return dset
 
 
-@register_backend(ParticleDataset)
+@register_backend(ParticleArray)
 class Osiris_Dev_Hdf5_ParticleFile:
     name = "osiris_dev_particles_hdf5"
     location: Optional[Path] = None
@@ -430,6 +444,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             self._dataset_name = fp.attrs["NAME"].astype(str)[0]
+            self._dataset_label = fp.attrs["LABEL"].astype(str)[0]
             self._num_particles = fp["q"].shape[0] if fp["q"].shape else 0
 
             # quantaties
@@ -463,6 +478,10 @@ class Osiris_Dev_Hdf5_ParticleFile:
         return self._dataset_name
 
     @property
+    def dataset_label(self) -> str:
+        return self._dataset_label
+
+    @property
     def num_particles(self) -> int:
         return self._num_particles
 
@@ -481,6 +500,14 @@ class Osiris_Dev_Hdf5_ParticleFile:
     @property
     def dtype(self) -> np.dtype:
         return self._dtype
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        raise NotImplementedError
+
+    @property
+    def ndim(self) -> int:
+        raise NotImplementedError
 
     @property
     def iteration(self) -> int:
