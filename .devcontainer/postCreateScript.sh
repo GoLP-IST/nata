@@ -11,3 +11,6 @@ poetry run pip install ipdb
 
 echo -e "\e[104m>>> Installing pytest-watch \e[0m"
 poetry run pip install pytest-watch
+
+echo -e "\e[104m>>> Installing graphviz \e[0m"
+poetry run pip install graphviz
