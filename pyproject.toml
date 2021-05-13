@@ -28,6 +28,7 @@ name = "nata"
 readme = "README.md"
 repository = "https://github.com/GoLP-IST/nata"
 version = "0.0.2"
+include = ["examples/*"]
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/GoLP-IST/nata/issues"
