@@ -7,12 +7,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .elements import LinearScale
-from .elements import LogScale
 from .elements import Scale
-from .elements import SymmetricalLogScale
 from .elements import Theme
 from .elements import Ticks
+from .elements import mpl_norm_from_scale
+from .elements import mpl_scale_from_scale
 
 Numbers = Union[int, float]
 
@@ -63,6 +62,12 @@ class Figure:
                 alpha=alpha,
             )
 
+        if not self.xrange:
+            self.xrange = (np.min(x), np.max(x))
+
+        # if not self.yrange:
+        #     self.yrange = (np.min(y), np.max(y))
+
     def scatter(
         self, x, y, color=None, style=None, size=None, alpha=None, colorbar=None
     ):
@@ -96,8 +101,7 @@ class Figure:
             img = self.backend_ax.imshow(
                 np.transpose(c),
                 extent=[np.min(x), np.max(x), np.min(y), np.max(y)],
-                vmin=cmin,
-                vmax=cmax,
+                norm=mpl_norm_from_scale(cscale, (cmin, cmax)),
                 origin="lower",
                 cmap=cmap,
                 aspect=self.aspect,
@@ -108,9 +112,11 @@ class Figure:
                     img, ax=self.backend_ax, label=colorbar.label
                 )
 
-                if colorbar.ticks:
-                    cb.ax.set_xticks(colorbar.ticks.values)
-                    cb.ax.set_xticklabels(colorbar.ticks.labels)
+                if colorbar.ticks and colorbar.ticks.values:
+                    cb.set_ticks(colorbar.ticks.values)
+
+                if colorbar.ticks and colorbar.ticks.labels:
+                    cb.set_ticklabels(colorbar.ticks.labels)
 
     @property
     def size(self):
@@ -179,18 +185,8 @@ class Figure:
     def xscale(self, scale):
         self._xscale = scale
 
-        if isinstance(scale, LinearScale):
-            self.backend_ax.set_xscale(mpl.scale.LinearScale(axis=None))
-
-        if isinstance(scale, LogScale):
-            self.backend_ax.set_xscale(mpl.scale.LogScale(axis=None, base=scale.base))
-
-        if isinstance(scale, SymmetricalLogScale):
-            self.backend_ax.set_xscale(
-                mpl.scale.SymmetricalLogScale(
-                    axis=None, base=scale.base, linthresh=scale.linthresh or 1.0
-                )
-            )
+        if isinstance(scale, Scale):
+            self.backend_ax.set_xscale(mpl_scale_from_scale(scale))
 
     @property
     def yscale(self):
@@ -200,18 +196,8 @@ class Figure:
     def yscale(self, scale):
         self._yscale = scale
 
-        if isinstance(scale, LinearScale):
-            self.backend_ax.set_yscale(mpl.scale.LinearScale(axis=None))
-
-        if isinstance(scale, LogScale):
-            self.backend_ax.set_yscale(mpl.scale.LogScale(axis=None, base=scale.base))
-
-        if isinstance(scale, SymmetricalLogScale):
-            self.backend_ax.set_yscale(
-                mpl.scale.SymmetricalLogScale(
-                    axis=None, base=scale.base, linthresh=scale.linthresh or 1.0
-                )
-            )
+        if isinstance(scale, Scale):
+            self.backend_ax.set_yscale(mpl_scale_from_scale(scale))
 
     @property
     def xrange(self):
