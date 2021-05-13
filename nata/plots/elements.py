@@ -81,3 +81,33 @@ def scale_from_str(name: str):
         return SymmetricalLogScale()
     else:
         raise ValueError("invalid scale name")
+
+
+def mpl_norm_from_scale(scale: Scale, crange: Sequence[Numbers]):
+
+    if not scale or isinstance(scale, LinearScale):
+        return mpl.colors.Normalize(vmin=crange[0], vmax=crange[1])
+
+    elif isinstance(scale, LogScale):
+        return mpl.colors.LogNorm(vmin=crange[0], vmax=crange[1])
+
+    elif isinstance(scale, SymmetricalLogScale):
+        return mpl.colors.SymLogNorm(
+            vmin=crange[0],
+            vmax=crange[1],
+            base=scale.base,
+            linthresh=scale.linthresh or 1.0,
+        )
+
+
+def mpl_scale_from_scale(scale: Scale):
+    if isinstance(scale, LinearScale):
+        return mpl.scale.LinearScale(axis=None)
+
+    elif isinstance(scale, LogScale):
+        return mpl.scale.LogScale(axis=None, base=scale.base)
+
+    elif isinstance(scale, SymmetricalLogScale):
+        return mpl.scale.SymmetricalLogScale(
+            axis=None, base=scale.base, linthresh=scale.linthresh or 1.0
+        )

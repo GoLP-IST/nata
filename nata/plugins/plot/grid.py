@@ -65,8 +65,10 @@ def plot_data_array(
     if isinstance(theme, str) or theme is None:
         theme = Theme(name=theme or "light")
 
-    if title is None:
-        title = f"Time = {data.time.to_numpy()} [{data.time.unit}]"
+    if title is None and not (data.time == None).to_numpy():
+        title = f"Time = {data.time.to_numpy()}" + (
+            f" [{data.time.unit}]" if data.time.unit else ""
+        )
 
     if isinstance(xscale, str):
         xscale = scale_from_str(xscale)
@@ -99,13 +101,22 @@ def plot_data_array(
         elif isinstance(kind, Scatter):
             fig.scatter(data.axes[0].to_numpy(), data.to_numpy(), **kind.to_dict())
 
-        fig.xlabel = xlabel or f"{data.axes[0].label} [{data.axes[0].unit}]"
-        fig.ylabel = ylabel or f"{data.label} [{data.unit}]"
+        fig.xlabel = xlabel or f"{data.axes[0].label}" + (
+            f" [{data.axes[0].unit}]" if data.axes[0].unit else ""
+        )
+        fig.ylabel = ylabel or f"{data.label}" + (
+            f" [{data.unit}]" if data.unit else ""
+        )
 
     elif data.ndim == 2:
 
         if not kind.colorbar:
-            kind.colorbar = Colorbar(label=f"{data.label} [{data.unit}]")
+            kind.colorbar = Colorbar(
+                label=f"{data.label}" + (f" [{data.unit}]" if data.unit else "")
+            )
+
+        if isinstance(kind.colorbar.ticks, Sequence):
+            kind.colorbar.ticks = Ticks(values=kind.colorbar.ticks)
 
         if isinstance(kind, Image):
             fig.image(
@@ -115,8 +126,12 @@ def plot_data_array(
                 **kind.to_dict(),
             )
 
-        fig.xlabel = xlabel or f"{data.axes[0].label} [{data.axes[0].unit}]"
-        fig.ylabel = ylabel or f"{data.axes[1].label} [{data.axes[1].unit}]"
+        fig.xlabel = xlabel or f"{data.axes[0].label}" + (
+            f" [{data.axes[0].unit}]" if data.axes[0].unit else ""
+        )
+        fig.ylabel = ylabel or f"{data.axes[1].label}" + (
+            f" [{data.axes[1].unit}]" if data.axes[0].unit else ""
+        )
 
     else:
         raise NotImplementedError
