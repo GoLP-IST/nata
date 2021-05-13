@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 from typing import Union
 
 import h5py as h5
@@ -308,6 +309,7 @@ class Osiris_Hdf5_ParticleFile:
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             self._dataset_name = fp.attrs["NAME"].astype(str)[0]
+            self._dataset_label = fp.attrs["LABEL"].astype(str)[0]
             self._num_particles = fp["q"].shape[0] if fp["q"].shape else 0
 
             # find first all quantaties - with their names
@@ -344,6 +346,10 @@ class Osiris_Hdf5_ParticleFile:
         return self._dataset_name
 
     @property
+    def dataset_label(self) -> str:
+        return self._dataset_label
+
+    @property
     def num_particles(self) -> int:
         return self._num_particles
 
@@ -362,6 +368,14 @@ class Osiris_Hdf5_ParticleFile:
     @property
     def dtype(self) -> np.dtype:
         return self._dtype
+
+    @property
+    def ndim(self) -> int:
+        raise NotImplementedError
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        raise NotImplementedError
 
     @property
     def iteration(self) -> int:
@@ -430,6 +444,7 @@ class Osiris_Dev_Hdf5_ParticleFile:
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             self._dataset_name = fp.attrs["NAME"].astype(str)[0]
+            self._dataset_label = fp.attrs["LABEL"].astype(str)[0]
             self._num_particles = fp["q"].shape[0] if fp["q"].shape else 0
 
             # quantaties
@@ -463,6 +478,10 @@ class Osiris_Dev_Hdf5_ParticleFile:
         return self._dataset_name
 
     @property
+    def dataset_label(self) -> str:
+        return self._dataset_label
+
+    @property
     def num_particles(self) -> int:
         return self._num_particles
 
@@ -481,6 +500,14 @@ class Osiris_Dev_Hdf5_ParticleFile:
     @property
     def dtype(self) -> np.dtype:
         return self._dtype
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        raise NotImplementedError
+
+    @property
+    def ndim(self) -> int:
+        raise NotImplementedError
 
     @property
     def iteration(self) -> int:
