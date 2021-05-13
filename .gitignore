@@ -189,10 +189,5 @@ $RECYCLE.BIN/
 # venv module files
 .venv/
 
-# examples/data directory should not be commited to git
-# use other services to download it - in general it should
-# vary large and shouldn't be commited to GitHub
-examples/data
-
 # vscode
 .vscode
