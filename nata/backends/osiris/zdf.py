@@ -7,15 +7,15 @@ from typing import Union
 
 import numpy as np
 
-from nata.containers import GridDataset
-from nata.containers import ParticleDataset
+from nata.containers import GridArray
+from nata.containers import ParticleArray
 from nata.utils.cached_property import cached_property
 from nata.utils.container_tools import register_backend
 from nata.utils.zdf import info
 from nata.utils.zdf import read
 
 
-@register_backend(GridDataset)
+@register_backend(GridArray)
 class Osiris_zdf_GridFile:
     name = "osiris_dev_grid_zdf"
     location: Optional[Path] = None
@@ -172,7 +172,7 @@ class Osiris_zdf_GridFile:
         )
 
 
-@register_backend(ParticleDataset)
+@register_backend(ParticleArray)
 class Osiris_zdf_ParticleFile:
     name = "osiris_dev_particles_zdf"
     location: Optional[Path] = None
