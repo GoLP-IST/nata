@@ -9,4 +9,7 @@ ignore =
   E203,
   # W503 line break before binary operator
   # -> issues with not complying with black
-  W503
+  W503,
+  # E711 comparison to None should be 'if cond is None:'
+  # -> issues with elementwise comparison to None with numpy
+  E711
