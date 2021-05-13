@@ -65,8 +65,10 @@ def plot_data_array(
     if isinstance(theme, str) or theme is None:
         theme = Theme(name=theme or "light")
 
-    if title is None:
-        title = f"Time = {data.time.to_numpy()} [{data.time.unit}]"
+    if title is None and not (data.time == None).to_numpy():
+        title = f"Time = {data.time.to_numpy()}" + (
+            f" [{data.time.unit}]" if data.time.unit else ""
+        )
 
     if isinstance(xscale, str):
         xscale = scale_from_str(xscale)
