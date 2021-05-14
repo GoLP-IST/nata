@@ -1,0 +1,6 @@
+# colors
+text.color        : red
+xtick.color       : red
+ytick.color       : red
+axes.edgecolor    : red
+axes.labelcolor   : red
