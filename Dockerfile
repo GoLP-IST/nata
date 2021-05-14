@@ -36,6 +36,11 @@ RUN \
   && cd .. \
   && rm -rf hdf5-${HDF5_VERSION} hdf5-${HDF5_VERSION}.tar.bz2
 
+# latex
+RUN \
+  apt-get update \
+  && apt-get install -y texlive-full
+
 # graphviz
 RUN \
   apt-get update \
