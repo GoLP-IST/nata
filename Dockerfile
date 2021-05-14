@@ -36,21 +36,11 @@ RUN \
   && cd .. \
   && rm -rf hdf5-${HDF5_VERSION} hdf5-${HDF5_VERSION}.tar.bz2
 
-# latex
+# developer tooling and runtime package
 RUN \
   apt-get update \
-  && apt-get install -y texlive-full
-
-# graphviz
-RUN \
-  apt-get update \
-  && apt-get install -y graphviz
-
-# Pip
-RUN \
-  pip install poetry \
-  && pip install black \
-  && pip install pre-commit
+  && apt-get install -y texlive-base graphviz less \
+  && pip install poetry black pre-commit
 
 # Setup project directory & poetry
 RUN \
