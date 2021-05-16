@@ -412,13 +412,11 @@ class Osiris_Hdf5_ParticleFile:
 
     def get_data(
         self,
-        indexing: Optional[BasicIndex] = None,
+        indexing: Tuple[BasicIndex],
     ) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
-            index = ndx.Slice(None) if indexing is None else ndx.ndindex(indexing)
-            index = index.reduce(self._shape)
-
+            index = ndx.ndindex(indexing[0]).reduce(self._shape)
             # create array as source to store quantities
             dset = np.empty(len(index), dtype=self._dtype)
 
