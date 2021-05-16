@@ -308,9 +308,14 @@ class Osiris_Hdf5_ParticleFile:
 
         info(f"Obtaining backend props for '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
-            self._dataset_name = fp.attrs["NAME"].astype(str)[0]
-            self._dataset_label = fp.attrs["LABEL"].astype(str)[0]
-            self._num_particles = fp["q"].shape[0] if fp["q"].shape else 0
+            ds_name = fp.attrs["NAME"].astype(str)[0]
+
+            # ensures name is valid identifier
+            self._dataset_name = ds_name.replace(" ", "_")
+            self._dataset_label = ds_name
+
+            self._shape = fp["q"].shape
+            self._ndim = len(self._shape)
 
             # find first all quantaties - with their names
             names = []
@@ -350,10 +355,6 @@ class Osiris_Hdf5_ParticleFile:
         return self._dataset_label
 
     @property
-    def num_particles(self) -> int:
-        return self._num_particles
-
-    @property
     def quantity_names(self) -> List[str]:
         return self._quantity_names
 
@@ -371,11 +372,11 @@ class Osiris_Hdf5_ParticleFile:
 
     @property
     def ndim(self) -> int:
-        raise NotImplementedError
+        return self._ndim
 
     @property
-    def shape(self) -> Tuple[int, ...]:
-        raise NotImplementedError
+    def shape(self) -> Tuple[int]:
+        return self._shape
 
     @property
     def iteration(self) -> int:
@@ -412,24 +413,17 @@ class Osiris_Hdf5_ParticleFile:
     def get_data(
         self,
         indexing: Optional[BasicIndex] = None,
-        fields: Optional[Union[str, Sequence[str]]] = None,
     ) -> np.ndarray:
         info(f"Reading data in '{self.location}'")
         with h5.File(self.location, mode="r") as fp:
             index = ndx.Slice(None) if indexing is None else ndx.ndindex(indexing)
-            index = index.reduce((self.num_particles,))
-            dtype = self.dtype if fields is None else self.dtype[fields]
+            index = index.reduce(self._shape)
 
-            if dtype.fields:
-                # create array as source to store quantities
-                dset = np.empty(len(index), dtype=dtype)
+            # create array as source to store quantities
+            dset = np.empty(len(index), dtype=self._dtype)
 
-                for field in dtype.fields:
-                    dset[field][:] = fp[field][index.raw]
-            else:
-                # only one field element -> string passed
-                dset = fp[fields][index.raw]
-
+            for field in self._dtype.fields:
+                dset[field][:] = fp[field][index.raw]
         return dset
 
 
