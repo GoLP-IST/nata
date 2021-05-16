@@ -93,8 +93,6 @@ class ParticleBackend(Protocol):
     dataset_name: str
     dataset_label: str
 
-    num_particles: int
-
     quantity_names: Sequence[str]
     quantity_labels: Sequence[str]
     quantity_units: Sequence[str]
@@ -113,7 +111,6 @@ class ParticleDataReader(ParticleBackend, Protocol):
     def get_data(
         self,
         indexing: Optional[BasicIndexing] = None,
-        fields: Optional[Union[str, Sequence[str]]] = None,
     ) -> np.ndarray:
         ...
 
