@@ -12,7 +12,7 @@ Numbers = Union[int, float]
 
 @dataclass
 class Theme:
-    name: Optional[str] = None
+    name: str = "light"
     path: Optional[str] = None
     extra: Optional[dict] = None
 
