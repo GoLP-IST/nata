@@ -183,3 +183,52 @@ def test_Osiris_Dev_Hdf5_ParticleFile_is_valid_backend(
     prt_path = make_prt_file("osiris_dev_particles_hdf5", data)
 
     assert Osiris_Dev_Hdf5_ParticleFile.is_valid_backend(prt_path)
+
+
+def test_Osiris_Dev_Hdf5_ParticleFile_properties(
+    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path]
+):
+    data = unstructured_to_structured(np.random.random((10, 4)))
+    data = rename_fields(data, {"f0": "q"})
+
+    prt_path = make_prt_file("osiris_dev_particles_hdf5", data, name="some particles")
+    backend = Osiris_Dev_Hdf5_ParticleFile(prt_path)
+
+    assert backend.name == "osiris_dev_particles_hdf5"
+    assert backend.location == prt_path
+    assert backend.dataset_name == "some_particles"
+    assert backend.dataset_label == "some particles"
+
+    assert backend.quantity_names == ["f1", "f2", "f3", "q"]
+    assert backend.quantity_labels == [
+        "f1 label",
+        "f2 label",
+        "f3 label",
+        "q label",
+    ]
+    assert backend.quantity_units == [
+        "f1 unit",
+        "f2 unit",
+        "f3 unit",
+        "q unit",
+    ]
+
+    assert backend.shape == (10,)
+    assert backend.dtype == np.dtype(
+        [
+            ("f1", float),
+            ("f2", float),
+            ("f3", float),
+            ("q", float),
+        ]
+    )
+
+    # taken function 'make_osiris_444_particles_hdf'
+    assert backend.iteration == 12345
+    assert np.isclose(backend.time_step, -321.9)
+    assert backend.time_unit == "time unit"
+
+    # check reading of data
+    for indexing in (np.s_[0], np.s_[-1], np.s_[:], np.s_[3:7], np.s_[4:1]):
+        expected_data = data[indexing]
+        np.testing.assert_array_equal(backend.get_data((indexing,)), expected_data)
