@@ -373,12 +373,13 @@ class Particle(
         md = f"""
         | **{type(self).__name__}** | |
         | ---: | :--- |
-        | **name**  | {self.name} |
-        | **label** | {self.label} |
-        | **unit**  | {self.unit or "''"} |
-        | **count** | {self.count} |
-        | **dtype** | {self.dtype} |
-        | **time**  | {self.time.to_numpy()} |
+        | **name**       | {self.name} |
+        | **label**      | {self.label} |
+        | **count**      | {self.count} |
+        | **shape**      | {self.shape} |
+        | **dtype**      | {self.dtype} |
+        | **quantities** | {self.quantity_names} |
+        | **time**       | {self.time.to_numpy()} |
 
         """
         return dedent(md)
