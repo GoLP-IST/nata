@@ -10,6 +10,7 @@ import pytest
 from numpy.lib.recfunctions import rename_fields
 from numpy.lib.recfunctions import unstructured_to_structured
 
+from nata.backends.osiris.hdf5 import Osiris_Dev_Hdf5_ParticleFile
 from nata.backends.osiris.hdf5 import Osiris_Hdf5_ParticleFile
 from nata.containers.particle import ParticleDataReader
 
@@ -137,3 +138,7 @@ def test_Osiris_Hdf5_ParticleFile_properties(
     for indexing in (np.s_[0], np.s_[-1], np.s_[:], np.s_[3:7], np.s_[4:1]):
         expected_data = data[indexing]
         np.testing.assert_array_equal(backend.get_data((indexing,)), expected_data)
+
+
+def test_Osiris_Dev_Hdf5_ParticleFile_isinstance_ParticleDataReader():
+    assert isinstance(Osiris_Dev_Hdf5_ParticleFile, ParticleDataReader)
