@@ -93,8 +93,6 @@ class ParticleBackend(Protocol):
     dataset_name: str
     dataset_label: str
 
-    num_particles: int
-
     quantity_names: Sequence[str]
     quantity_labels: Sequence[str]
     quantity_units: Sequence[str]
@@ -113,7 +111,6 @@ class ParticleDataReader(ParticleBackend, Protocol):
     def get_data(
         self,
         indexing: Optional[BasicIndexing] = None,
-        fields: Optional[Union[str, Sequence[str]]] = None,
     ) -> np.ndarray:
         ...
 
@@ -376,12 +373,13 @@ class Particle(
         md = f"""
         | **{type(self).__name__}** | |
         | ---: | :--- |
-        | **name**  | {self.name} |
-        | **label** | {self.label} |
-        | **unit**  | {self.unit or "''"} |
-        | **count** | {self.count} |
-        | **dtype** | {self.dtype} |
-        | **time**  | {self.time.to_numpy()} |
+        | **name**       | {self.name} |
+        | **label**      | {self.label} |
+        | **count**      | {self.count} |
+        | **shape**      | {self.shape} |
+        | **dtype**      | {self.dtype} |
+        | **quantities** | {self.quantity_names} |
+        | **time**       | {self.time.to_numpy()} |
 
         """
         return dedent(md)

@@ -14,3 +14,6 @@ poetry run pip install pytest-watch
 
 echo -e "\e[104m>>> Installing graphviz \e[0m"
 poetry run pip install graphviz
+
+echo -e "\e[104m>>> Installing h5glance \e[0m"
+poetry run pip install h5glance
