@@ -136,4 +136,4 @@ def test_Osiris_Hdf5_ParticleFile_properties(
     # check reading of data
     for indexing in (np.s_[0], np.s_[-1], np.s_[:], np.s_[3:7], np.s_[4:1]):
         expected_data = data[indexing]
-        np.testing.assert_array_equal(backend.get_data(indexing), expected_data)
+        np.testing.assert_array_equal(backend.get_data((indexing,)), expected_data)
