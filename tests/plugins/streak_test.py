@@ -26,7 +26,7 @@ def test_streak_axes_shape():
 
     grid = GridDataset.from_array(
         np.tile(x, (len(time), 1)),
-        axes=[Axis.from_array(time), Axis.from_array([x for time_i in time])],
+        axes=[Axis.from_array(time), Axis.from_array([x for _ in time])],
     )
 
     stk_grid = grid.streak()
