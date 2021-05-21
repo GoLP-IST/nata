@@ -9,15 +9,9 @@ import numpy as np
 from nata.containers import GridDataset
 from nata.containers import ParticleDataset
 from nata.containers import register_plugin
-from nata.plots import Colorbar
-from nata.plots import Figure
-from nata.plots import Image
-from nata.plots import Line
 from nata.plots import Scale
-from nata.plots import Scatter
 from nata.plots import Theme
 from nata.plots import Ticks
-from nata.plots.elements import scale_from_str
 from nata.plots.kinds import PlotKind
 
 Numbers = Union[int, float]

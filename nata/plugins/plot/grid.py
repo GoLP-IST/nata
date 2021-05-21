@@ -2,12 +2,8 @@
 from typing import Optional
 from typing import Sequence
 from typing import Union
-from warnings import warn
-
-import numpy as np
 
 from nata.containers import GridArray
-from nata.containers import GridDataset
 from nata.containers import register_plugin
 from nata.plots import Colorbar
 from nata.plots import Figure
@@ -143,4 +139,3 @@ def plot_data_array(
     fig.close()
 
     return fig
-

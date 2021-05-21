@@ -69,23 +69,28 @@ class Figure:
         #     self.yrange = (np.min(y), np.max(y))
 
     def scatter(
-        self, 
-        x, 
-        y, 
+        self,
+        x,
+        y,
         color=None,
         colorrange=None,
         colorscale=None,
-        colormap=None, 
+        colormap=None,
         colorbar=None,
-        style=None, 
-        size=None, 
+        style=None,
+        size=None,
         alpha=None,
     ):
 
         has_colors = (
-            color is not None and 
-            isinstance(color, (Sequence, np.ndarray)) and
-            len(color) == len(x)
+            color is not None
+            and isinstance(color, (Sequence, np.ndarray))
+            and len(color) == len(x)
+        )
+
+        has_single_color = color is not None and (
+            isinstance(color, str)
+            or (isinstance(color, Sequence) and len(color) in (3, 4))
         )
 
         with mpl.rc_context(rc=self.theme.rc):
@@ -95,28 +100,21 @@ class Figure:
                 marker=style,
                 s=size,
                 c=color if has_colors else None,
-                color=color if (
-                    color is not None and ( 
-                        isinstance(color, str) or 
-                        ( isinstance(color, Sequence) and len(color) in (3, 4) )
-                    )
-                ) else None,
+                color=color if has_single_color else None,
                 norm=mpl_norm_from_scale(
-                    colorscale, 
+                    colorscale,
                     (
-                        colorrange[0] if colorrange else np.min(color), 
-                        colorrange[1] if colorrange else np.max(color)
-                    )
-                ) if has_colors else None,
+                        colorrange[0] if colorrange else np.min(color),
+                        colorrange[1] if colorrange else np.max(color),
+                    ),
+                )
+                if has_colors
+                else None,
                 cmap=colormap,
                 alpha=alpha,
             )
 
-            if (
-                has_colors and
-                colorbar and 
-                colorbar.visible
-            ):
+            if has_colors and colorbar and colorbar.visible:
                 cb = self.backend_fig.colorbar(
                     sct, ax=self.backend_ax, label=colorbar.label
                 )
@@ -137,18 +135,18 @@ class Figure:
         colormap=None,
         colorbar=None,
     ):
-    
+
         with mpl.rc_context(rc=self.theme.rc):
             img = self.backend_ax.imshow(
                 np.transpose(color),
                 extent=[np.min(x), np.max(x), np.min(y), np.max(y)],
                 origin="lower",
                 norm=mpl_norm_from_scale(
-                    colorscale, 
+                    colorscale,
                     (
-                        colorrange[0] if colorrange else np.min(color), 
-                        colorrange[1] if colorrange else np.max(color)
-                    )
+                        colorrange[0] if colorrange else np.min(color),
+                        colorrange[1] if colorrange else np.max(color),
+                    ),
                 ),
                 cmap=colormap,
                 aspect=self.aspect,

@@ -2,17 +2,13 @@
 from typing import Optional
 from typing import Sequence
 from typing import Union
-from warnings import warn
 
 import numpy as np
 
 from nata.containers import ParticleArray
-from nata.containers import ParticleDataset
 from nata.containers import register_plugin
 from nata.plots import Colorbar
 from nata.plots import Figure
-from nata.plots import Image
-from nata.plots import Line
 from nata.plots import Scale
 from nata.plots import Scatter
 from nata.plots import Theme
@@ -26,8 +22,10 @@ Numbers = Union[int, float]
 def default_plot_kind(data):
     return Scatter()
 
+
 def is_valid_plot_kind(data, kind):
     return isinstance(kind, Scatter)
+
 
 @register_plugin(ParticleArray, name="plot")
 def plot_particle_array(
@@ -84,7 +82,7 @@ def plot_particle_array(
         yticks=yticks,
         title=title,
     )
-    
+
     if isinstance(kind, Scatter):
 
         # check that color is either:
@@ -92,34 +90,33 @@ def plot_particle_array(
         # - an array with size 3/4 representing an RGB/RGBA value
         # - a string
         if kind.color is not None:
-            if not ( 
-                isinstance(kind.color, (Sequence, np.ndarray)) and
-                len(kind.color) == data.count
-            ) and not (
-                isinstance(kind.color, Sequence) and 
-                len(kind.color) in (3, 4)
-            ) and not isinstance(kind.color, str):
+            if (
+                not (
+                    isinstance(kind.color, (Sequence, np.ndarray))
+                    and len(kind.color) == data.count
+                )
+                and not (isinstance(kind.color, Sequence) and len(kind.color) in (3, 4))
+                and not isinstance(kind.color, str)
+            ):
                 raise ValueError("invalid scatter color")
 
         # when a color that requires a colorbar is provided
         if (
-            kind.color is not None and 
-            isinstance(kind.color, (Sequence, np.ndarray)) and
-            len(kind.color) == data.count and
-            not kind.colorbar
+            kind.color is not None
+            and isinstance(kind.color, (Sequence, np.ndarray))
+            and len(kind.color) == data.count
+            and not kind.colorbar
         ):
             kind.colorbar = Colorbar()
 
         # when a color is not provided and can be computed from quantities
-        if (
-            kind.color is None and 
-            len(data.quantities) > 2
-        ):
+        if kind.color is None and len(data.quantities) > 2:
             kind.color = data[:, data.quantity_names[2]].to_numpy()
 
             if not kind.colorbar:
                 kind.colorbar = Colorbar(
-                    label=f"{data.quantity_labels[2]}" + (f" [{data.quantity_units[2]}]" if data.quantity_units[2] else "")
+                    label=f"{data.quantity_labels[2]}"
+                    + (f" [{data.quantity_units[2]}]" if data.quantity_units[2] else "")
                 )
 
         if isinstance(kind.colorscale, str):
@@ -127,8 +124,12 @@ def plot_particle_array(
 
         if kind.colorbar and isinstance(kind.colorbar.ticks, Sequence):
             kind.colorbar.ticks = Ticks(values=kind.colorbar.ticks)
-        
-        fig.scatter(data[:, data.quantity_names[0]].to_numpy(), data[:, data.quantity_names[1]].to_numpy(), **kind.to_dict())
+
+        fig.scatter(
+            data[:, data.quantity_names[0]].to_numpy(),
+            data[:, data.quantity_names[1]].to_numpy(),
+            **kind.to_dict(),
+        )
 
     fig.xlabel = xlabel or f"{data.quantity_labels[0]}" + (
         f" [{data.quantity_units[0]}]" if data.quantity_units[0] else ""
