@@ -8,6 +8,7 @@ import numpy as np
 
 from nata.containers import GridArray
 from nata.containers import GridDataset
+from nata.containers import ParticleDataset
 from nata.plots import Colorbar
 from nata.plots import Figure
 from nata.plots import Image
@@ -44,7 +45,7 @@ def is_valid_plot_kind(data, kind):
 
 
 @register_container_plugin(GridArray, name="plot")
-def plot_data_array(
+def plot_grid_array(
     data,
     xrange: Optional[Sequence[Numbers]] = None,
     yrange: Optional[Sequence[Numbers]] = None,
@@ -146,7 +147,7 @@ def plot_data_array(
 
 
 @register_container_plugin(GridDataset, name="plot")
-def plot_grid_dataset(
+def plot_dataset(
     data,
     start: int = 0,
     xrange: Optional[Sequence[Numbers]] = None,
