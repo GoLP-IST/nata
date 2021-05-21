@@ -5,8 +5,8 @@ import numpy as np
 
 from nata.containers import GridArray
 from nata.containers import GridDataset
+from nata.containers import register_plugin
 from nata.containers.grid import stack
-from nata.plugins.register import register_container_plugin
 
 
 def get_slice_axis(
@@ -26,7 +26,7 @@ def get_slice_axis(
     return slice_axis
 
 
-@register_container_plugin(GridArray, name="slice")
+@register_plugin(name="slice")
 def slice_grid_array(
     grid: GridArray,
     constant: Union[str, int],
@@ -91,7 +91,7 @@ def slice_grid_array(
     )
 
 
-@register_container_plugin(GridDataset, name="slice")
+@register_plugin(name="slice")
 def slice_grid_dataset(
     grid: GridDataset,
     constant: Union[str, int],

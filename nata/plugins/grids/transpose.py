@@ -6,8 +6,8 @@ import dask.array as da
 
 from nata.containers import GridArray
 from nata.containers import GridDataset
+from nata.containers import register_plugin
 from nata.containers.grid import stack
-from nata.plugins.register import register_container_plugin
 
 
 def get_transpose_axes(
@@ -39,7 +39,7 @@ def get_transpose_axes(
     return tr_axes
 
 
-@register_container_plugin(GridArray, name="transpose")
+@register_plugin(name="transpose")
 def transpose_grid_array(
     grid: GridArray,
     axes: Optional[list] = None,
@@ -90,7 +90,7 @@ def transpose_grid_array(
     )
 
 
-@register_container_plugin(GridDataset, name="transpose")
+@register_plugin(name="transpose")
 def transpose_grid_dataset(
     grid: GridDataset,
     axes: Optional[list] = None,

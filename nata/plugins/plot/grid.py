@@ -8,6 +8,7 @@ import numpy as np
 
 from nata.containers import GridArray
 from nata.containers import GridDataset
+from nata.containers import register_plugin
 from nata.plots import Colorbar
 from nata.plots import Figure
 from nata.plots import Image
@@ -18,7 +19,6 @@ from nata.plots import Theme
 from nata.plots import Ticks
 from nata.plots.elements import scale_from_str
 from nata.plots.kinds import PlotKind
-from nata.plugins.register import register_container_plugin
 
 Numbers = Union[int, float]
 
@@ -43,7 +43,7 @@ def is_valid_plot_kind(data, kind):
             raise NotImplementedError
 
 
-@register_container_plugin(GridArray, name="plot")
+@register_plugin(GridArray, name="plot")
 def plot_data_array(
     data,
     xrange: Optional[Sequence[Numbers]] = None,
@@ -145,7 +145,7 @@ def plot_data_array(
     return fig
 
 
-@register_container_plugin(GridDataset, name="plot")
+@register_plugin(GridDataset, name="plot")
 def plot_grid_dataset(
     data,
     start: int = 0,

@@ -3,10 +3,10 @@ import numpy as np
 
 from nata.containers import GridArray
 from nata.containers import GridDataset
-from nata.plugins.register import register_container_plugin
+from nata.containers import register_plugin
 
 
-@register_container_plugin(GridDataset, name="streak")
+@register_plugin(name="streak")
 def streak_grid_array(
     grid: GridDataset,
 ) -> GridArray:
