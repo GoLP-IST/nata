@@ -15,3 +15,6 @@ from .particle import ParticleDataset
 # from .DatasetCollection import DatasetCollection
 
 from .grid import stack
+
+from .utils import register_plugin
+from .utils import register_backend
