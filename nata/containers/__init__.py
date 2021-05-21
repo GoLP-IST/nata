@@ -12,7 +12,7 @@ from .particle import ParticleDataset
 
 # from .ParticleDataset import ParticleQuantity
 # from .ParticleDataset import ParticleDataset
-from .DatasetCollection import DatasetCollection
+# from .DatasetCollection import DatasetCollection
 
 from .grid import stack
 

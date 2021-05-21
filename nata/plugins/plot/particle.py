@@ -1,141 +1,143 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
-from warnings import warn
+from typing import Sequence
+from typing import Union
 
 import numpy as np
 
-from nata.containers import ParticleDataset
-from nata.plots.axes import Axes
-from nata.plots.data import PlotData
-from nata.plots.data import PlotDataAxis
-from nata.plots.figure import Figure
-from nata.plots.helpers import filter_style
-from nata.plots.plans import AxesPlan
-from nata.plots.plans import FigurePlan
-from nata.plots.plans import PlotPlan
-from nata.plots.types import DefaultParticlePlotType
-from nata.plugins.register import register_container_plugin
-from nata.utils.env import inside_notebook
+from nata.containers import ParticleArray
+from nata.containers import register_plugin
+from nata.plots import Colorbar
+from nata.plots import Figure
+from nata.plots import Scale
+from nata.plots import Scatter
+from nata.plots import Theme
+from nata.plots import Ticks
+from nata.plots.elements import scale_from_str
+from nata.plots.kinds import PlotKind
+
+Numbers = Union[int, float]
 
 
-@register_container_plugin(ParticleDataset, name="plot_data")
-def particle_plot_data(dataset: ParticleDataset) -> PlotData:
-    a = []
-    d = []
-
-    for quant in dataset.quantities.values():
-        new_a = PlotDataAxis(name=quant.name, label=quant.label, units=quant.unit)
-
-        a.append(new_a)
-        d.append(quant.data)
-
-    return PlotData(
-        name=dataset.name,
-        label=dataset.name,
-        units="",
-        data=d,
-        time=np.array(dataset.axes["time"]),
-        time_units=dataset.axes["time"].unit,
-        axes=a,
-    )
+def default_plot_kind(data):
+    return Scatter()
 
 
-@register_container_plugin(ParticleDataset, name="plot_type")
-def particle_plot_type(dataset: ParticleDataset) -> PlotData:
-    return DefaultParticlePlotType
+def is_valid_plot_kind(data, kind):
+    return isinstance(kind, Scatter)
 
 
-@register_container_plugin(ParticleDataset, name="plot")
-def plot_particle_dataset(
-    dataset: ParticleDataset,
-    fig: Optional[Figure] = None,
-    axes: Optional[Axes] = None,
-    style: dict = dict(),
-    interactive: bool = True,
-    n: int = 0,
+@register_plugin(ParticleArray, name="plot")
+def plot_particle_array(
+    data,
+    xrange: Optional[Sequence[Numbers]] = None,
+    yrange: Optional[Sequence[Numbers]] = None,
+    xscale: Optional[Union[Scale, str]] = None,
+    yscale: Optional[Union[Scale, str]] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    xticks: Optional[Union[Ticks, Sequence[Numbers]]] = None,
+    yticks: Optional[Union[Ticks, Sequence[Numbers]]] = None,
+    title: Optional[str] = None,
+    aspect: Optional[str] = None,
+    size: Optional[Sequence[Numbers]] = None,
+    theme: Optional[Union[Theme, str]] = None,
+    kind: Optional[PlotKind] = None,
 ):
-    """Plots a single/multiple iteration :class:`nata.containers.ParticleDataset`\
-       using a :class:`nata.plots.types.ScatterPlot`.
 
-        Parameters
-        ----------
-        fig: :class:`nata.plots.Figure`, optional
-            If provided, the plot is drawn on ``fig``. The plot is drawn on
-            ``axes`` if it is a child axes of ``fig``, otherwise a new axes
-            is created on ``fig``. If ``fig`` is not provided, a new
-            :class:`nata.plots.Figure` is created.
+    if kind and not is_valid_plot_kind(data, kind):
+        raise ValueError(f"invalid plot kind for {type(data)} `{data.name}`")
 
-        axes: :class:`nata.plots.Axes`, optional
-            If provided, the plot is drawn on ``axes``, which must be an axes
-            of ``fig``. If ``axes`` is not provided or is provided without a
-            corresponding ``fig``, a new :class:`nata.plots.Axes` is created in
-            a new :class:`nata.plots.Figure`.
+    kind = kind if kind else default_plot_kind(data)
 
-        style: ``dict``, optional
-            Dictionary that takes a mix of style properties of
-            :class:`nata.plots.Figure`, :class:`nata.plots.Axes` and any plot
-            type (see :class:`nata.plots.types.ScatterPlot`).
+    if isinstance(theme, str) or theme is None:
+        theme = Theme(name=theme or "light")
 
-        interactive: ``bool``, optional
-            Controls wether interactive widgets should be shown with the plot
-            to allow for temporal navigation. Only applicable if ``dataset``
-            has multiple iterations.
+    if title is None and not (data.time == None).to_numpy():
+        title = f"{data.time.label} = {data.time.to_numpy()}" + (
+            f" [{data.time.unit}]" if data.time.unit else ""
+        )
 
-        n: ``int``, optional
-            Selects the index of the iteration to be shown initially. Only
-            applicable if ``dataset`` has multiple iterations, .
+    if isinstance(xscale, str):
+        xscale = scale_from_str(xscale)
 
-        Returns
-        ------
-        :class:`nata.plots.Figure` or ``None``:
-            Figure with plot built based on ``dataset``. Interactive widgets
-            are shown with the figure if ``dataset`` has multiple iterations,
-            in which case this method returns  ``None``.
+    if isinstance(yscale, str):
+        yscale = scale_from_str(yscale)
 
-        Examples
-        --------
-        To get a plot with default style properties in a new figure, simply
-        call the ``.plot()`` method. The first two quantities in the dataset
-        ``quantities`` dictionary will be represented in the horizontal and
-        vertical plot axes, respectively. If a third quantity is available, it
-        will be represented in colors.
+    if isinstance(xticks, Sequence):
+        xticks = Ticks(values=xticks)
 
-        >>> from nata.containers import ParticleDataset
-        >>> import numpy as np
-        >>> arr = np.arange(30).reshape(1,10,3)
-        >>> ds = ParticleDataset("path/to/file")
-        >>> fig = ds.plot()
+    if isinstance(yticks, Sequence):
+        yticks = Ticks(values=yticks)
 
-        The list of quantities in the dataset can be filtered with the
-        :meth:`nata.containers.ParticleDataset.filter` method.
-
-        >>> fig = ds.filter(quantities=["x1", "p1", "ene"]).plot()
-
-    """
-
-    p_plan = PlotPlan(
-        dataset=dataset,
-        style=filter_style(dataset.plot_type(), style),
+    fig = Figure(
+        size=size,
+        aspect=aspect,
+        theme=theme,
+        xrange=xrange,
+        yrange=yrange,
+        xscale=xscale,
+        yscale=yscale,
+        xticks=xticks,
+        yticks=yticks,
+        title=title,
     )
 
-    a_plan = AxesPlan(axes=axes, plots=[p_plan], style=filter_style(Axes, style))
+    if isinstance(kind, Scatter):
 
-    f_plan = FigurePlan(fig=fig, axes=[a_plan], style=filter_style(Figure, style))
+        # check that color is either:
+        # - an array with the right size
+        # - an array with size 3/4 representing an RGB/RGBA value
+        # - a string
+        if kind.color is not None:
+            if (
+                not (
+                    isinstance(kind.color, (Sequence, np.ndarray))
+                    and len(kind.color) == data.count
+                )
+                and not (isinstance(kind.color, Sequence) and len(kind.color) in (3, 4))
+                and not isinstance(kind.color, str)
+            ):
+                raise ValueError("invalid scatter color")
 
-    if len(dataset) > 1:
-        if inside_notebook():
-            if interactive:
-                f_plan.build_interactive(n)
-            else:
-                return f_plan[n].build()
-        else:
-            # TODO: remove last line from warn
-            warn(
-                f"Plotting only iteration with index n={str(n)}."
-                + " Interactive plots of multiple iteration datasets are not"
-                + " supported outside notebook environments."
-            )
-            return f_plan[n].build()
+        # when a color that requires a colorbar is provided
+        if (
+            kind.color is not None
+            and isinstance(kind.color, (Sequence, np.ndarray))
+            and len(kind.color) == data.count
+            and not kind.colorbar
+        ):
+            kind.colorbar = Colorbar()
 
-    else:
-        return f_plan.build()
+        # when a color is not provided and can be computed from quantities
+        if kind.color is None and len(data.quantities) > 2:
+            kind.color = data[:, data.quantity_names[2]].to_numpy()
+
+            if not kind.colorbar:
+                kind.colorbar = Colorbar(
+                    label=f"{data.quantity_labels[2]}"
+                    + (f" [{data.quantity_units[2]}]" if data.quantity_units[2] else "")
+                )
+
+        if isinstance(kind.colorscale, str):
+            kind.colorscale = scale_from_str(kind.colorscale)
+
+        if kind.colorbar and isinstance(kind.colorbar.ticks, Sequence):
+            kind.colorbar.ticks = Ticks(values=kind.colorbar.ticks)
+
+        fig.scatter(
+            data[:, data.quantity_names[0]].to_numpy(),
+            data[:, data.quantity_names[1]].to_numpy(),
+            **kind.to_dict(),
+        )
+
+    fig.xlabel = xlabel or f"{data.quantity_labels[0]}" + (
+        f" [{data.quantity_units[0]}]" if data.quantity_units[0] else ""
+    )
+    fig.ylabel = ylabel or f"{data.quantity_labels[1]}" + (
+        f" [{data.quantity_units[1]}]" if data.quantity_units[1] else ""
+    )
+
+    fig.close()
+
+    return fig

@@ -69,41 +69,86 @@ class Figure:
         #     self.yrange = (np.min(y), np.max(y))
 
     def scatter(
-        self, x, y, color=None, style=None, size=None, alpha=None, colorbar=None
+        self,
+        x,
+        y,
+        color=None,
+        colorrange=None,
+        colorscale=None,
+        colormap=None,
+        colorbar=None,
+        style=None,
+        size=None,
+        alpha=None,
     ):
+
+        has_colors = (
+            color is not None
+            and isinstance(color, (Sequence, np.ndarray))
+            and len(color) == len(x)
+        )
+
+        has_single_color = color is not None and (
+            isinstance(color, str)
+            or (isinstance(color, Sequence) and len(color) in (3, 4))
+        )
+
         with mpl.rc_context(rc=self.theme.rc):
             sct = self.backend_ax.scatter(
                 x,
                 y,
                 marker=style,
                 s=size,
-                c=color,
+                c=color if has_colors else None,
+                color=color if has_single_color else None,
+                norm=mpl_norm_from_scale(
+                    colorscale,
+                    (
+                        colorrange[0] if colorrange else np.min(color),
+                        colorrange[1] if colorrange else np.max(color),
+                    ),
+                )
+                if has_colors
+                else None,
+                cmap=colormap,
                 alpha=alpha,
             )
 
-            if colorbar and colorbar.visible:
-                self.backend_fig.colorbar(sct, ax=self.backend_ax, label=colorbar.label)
+            if has_colors and colorbar and colorbar.visible:
+                cb = self.backend_fig.colorbar(
+                    sct, ax=self.backend_ax, label=colorbar.label
+                )
+
+                if colorbar.ticks and colorbar.ticks.values:
+                    cb.set_ticks(colorbar.ticks.values)
+
+                if colorbar.ticks and colorbar.ticks.labels:
+                    cb.set_ticklabels(colorbar.ticks.labels)
 
     def image(
         self,
         x,
         y,
-        c,
-        crange=None,
-        cscale=None,
-        cmap=None,
+        color,
+        colorrange=None,
+        colorscale=None,
+        colormap=None,
         colorbar=None,
     ):
-        cmin = crange[0] if crange else np.min(c)
-        cmax = crange[1] if crange else np.max(c)
 
         with mpl.rc_context(rc=self.theme.rc):
             img = self.backend_ax.imshow(
-                np.transpose(c),
+                np.transpose(color),
                 extent=[np.min(x), np.max(x), np.min(y), np.max(y)],
-                norm=mpl_norm_from_scale(cscale, (cmin, cmax)),
                 origin="lower",
-                cmap=cmap,
+                norm=mpl_norm_from_scale(
+                    colorscale,
+                    (
+                        colorrange[0] if colorrange else np.min(color),
+                        colorrange[1] if colorrange else np.max(color),
+                    ),
+                ),
+                cmap=colormap,
                 aspect=self.aspect,
             )
 

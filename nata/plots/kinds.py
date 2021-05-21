@@ -33,15 +33,18 @@ class Line(PlotKind):
 @dataclass
 class Scatter(PlotKind):
     color: Optional[str] = None
+    colorrange: Optional[Sequence[Numbers]] = None
+    colorscale: Optional[Union[Scale, str]] = None
+    colormap: Optional[str] = None
+    colorbar: Optional[Colorbar] = None
     style: Optional[str] = None
     size: Optional[Numbers] = None
     alpha: Optional[Numbers] = None
-    colorbar: Optional[Colorbar] = None
 
 
 @dataclass
 class Image(PlotKind):
-    crange: Optional[Sequence[Numbers]] = None
-    cscale: Optional[Union[Scale, str]] = None
-    cmap: Optional[str] = None
+    colorrange: Optional[Sequence[Numbers]] = None
+    colorscale: Optional[Union[Scale, str]] = None
+    colormap: Optional[str] = None
     colorbar: Optional[Colorbar] = None
