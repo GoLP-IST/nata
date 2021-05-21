@@ -315,7 +315,7 @@ class HasPluginSystem:
         return super().__getattribute__(name)
 
     @classmethod
-    def get_property_plugin(cls) -> Dict[str, Callable]:
+    def get_property_plugins(cls) -> Dict[str, Callable]:
         return cls._plugin_as_property
 
     @classmethod
@@ -336,7 +336,7 @@ class HasPluginSystem:
         del cls._plugin_as_property[plugin_name]
 
     @classmethod
-    def get_method_plugin(cls) -> Dict[str, Callable]:
+    def get_method_plugins(cls) -> Dict[str, Callable]:
         return cls._plugin_as_method
 
     @classmethod

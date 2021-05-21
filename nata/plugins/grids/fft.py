@@ -8,8 +8,8 @@ import numpy.fft as fft
 from nata.containers import Axis
 from nata.containers import GridArray
 from nata.containers import GridDataset
+from nata.containers import register_plugin
 from nata.containers.grid import stack
-from nata.plugins.register import register_container_plugin
 
 
 def get_fft_axes(
@@ -43,7 +43,7 @@ def get_fft_axes(
     return fft_axes
 
 
-@register_container_plugin(GridArray, name="fft")
+@register_plugin(name="fft")
 def fft_grid_array(
     grid: GridArray,
     axes: Optional[list] = None,
@@ -163,7 +163,7 @@ def fft_grid_array(
     )
 
 
-@register_container_plugin(GridDataset, name="fft")
+@register_plugin(name="fft")
 def fft_grid_dataset(
     grid: GridDataset,
     axes: Optional[list] = None,

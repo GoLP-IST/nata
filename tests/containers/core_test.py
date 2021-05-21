@@ -318,14 +318,14 @@ def test_HasPluginSystem_property_plugin():
     def plug_function(obj):
         return obj
 
-    assert len(ExtendedClass.get_property_plugin()) == 0
+    assert len(ExtendedClass.get_property_plugins()) == 0
     ExtendedClass.add_property_plugin("my_plugin", plug_function)
 
     obj = ExtendedClass()
     assert obj.my_plugin is obj
-    assert ExtendedClass.get_property_plugin()["my_plugin"] is plug_function
+    assert ExtendedClass.get_property_plugins()["my_plugin"] is plug_function
     ExtendedClass.remove_property_plugin("my_plugin")
-    assert len(ExtendedClass.get_property_plugin()) == 0
+    assert len(ExtendedClass.get_property_plugins()) == 0
 
 
 def test_HasPluginSystem_property_pluging_raise_invalid_plugin_name():
@@ -356,14 +356,14 @@ def test_HasPluginSystem_method_plugin():
     def plug_function(obj):
         return obj
 
-    assert len(ExtendedClass.get_method_plugin()) == 0
+    assert len(ExtendedClass.get_method_plugins()) == 0
     ExtendedClass.add_method_plugin("my_plugin", plug_function)
 
     obj = ExtendedClass()
     assert obj.my_plugin() is obj
-    assert ExtendedClass.get_method_plugin()["my_plugin"] is plug_function
+    assert ExtendedClass.get_method_plugins()["my_plugin"] is plug_function
     ExtendedClass.remove_method_plugin("my_plugin")
-    assert len(ExtendedClass.get_method_plugin()) == 0
+    assert len(ExtendedClass.get_method_plugins()) == 0
 
 
 def test_HasPluginSystem_method_pluging_raise_invalid_plugin_name():
