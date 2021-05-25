@@ -50,3 +50,6 @@ extra:
       link: https://github.com/GoLP-IST/nata
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/nataforpic
+
+nav:
+  - Home: index.md
