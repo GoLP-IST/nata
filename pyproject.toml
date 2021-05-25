@@ -45,13 +45,14 @@ ipywidgets = {version = "^7.6.3", optional = true}
 jupyter = {version = "^1.0.0", optional = true}
 mkdocs = {version = "^1.1.2", optional = true}
 mkdocs-material = {version = "^7.1.5", optional = true}
+mkdocs-jupyter = {version = "^0.17.3", optional = true}
 
 [tool.poetry.dev-dependencies]
 hypothesis = "^5.10.4"
 pytest = ">5.0"
 
 [tool.poetry.extras]
-docs = ["mkdocs", "mkdocs-material"]
+docs = ["mkdocs", "mkdocs-material", "mkdocs-jupyter"]
 jupyter = ["jupyterlab", "ipywidgets", "jupyter"]
 
 [tool.isort]
