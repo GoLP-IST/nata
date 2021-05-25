@@ -1397,13 +1397,13 @@ python-versions = "*"
 notebook = ">=4.4.1"
 
 [extras]
-docs = ["mkdocs", "mkdocs-material", "mkdocs-jupyter"]
+docs = ["mkdocs", "mkdocs-material", "mkdocs-jupyter", "pymdown-extensions"]
 jupyter = ["jupyterlab", "ipywidgets", "jupyter"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "6b1d94355eee8cdbd7d60e8eb0d1aef2cf7f3272be511eca2380863ab88649ff"
+content-hash = "06d29efeb98ac617894729aac629a0452bd6bb6b0fdb982ce7825d93d2b61c40"
 
 [metadata.files]
 anyio = [
