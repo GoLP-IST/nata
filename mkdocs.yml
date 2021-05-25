@@ -1,0 +1,52 @@
+site_name: nata
+site_description: scientific visualization made sweet
+site_url: https://github.com/GoLP-IST/nata
+
+# repo_name: 'GitHub'
+repo_url: https://github.com/GoLP-IST/nata
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+  font:
+    text: Nurito
+    # text: Fira Sans Condensed
+    code: Fira code
+  features:
+    - header.autohide
+    - search.suggest
+    - serach.highlight
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - toc.integrate
+
+markdown_extensions:
+  - smarty
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/GoLP-IST/nata
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/nataforpic
