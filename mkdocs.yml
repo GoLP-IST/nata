@@ -26,11 +26,8 @@ theme:
   features:
     - header.autohide
     - search.suggest
-    - serach.highlight
+    - search.highlight
     - navigation.sections
-    - navigation.expand
-    - navigation.top
-    - toc.integrate
 
 markdown_extensions:
   - smarty
