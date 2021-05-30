@@ -23,10 +23,6 @@ theme:
         icon: material/toggle-switch
         name: Switch to light mode
 
-  font:
-    text: Nurito
-    # text: Fira Sans Condensed
-    code: Fira code
   features:
     - header.autohide
     - search.suggest
