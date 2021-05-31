@@ -25,10 +25,11 @@ from nata.utils.types import FileLocation
 from .axis import Axis
 from .axis import HasAxes
 from .axis import HasTimeAxis
-from .core import HasAnnotations
 from .core import HasBackends
+from .core import HasName
 from .core import HasNumpyInterface
 from .core import HasPluginSystem
+from .core import HasUnit
 from .exceptions import NoValidBackend
 from .utils import is_unique
 
@@ -105,13 +106,42 @@ class GridDataReader(GridBackend, Protocol):
 
 class GridArray(
     HasBackends,
-    HasAnnotations,
+    HasName,
+    HasUnit,
     HasNumpyInterface,
     HasPluginSystem,
     HasAxes,
     HasTimeAxis,
     backend_protocol=GridBackend,
 ):
+    """
+    [`GridArray`][nata.GridArray] is a container object representing a grid at one time
+    step.
+
+    It can be created using
+
+    - [`.from_array`][nata.GridArray.from_array] to create it from an array-like object
+    - [`.from_path`][nata.GridArray.from_path] to create it from a path-like object
+
+    It inherits the following classes with its functionality
+
+    - [`HasBackends`][nata.containers.core.HasBackends]
+    - [`HasName`][nata.containers.core.HasName]
+    - [`HasUnit`][nata.containers.core.HasUnit]
+    - [`HasNumpyInterface`][nata.containers.core.HasNumpyInterface]
+    - [`HasPluginSystem`][nata.containers.core.HasPluginSystem]
+    - [`HasAxes`][nata.containers.axis.HasAxes]
+    - [`HasTimeAxis`][nata.containers.axis.HasTimeAxis]
+
+    # Indexing
+
+    [`GridArray`][nata.GridArray] represents a n-dimensional array with each dimension
+    corresponding to a labeled axis. This representation is conserved by nata and
+    indexing or slicing of the grid can be done in the same fashion as you would slice
+    an array.
+
+    """
+
     def __init__(
         self,
         data: da.Array,
@@ -214,14 +244,40 @@ class GridArray(
     @classmethod
     def from_array(
         cls,
-        data: ArrayLike,
+        data: Any,
         *,
         name: str = "unnamed",
         label: str = "unlabeled",
         unit: str = "",
-        axes: Optional[Sequence[ArrayLike]] = None,
+        axes: Optional[Sequence[Any]] = None,
         time: Optional[Union[Axis, int, float]] = None,
     ) -> "GridArray":
+        """
+        Recommended way of creating a `GridArray` from array-like object. The
+        arguments are used to for initialization but their validity is only
+        checked at the initialization and not during call of `.from_array`.
+
+        Note:
+            The method `.from_array` only requires one argument and the other
+            arguments are keyword arguments that allow to change the default
+            behaviour.
+
+        Arguments:
+            data: Dask array or any object that can be converted to a dask array using
+                `dask.array.asanyarray`.
+            name: Name of the `GridArray`. The nanme has to be a valid identifier.
+            label: Label of the `GridArray`. Any string labeling the grid is supported.
+            unit: Unit of the `GridArray`. Any string can be used here.
+            axes: Axes representing each dimension of the grid. Each axis has to
+                match the length of the dimension to ensure shape consistency, e.g.:
+
+                - GridArray with shape `(10,)` requires 1 axis with shape `(10,)`
+                - GridArray with shape `(10, 15)` requires 2 axis with shape
+                `(10,)` and `(15,)`
+
+                If `None` axes based on the index of the grid are created with
+                default naming.
+        """
         if not isinstance(data, da.Array):
             data = da.asanyarray(data)
 
@@ -281,7 +337,13 @@ class GridArray(
         return data, axes, time, name, label, unit
 
     @classmethod
-    def from_path(cls, path: Union[str, Path], time_axis: str = "time") -> "GridArray":
+    def from_path(
+        cls,
+        path: Union[str, Path],
+        *,
+        time_axis: str = "time",
+    ) -> "GridArray":
+        """Create from path"""
         if not isinstance(path, Path):
             path = Path(path)
 
@@ -301,7 +363,8 @@ class GridArray(
 
 
 class GridDataset(
-    HasAnnotations,
+    HasName,
+    HasUnit,
     HasNumpyInterface,
     HasPluginSystem,
     HasAxes,
