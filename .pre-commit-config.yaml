@@ -1,16 +1,16 @@
 repos:
-    -   repo: https://github.com/pre-commit/pre-commit-hooks
-        rev: v4.0.1
-        hooks:
-        -   id: no-commit-to-branch
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v4.0.1
+      hooks:
+          - id: no-commit-to-branch
             name: Don't commit to master
-        -   id: fix-encoding-pragma
-        -   id: end-of-file-fixer
-        -   id: trailing-whitespace
-    -   repo: https://github.com/PyCQA/isort
-        rev: 5.8.0
-        hooks:
-        -   id: isort
+          - id: fix-encoding-pragma
+          - id: end-of-file-fixer
+          - id: trailing-whitespace
+    - repo: https://github.com/PyCQA/isort
+      rev: 5.8.0
+      hooks:
+          - id: isort
             additional_dependencies: [toml]
             # excludes all the init files from sorting
             exclude: ^.*\/__init__\.py$

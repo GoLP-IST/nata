@@ -26,9 +26,9 @@ from nata.utils.types import FileLocation
 from .axis import Axis
 from .axis import HasTimeAxis
 from .core import HasBackends
+from .core import HasCount
 from .core import HasName
 from .core import HasNumpyInterface
-from .core import HasParticleCount
 from .core import HasPluginSystem
 from .core import HasQuantities
 from .core import HasUnit
@@ -121,7 +121,7 @@ class Quantity(
     HasUnit,
     HasPluginSystem,
     HasTimeAxis,
-    HasParticleCount,
+    HasCount,
 ):
     def __init__(
         self,
@@ -258,7 +258,7 @@ class Particle(
     HasPluginSystem,
     HasName,
     HasTimeAxis,
-    HasParticleCount,
+    HasCount,
 ):
     def __init__(
         self,
@@ -613,7 +613,7 @@ class ParticleDataset(
     HasPluginSystem,
     HasName,
     HasTimeAxis,
-    HasParticleCount,
+    HasCount,
 ):
     def __init__(
         self,
@@ -641,7 +641,7 @@ class ParticleDataset(
         HasQuantities.__init__(self, quantities)
         HasName.__init__(self, name, label)
         HasTimeAxis.__init__(self, time)
-        HasParticleCount.__init__(self, data.shape[-1])
+        HasCount.__init__(self, data.shape[-1])
 
     def __hash__(self) -> int:
         # general naming
