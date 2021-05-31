@@ -6,6 +6,9 @@ poetry install
 echo -e "\e[104m>>> Installing Jupyter tooling \e[0m"
 poetry install -E jupyter
 
+echo -e "\e[104m>>> Installing documentation tooling \e[0m"
+poetry install -E docs
+
 echo -e "\e[104m>>> Installing ipdb \e[0m"
 poetry run pip install ipdb
 

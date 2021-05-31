@@ -1,7 +1,5 @@
 [tool.poetry]
-authors = [
-  "Anton Helm <anton.helm@tecnico.ulisboa.pt>",
-]
+authors = ["Anton Helm <anton.helm@tecnico.ulisboa.pt>"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Education",
@@ -18,6 +16,7 @@ classifiers = [
 description = "Post-processing and visualization for PIC codes"
 documentation = "https://github.com/GoLP-IST/nata"
 homepage = "https://github.com/GoLP-IST/nata"
+include = ["examples/*"]
 keywords = ["post-processing", "visualization", "particle-in-cell"]
 license = "MIT"
 maintainers = [
@@ -28,7 +27,6 @@ name = "nata"
 readme = "README.md"
 repository = "https://github.com/GoLP-IST/nata"
 version = "0.0.2"
-include = ["examples/*"]
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/GoLP-IST/nata/issues"
@@ -36,22 +34,25 @@ include = ["examples/*"]
 [tool.poetry.dependencies]
 dask = {extras = ["array"], version = "^2.26.0"}
 h5py = "^3.1.0"
-matplotlib = "^3.3.4"
-ndindex = "^1.4"
-numpy = "^1.20.1"
-python = "^3.8"
-jupyterlab = {version = "^3.0.10", optional = true}
 ipywidgets = {version = "^7.6.3", optional = true}
 jupyter = {version = "^1.0.0", optional = true}
+jupyterlab = {version = "^3.0.10", optional = true}
+matplotlib = "^3.3.4"
+mkdocs = {version = "^1.1.2", optional = true}
+mkdocs-jupyter = {version = "^0.17.3", optional = true}
+mkdocs-material = {version = "^7.1.5", optional = true}
+ndindex = "^1.4"
+numpy = "^1.20.1"
+pymdown-extensions = {version = "^8.2", optional = true}
+python = "^3.8"
+mkdocstrings = {version = "^0.15.1", optional = true}
 
 [tool.poetry.dev-dependencies]
 hypothesis = "^5.10.4"
 pytest = ">5.0"
-recommonmark = {version = "^0.6.0", optional = true}
-sphinx = {version = "^3.0.3", optional = true}
 
 [tool.poetry.extras]
-docs = ["sphinx", "recommonmark"]
+docs = ["mkdocs", "mkdocs-material", "mkdocs-jupyter", "pymdown-extensions", "mkdocstrings"]
 jupyter = ["jupyterlab", "ipywidgets", "jupyter"]
 
 [tool.isort]

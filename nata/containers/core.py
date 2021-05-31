@@ -485,7 +485,7 @@ class HasQuantities:
         return tuple(q[2] for q in self._quantities)
 
 
-class HasParticleCount:
+class HasCount:
     _count: int
 
     def __init__(self, count: int) -> None:

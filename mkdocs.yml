@@ -1,0 +1,131 @@
+site_name: nata
+site_description: scientific visualization made sweet
+site_url: https://github.com/GoLP-IST/nata
+
+repo_url: https://github.com/GoLP-IST/nata
+
+nav:
+  - Overview: index.md
+  - contrib.md
+  - Backends:
+      - backends/index.md
+  - Containers:
+      - containers/index.md
+      - containers/grids.md
+  - Plugins:
+      - plugins/index.md
+  - Examples:
+      - Grids: examples/Grids.ipynb
+      - Particles: examples/Particles.ipynb
+      - Plotting: examples/Plots.ipynb
+      - "Grid Plugins": examples/Plugins - Grids.ipynb
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: blue
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+
+  features:
+    - autorefs
+    - header.autohide
+    - search.suggest
+    - search.highlight
+    - navigation.sections
+
+markdown_extensions:
+  - smarty
+  - toc:
+      permalink: true
+  - markdown.extensions.toc:
+      slugify: !!python/name:pymdownx.slugs.uslugify
+      permalink: ""
+  - markdown.extensions.admonition:
+  - markdown.extensions.smarty:
+      smart_quotes: false
+  - markdown.extensions.attr_list:
+  - markdown.extensions.def_list:
+  - markdown.extensions.tables:
+  - markdown.extensions.abbr:
+  - markdown.extensions.footnotes:
+  - markdown.extensions.md_in_html:
+  - pymdownx.betterem:
+  - pymdownx.superfences:
+      preserve_tabs: true
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+        - name: math
+          class: arithmatex
+          format: !!python/name:pymdownx.arithmatex.fence_mathjax_format
+  - pymdownx.highlight:
+      extend_pygments_lang:
+        - name: pycon3
+          lang: pycon
+          options:
+            python3: true
+      linenums_style: pymdownx-inline
+  - pymdownx.inlinehilite:
+      custom_inline:
+        - name: math
+          class: arithmatex
+          format: !!python/name:pymdownx.arithmatex.inline_mathjax_format
+  - pymdownx.magiclink:
+      repo_url_shortener: true
+      repo_url_shorthand: true
+      social_url_shorthand: true
+      social_url_shortener: true
+      normalize_issue_symbols: true
+  - pymdownx.tilde:
+  - pymdownx.caret:
+  - pymdownx.smartsymbols:
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.escapeall:
+      hardbreak: True
+      nbsp: True
+  - pymdownx.arithmatex:
+  - pymdownx.mark:
+  - pymdownx.striphtml:
+  - pymdownx.keys:
+      separator: "\uff0b"
+  - pymdownx.details:
+  - pymdownx.tabbed:
+  - pymdownx.saneheaders:
+
+plugins:
+  - search
+  - mkdocs-jupyter:
+      ignore_h1_titles: true
+  - mkdocstrings:
+      default_handler: python
+      watch:
+        - nata
+      handlers:
+        python:
+          rendering:
+            show_source: false
+            show_category_heading: true
+            show_signature_annotations: false
+            show_root_heading: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/GoLP-IST/nata
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/nataforpic
