@@ -2,8 +2,23 @@ site_name: nata
 site_description: scientific visualization made sweet
 site_url: https://github.com/GoLP-IST/nata
 
-repo_name: "nata@GitHub"
 repo_url: https://github.com/GoLP-IST/nata
+
+nav:
+  - Overview: index.md
+  - contrib.md
+  - Backends:
+      - backends/index.md
+  - Containers:
+      - containers/index.md
+      - containers/grids.md
+  - Plugins:
+      - plugins/index.md
+  - Examples:
+      - Grids: examples/Grids.ipynb
+      - Particles: examples/Particles.ipynb
+      - Plotting: examples/Plots.ipynb
+      - "Grid Plugins": examples/Plugins - Grids.ipynb
 
 theme:
   name: material
@@ -24,6 +39,7 @@ theme:
         name: Switch to light mode
 
   features:
+    - autorefs
     - header.autohide
     - search.suggest
     - search.highlight
@@ -93,7 +109,19 @@ markdown_extensions:
 
 plugins:
   - search
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      ignore_h1_titles: true
+  - mkdocstrings:
+      default_handler: python
+      watch:
+        - nata
+      handlers:
+        python:
+          rendering:
+            show_source: false
+            show_category_heading: true
+            show_signature_annotations: false
+            show_root_heading: true
 
 extra:
   social:
@@ -101,11 +129,3 @@ extra:
       link: https://github.com/GoLP-IST/nata
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/nataforpic
-
-nav:
-  - Home: index.md
-  - Examples:
-      - examples/Grids.ipynb
-      - examples/Particles.ipynb
-      - examples/Plots.ipynb
-      - examples/Plugins - Grids.ipynb
