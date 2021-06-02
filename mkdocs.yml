@@ -14,6 +14,7 @@ nav:
       - containers/grids.md
   - Plugins:
       - plugins/index.md
+      - plugins/grids.md
   - Examples:
       - Grids: examples/Grids.ipynb
       - Particles: examples/Particles.ipynb
