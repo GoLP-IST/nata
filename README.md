@@ -1,6 +1,6 @@
 <p align="center">
      <img
-          src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/_static/nata-logo.png"
+          src="https://raw.githubusercontent.com/GoLP-IST/nata/master/docs/assets/nata-logo.png"
           alt="nata logo"
           width=460
      />
