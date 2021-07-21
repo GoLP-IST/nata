@@ -8,14 +8,14 @@ repos:
           - id: end-of-file-fixer
           - id: trailing-whitespace
     - repo: https://github.com/PyCQA/isort
-      rev: 5.8.0
+      rev: 5.9.2
       hooks:
           - id: isort
             additional_dependencies: [toml]
             # excludes all the init files from sorting
             exclude: ^.*\/__init__\.py$
     -   repo: https://github.com/psf/black
-        rev: 21.6b0
+        rev: 21.7b0
         hooks:
         -   id: black
     -   repo: https://github.com/PyCQA/flake8
