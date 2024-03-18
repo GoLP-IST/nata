@@ -86,8 +86,7 @@ class BackendType(Protocol):
     #: point to data, either to open a file or to retrieve it.
     location: Optional[FileLocation]
 
-    def __init__(self, location: FileLocation) -> None:
-        ...
+    def __init__(self, location: FileLocation) -> None: ...
 
     @staticmethod
     def is_valid_backend(location: FileLocation) -> bool:
