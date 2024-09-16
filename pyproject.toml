@@ -32,7 +32,7 @@ version = "0.0.2"
 "Bug Tracker" = "https://github.com/GoLP-IST/nata/issues"
 
 [tool.poetry.dependencies]
-dask = {extras = ["array"], version = "^2.26.0"}
+dask = {extras = ["array"], version = ">=2.26,<2022.0"}
 h5py = "^3.1.0"
 ipywidgets = {version = "^7.6.3", optional = true}
 jupyter = {version = "^1.0.0", optional = true}
