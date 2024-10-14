@@ -1,6 +1,6 @@
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.0.1
+      rev: v5.0.0
       hooks:
           - id: no-commit-to-branch
             name: Don't commit to master
@@ -8,17 +8,17 @@ repos:
           - id: end-of-file-fixer
           - id: trailing-whitespace
     - repo: https://github.com/PyCQA/isort
-      rev: 5.9.3
+      rev: 5.13.2
       hooks:
           - id: isort
             additional_dependencies: [toml]
             # excludes all the init files from sorting
             exclude: ^.*\/__init__\.py$
     -   repo: https://github.com/psf/black
-        rev: 21.9b0
+        rev: 24.10.0
         hooks:
         -   id: black
     -   repo: https://github.com/PyCQA/flake8
-        rev: 4.0.1
+        rev: 7.1.1
         hooks:
         -   id: flake8
