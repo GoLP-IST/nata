@@ -72,12 +72,10 @@ class GridBackend(Protocol):
     name: str
     location: Path
 
-    def __init__(self, location: FileLocation) -> None:
-        ...
+    def __init__(self, location: FileLocation) -> None: ...
 
     @staticmethod
-    def is_valid_backend(location: FileLocation) -> bool:
-        ...
+    def is_valid_backend(location: FileLocation) -> bool: ...
 
     dataset_name: str
     dataset_label: str
@@ -100,8 +98,7 @@ class GridBackend(Protocol):
 
 @runtime_checkable
 class GridDataReader(GridBackend, Protocol):
-    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray:
-        ...
+    def get_data(self, indexing: Optional[BasicIndexing] = None) -> np.ndarray: ...
 
 
 class GridArray(
