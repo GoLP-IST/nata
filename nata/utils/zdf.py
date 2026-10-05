@@ -738,9 +738,9 @@ class ZDFfile:
         for i in range(itermap.shape[0]):
             trackID = itermap[i, 0] - 1
             npoints = itermap[i, 1]
-            (trackData[trackID])[
-                trackNp[trackID] : trackNp[trackID] + npoints, :
-            ] = data[idx : idx + npoints, :]
+            (trackData[trackID])[trackNp[trackID] : trackNp[trackID] + npoints, :] = (
+                data[idx : idx + npoints, :]
+            )
             trackNp[trackID] += npoints
             idx += npoints
 
