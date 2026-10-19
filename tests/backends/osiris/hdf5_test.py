@@ -111,7 +111,7 @@ def test_Osiris_Hdf5_ParticleFile_isinstance_ParticleDataReader():
 
 
 def test_Osiris_Hdf5_ParticleFile_is_valid_backend(
-    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path]
+    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path],
 ):
     data = unstructured_to_structured(np.random.random((10, 4)))
     data = rename_fields(data, {"f0": "q"})
@@ -122,7 +122,7 @@ def test_Osiris_Hdf5_ParticleFile_is_valid_backend(
 
 
 def test_Osiris_Hdf5_ParticleFile_properties(
-    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path]
+    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path],
 ):
     data = unstructured_to_structured(np.random.random((10, 4)))
     data = rename_fields(data, {"f0": "q"})
@@ -175,7 +175,7 @@ def test_Osiris_Dev_Hdf5_ParticleFile_isinstance_ParticleDataReader():
 
 
 def test_Osiris_Dev_Hdf5_ParticleFile_is_valid_backend(
-    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path]
+    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path],
 ):
     data = unstructured_to_structured(np.random.random((10, 4)))
     data = rename_fields(data, {"f0": "q"})
@@ -186,7 +186,7 @@ def test_Osiris_Dev_Hdf5_ParticleFile_is_valid_backend(
 
 
 def test_Osiris_Dev_Hdf5_ParticleFile_properties(
-    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path]
+    make_prt_file: Callable[[str, np.ndarray, Optional[str]], Path],
 ):
     data = unstructured_to_structured(np.random.random((10, 4)))
     data = rename_fields(data, {"f0": "q"})

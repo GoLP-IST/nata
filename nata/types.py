@@ -5,6 +5,7 @@ This file contain all the different types available with nata. It is meant to
 be used for typechecking and type annotation. In addition, type checking at
 runtime is supported.
 """
+
 import sys
 from pathlib import Path
 from typing import AbstractSet
@@ -86,8 +87,7 @@ class BackendType(Protocol):
     #: point to data, either to open a file or to retrieve it.
     location: Optional[FileLocation]
 
-    def __init__(self, location: FileLocation) -> None:
-        ...
+    def __init__(self, location: FileLocation) -> None: ...
 
     @staticmethod
     def is_valid_backend(location: FileLocation) -> bool:
