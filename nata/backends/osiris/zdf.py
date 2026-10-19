@@ -53,7 +53,7 @@ class Osiris_zdf_GridFile:
 
     def get_data(self=None, indexing=None):
         # TODO: apply indexing here
-        (z_data, z_info) = read(str(self.location))
+        z_data, z_info = read(str(self.location))
         return z_data.transpose()
 
     @property
@@ -87,7 +87,7 @@ class Osiris_zdf_GridFile:
     @property
     def dtype(self):
         logging.info(f"Accessing '{self.location}' for 'dtype'")
-        (z_data, z_info) = read(str(self.location))
+        z_data, z_info = read(str(self.location))
         return z_data.dtype
 
     @property
@@ -215,7 +215,7 @@ class Osiris_zdf_ParticleFile:
 
     def get_data(self, indexing=None, fields=None) -> np.ndarray:
         logging.info(f"Reading data in '{self.location}'")
-        (z_data, z_info) = read(str(self.location))
+        z_data, z_info = read(str(self.location))
         if fields is None:
             # create a structured array
             dset = np.empty(self.num_particles, dtype=self.dtype)
@@ -265,7 +265,7 @@ class Osiris_zdf_ParticleFile:
     @property
     def dtype(self) -> np.dtype:
         logging.info(f"Accessing '{self.location}' for 'dtype'")
-        (z_data, z_info) = read(str(self.location))
+        z_data, z_info = read(str(self.location))
         fields = []
         for quant in self.quantity_names:
             fields.append((quant, z_data[quant].dtype))

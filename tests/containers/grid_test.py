@@ -33,8 +33,7 @@ def _valid_grid_backend():
             raise NotImplementedError
 
         @staticmethod
-        def is_valid_backend(location: Union[str, Path]) -> bool:
-            ...
+        def is_valid_backend(location: Union[str, Path]) -> bool: ...
 
         dataset_name = str()
         dataset_label = str()
