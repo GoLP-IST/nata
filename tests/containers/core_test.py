@@ -23,11 +23,9 @@ def _ExtendedProtocol() -> BackendType:
         some_other_prop: Tuple[int, ...]
 
         @staticmethod
-        def is_valid_backend(location: Path) -> bool:
-            ...
+        def is_valid_backend(location: Path) -> bool: ...
 
-        def some_other_method(self, foo: int) -> float:
-            ...
+        def some_other_method(self, foo: int) -> float: ...
 
     return ExtendedProtocol
 

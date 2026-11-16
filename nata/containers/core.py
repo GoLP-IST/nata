@@ -20,8 +20,7 @@ class BackendType(Protocol):
     name: str
 
     @staticmethod
-    def is_valid_backend(location: Path) -> bool:
-        ...  # pragma: no cover
+    def is_valid_backend(location: Path) -> bool: ...  # pragma: no cover
 
 
 class HasBackends:
