@@ -101,15 +101,17 @@ class Figure:
                 s=size,
                 c=color if has_colors else None,
                 color=color if has_single_color else None,
-                norm=mpl_norm_from_scale(
-                    colorscale,
-                    (
-                        colorrange[0] if colorrange else np.min(color),
-                        colorrange[1] if colorrange else np.max(color),
-                    ),
-                )
-                if has_colors
-                else None,
+                norm=(
+                    mpl_norm_from_scale(
+                        colorscale,
+                        (
+                            colorrange[0] if colorrange else np.min(color),
+                            colorrange[1] if colorrange else np.max(color),
+                        ),
+                    )
+                    if has_colors
+                    else None
+                ),
                 cmap=colormap,
                 alpha=alpha,
             )
